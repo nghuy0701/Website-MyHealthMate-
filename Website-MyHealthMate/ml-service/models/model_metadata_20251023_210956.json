@@ -1,0 +1,57 @@
+{
+  "model_name": "Logistic Regression",
+  "model_type": "LogisticRegression",
+  "training_date": "2025-10-23T21:09:56.785348",
+  "dataset_info": {
+    "source": "Pima Indians Diabetes Dataset (Cleaned)",
+    "features": [
+      "Pregnancies",
+      "Glucose",
+      "BloodPressure",
+      "SkinThickness",
+      "Insulin",
+      "BMI",
+      "DiabetesPedigreeFunction",
+      "Age"
+    ],
+    "n_samples": 768,
+    "n_features": 8,
+    "target_distribution": {
+      "0": 500,
+      "1": 268
+    }
+  },
+  "performance_metrics": {
+    "cv_roc_auc_mean": 0.8442718715393134,
+    "test_accuracy": 0.7012987012987013,
+    "test_precision": 0.5833333333333334,
+    "test_recall": 0.5185185185185185,
+    "test_f1_score": 0.5490196078431373,
+    "test_roc_auc": 0.8098148148148149
+  },
+  "hyperparameters": "{'solver': 'liblinear', 'penalty': 'l2', 'C': 0.1}",
+  "preprocessing": {
+    "scaler": "StandardScaler",
+    "missing_value_strategy": "median_imputation"
+  },
+  "feature_names": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "feature_importance": {
+    "Pregnancies": 0.3166962541805264,
+    "Glucose": 0.9991171798412188,
+    "BloodPressure": 0.0019957706049065133,
+    "SkinThickness": 0.060628994351696275,
+    "Insulin": 0.024119802565610683,
+    "BMI": 0.56623288908522,
+    "DiabetesPedigreeFunction": 0.20879344629091975,
+    "Age": 0.15017299066588588
+  }
+}

@@ -1,0 +1,20 @@
+const { env } = require('./environment');
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    const whitelist = [
+      env.WEBSITE_DOMAIN_DEVELOPMENT,
+      env.WEBSITE_DOMAIN_PRODUCTION
+    ];
+    
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+module.exports = { corsOptions };
