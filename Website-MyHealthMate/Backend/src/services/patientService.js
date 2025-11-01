@@ -1,18 +1,18 @@
-const { patientModel } = require('../models');
-const { formatPatient } = require('../utils/formatter');
-const { StatusCodes } = require('http-status-codes');
-const ApiError = require('../utils/ApiError');
+import { patientModel  } from '../models'
+import { formatPatient  } from '~/utils/formatter'
+import { StatusCodes  } from 'http-status-codes'
+import ApiError from '~/utils/ApiError'
 
 // Create New Patient
 const createNew = async (req) => {
   try {
-    const userId = req.session.user.userId;
+    const userId = req.session.user.userId
 
     // Check if patient with email already exists
     if (req.body.email) {
-      const existPatient = await patientModel.findOneByEmail(req.body.email);
+      const existPatient = await patientModel.findOneByEmail(req.body.email)
       if (existPatient) {
-        throw new ApiError(StatusCodes.CONFLICT, 'Patient with this email already exists!');
+        throw new ApiError(StatusCodes.CONFLICT, 'Patient with this email already exists!')
       }
     }
 
@@ -26,92 +26,91 @@ const createNew = async (req) => {
       address: req.body.address || null,
       medicalHistory: req.body.medicalHistory || null,
       notes: req.body.notes || null
-    };
+    }
 
-    const createdPatient = await patientModel.createNew(newPatient);
+    const createdPatient = await patientModel.createNew(newPatient)
     const getPatient = await patientModel.findOneById(
       createdPatient.insertedId.toString()
-    );
+    )
 
     if (!getPatient) {
       throw new ApiError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         'Failed to retrieve newly created patient.'
-      );
+      )
     }
 
-    return formatPatient(getPatient);
+    return formatPatient(getPatient)
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
 // Get Patient by ID
 const getById = async (patientId) => {
   try {
-    const patient = await patientModel.findOneById(patientId);
+    const patient = await patientModel.findOneById(patientId)
     if (!patient) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found')
     }
-    return formatPatient(patient);
+    return formatPatient(patient)
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
 // Get Patients by User ID (Doctor's patients)
 const getByUserId = async (userId) => {
   try {
-    const patients = await patientModel.findByUserId(userId);
-    return patients.map(p => formatPatient(p));
+    const patients = await patientModel.findByUserId(userId)
+    return patients.map(p => formatPatient(p))
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
 // Get All Patients
 const getAllPatients = async () => {
   try {
-    const patients = await patientModel.findAll();
-    return patients.map(p => formatPatient(p));
+    const patients = await patientModel.findAll()
+    return patients.map(p => formatPatient(p))
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
 // Update Patient
 const updatePatient = async (patientId, data) => {
   try {
-    const patient = await patientModel.findOneById(patientId);
+    const patient = await patientModel.findOneById(patientId)
     if (!patient) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found')
     }
 
-    const updatedPatient = await patientModel.update(patientId, data);
-    return formatPatient(updatedPatient);
+    const updatedPatient = await patientModel.update(patientId, data)
+    return formatPatient(updatedPatient)
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
 // Delete Patient
 const deletePatient = async (patientId) => {
   try {
-    const patient = await patientModel.findOneById(patientId);
+    const patient = await patientModel.findOneById(patientId)
     if (!patient) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found');
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Patient not found')
     }
-    await patientModel.deletePatient(patientId);
+    await patientModel.deletePatient(patientId)
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
-module.exports = {
-  createNew,
+export { createNew,
   getById,
   getByUserId,
   getAllPatients,
   updatePatient,
   deletePatient
-};
+ }

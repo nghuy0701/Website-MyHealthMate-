@@ -2,22 +2,22 @@ import { GET_DB  } from '~/configs/mongodb'
 import Joi from 'joi'
 import { ObjectId  } from 'mongodb'
 
-const COLLECTION_NAME = 'users'
+const COLLECTION_NAME = 'admin'
 
 // Validation Rules
 const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const EMAIL_RULE_MESSAGE = 'Email must be a valid email address'
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
 const PASSWORD_RULE_MESSAGE = 'Password must be at least 8 characters with uppercase, lowercase and number'
-const USERNAME_RULE = /^[a-zA-Z0-9_]{3,20}$/
-const USERNAME_RULE_MESSAGE = 'Username must be 3-20 characters, alphanumeric and underscore only'
+const ADMIN_NAME_RULE = /^[a-zA-Z0-9_]{3,20}$/
+const ADMIN_NAME_RULE_MESSAGE = 'Admin name must be 3-20 characters, alphanumeric and underscore only'
 
-const USER_ROLES = {
-  MEMBER: 'member'
+const ADMIN_ROLES = {
+  ADMIN: 'admin'
 }
 
 // Validation Schema (Match SQL structure from web.sql)
-const USER_COLLECTION_SCHEMA = Joi.object({
+const ADMIN_COLLECTION_SCHEMA = Joi.object({
   email: Joi.string()
     .required()
     .pattern(EMAIL_RULE)
@@ -26,17 +26,14 @@ const USER_COLLECTION_SCHEMA = Joi.object({
     .required()
     .pattern(PASSWORD_RULE)
     .message(PASSWORD_RULE_MESSAGE),
-  userName: Joi.string()
+  adminName: Joi.string()
     .required()
-    .pattern(USERNAME_RULE)
-    .message(USERNAME_RULE_MESSAGE),
+    .pattern(ADMIN_NAME_RULE)
+    .message(ADMIN_NAME_RULE_MESSAGE),
   displayName: Joi.string().optional().allow(null).max(255),
   role: Joi.string()
-    .default(USER_ROLES.MEMBER)
-    .valid(USER_ROLES.MEMBER),
-  phone: Joi.string().optional().allow(null).max(20),
-  gender: Joi.string().optional().allow(null).max(10),
-  dob: Joi.date().optional().allow(null),
+    .default(ADMIN_ROLES.ADMIN)
+    .valid(ADMIN_ROLES.ADMIN),
   avatar: Joi.string().optional().allow(null).max(1024),
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updateAt: Joi.date().timestamp('javascript').default(null),
@@ -44,24 +41,24 @@ const USER_COLLECTION_SCHEMA = Joi.object({
 })
 
 // Invalid Update Fields
-const INVALID_UPDATE_FIELDS = ['_id', 'email', 'userName', 'createdAt']
+const INVALID_UPDATE_FIELDS = ['_id', 'email', 'adminName', 'createdAt']
 
-// Create New User
+// Create New Admin
 const createNew = async (data) => {
   try {
-    const validData = await USER_COLLECTION_SCHEMA.validateAsync(data, {
+    const validData = await ADMIN_COLLECTION_SCHEMA.validateAsync(data, {
       abortEarly: false
     })
-    const createdUser = await GET_DB()
+    const createdAdmin = await GET_DB()
       .collection(COLLECTION_NAME)
       .insertOne(validData)
-    return createdUser
+    return createdAdmin
   } catch (error) {
     throw new Error(error)
   }
 }
 
-// Find User by Email
+// Find Admin by Email
 const findOneByEmail = async (email) => {
   try {
     const result = await GET_DB()
@@ -73,19 +70,19 @@ const findOneByEmail = async (email) => {
   }
 }
 
-// Find User by Username
-const findOneByUsername = async (userName) => {
+// Find Admin by AdminName
+const findOneByAdminName = async (adminName) => {
   try {
     const result = await GET_DB()
       .collection(COLLECTION_NAME)
-      .findOne({ userName: userName, _destroy: false })
+      .findOne({ adminName: adminName, _destroy: false })
     return result
   } catch (error) {
     throw new Error(error)
   }
 }
 
-// Find User by ID
+// Find Admin by ID
 const findOneById = async (id) => {
   try {
     const result = await GET_DB()
@@ -97,7 +94,7 @@ const findOneById = async (id) => {
   }
 }
 
-// Update User
+// Update Admin
 const update = async (id, data) => {
   try {
     // Remove invalid fields
@@ -106,6 +103,8 @@ const update = async (id, data) => {
         delete data[key]
       }
     })
+
+    data.updateAt = Date.now()
 
     const result = await GET_DB()
       .collection(COLLECTION_NAME)
@@ -120,8 +119,8 @@ const update = async (id, data) => {
   }
 }
 
-// Delete User (Soft Delete)
-const deleteUser = async (id) => {
+// Delete Admin (Soft Delete)
+const deleteAdmin = async (id) => {
   try {
     await GET_DB()
       .collection(COLLECTION_NAME)
@@ -134,7 +133,7 @@ const deleteUser = async (id) => {
   }
 }
 
-// Get All Users
+// Get All Admins
 const findAll = async () => {
   try {
     const results = await GET_DB()
@@ -147,12 +146,12 @@ const findAll = async () => {
   }
 }
 
-export { USER_ROLES,
+export { ADMIN_ROLES,
   createNew,
   findOneByEmail,
-  findOneByUsername,
+  findOneByAdminName,
   findOneById,
   update,
-  deleteUser,
+  deleteAdmin,
   findAll
  }

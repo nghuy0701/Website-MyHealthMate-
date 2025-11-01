@@ -1,7 +1,7 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const { env } = require('./environment');
+import { MongoClient, ServerApiVersion } from 'mongodb'
+import { env } from './environment'
 
-let diabetesDatabaseInstance = null;
+let diabetesDatabaseInstance = null
 
 const mongoClientInstance = new MongoClient(env.MONGODB_URI, {
   serverApi: {
@@ -9,20 +9,18 @@ const mongoClientInstance = new MongoClient(env.MONGODB_URI, {
     strict: true,
     deprecationErrors: true
   }
-});
+})
 
 // Connect to MongoDB
-const CONNECT_DB = async () => {
-  await mongoClientInstance.connect();
-  diabetesDatabaseInstance = mongoClientInstance.db(env.DATABASE_NAME);
-};
+export const CONNECT_DB = async () => {
+  await mongoClientInstance.connect()
+  diabetesDatabaseInstance = mongoClientInstance.db(env.DATABASE_NAME)
+}
 
 // Get Database Instance
-const GET_DB = () => {
+export const GET_DB = () => {
   if (!diabetesDatabaseInstance) {
-    throw new Error('Must connect to MongoDB first');
+    throw new Error('Must connect to MongoDB first')
   }
-  return diabetesDatabaseInstance;
-};
-
-module.exports = { CONNECT_DB, GET_DB };
+  return diabetesDatabaseInstance
+}

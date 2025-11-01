@@ -1,8 +1,7 @@
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const { env } = require('./environment');
+import MongoStore from 'connect-mongo'
+import { env } from './environment'
 
-const sessionConfig = {
+export const sessionConfig = {
   secret: env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -17,10 +16,8 @@ const sessionConfig = {
     secure: env.NODE_ENV === 'production',
     sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
-};
-
-if (env.NODE_ENV === 'production') {
-  sessionConfig.cookie.secure = true;
 }
 
-module.exports = { sessionConfig };
+if (env.NODE_ENV === 'production') {
+  sessionConfig.cookie.secure = true
+}

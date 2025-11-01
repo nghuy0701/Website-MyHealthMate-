@@ -1,34 +1,34 @@
-const express = require('express');
-const controllers = require('../../controllers');
-const middlewares = require('../../middlewares');
+import express from 'express'
+import * as controllers from '~/controllers'
+import * as middlewares from '~/middlewares'
 
-const router = express.Router();
+const router = express.Router()
 
 // All prediction routes require authentication
-router.use(middlewares.isAuthenticated);
+router.use(middlewares.isAuthenticated)
 
 // Create new prediction
-router.post('/', controllers.predictionController.createNew);
+router.post('/', controllers.predictionController.createNew)
 
 // Get my predictions
-router.get('/my-predictions', controllers.predictionController.getMyPredictions);
+router.get('/my-predictions', controllers.predictionController.getMyPredictions)
 
 // Get statistics
-router.get('/statistics', controllers.predictionController.getStatistics);
+router.get('/statistics', controllers.predictionController.getStatistics)
 
 // Get predictions by patient ID
-router.get('/patient/:patientId', controllers.predictionController.getPredictionsByPatientId);
+router.get('/patient/:patientId', controllers.predictionController.getPredictionsByPatientId)
 
 // Get all predictions (Admin only)
-router.get('/', middlewares.isAdmin, controllers.predictionController.getAllPredictions);
+router.get('/', middlewares.isAdmin, controllers.predictionController.getAllPredictions)
 
 // Get prediction by ID
-router.get('/:id', controllers.predictionController.getPredictionById);
+router.get('/:id', controllers.predictionController.getPredictionById)
 
 // Update prediction
-router.put('/:id', controllers.predictionController.updatePrediction);
+router.put('/:id', controllers.predictionController.updatePrediction)
 
 // Delete prediction
-router.delete('/:id', controllers.predictionController.deletePrediction);
+router.delete('/:id', controllers.predictionController.deletePrediction)
 
-module.exports = { predictionRouter: router };
+export const predictionRouter = router

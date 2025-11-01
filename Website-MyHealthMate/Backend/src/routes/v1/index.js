@@ -1,16 +1,16 @@
-const express = require('express');
-const { userRouter } = require('./users');
-const { predictionRouter } = require('./predictions');
-const { patientRouter } = require('./patients');
-const { mlRouter } = require('./ml');
+import express from 'express'
+import { userRouter } from './users'
+import { predictionRouter } from './predictions'
+import { patientRouter } from './patients'
+import { mlRouter } from './ml'
 
-const router = express.Router();
+const router = express.Router()
 
 // API v1 routes
-router.use('/users', userRouter);
-router.use('/predictions', predictionRouter);
-router.use('/patients', patientRouter);
-router.use('/ml', mlRouter);
+router.use('/users', userRouter)
+router.use('/predictions', predictionRouter)
+router.use('/patients', patientRouter)
+router.use('/ml', mlRouter)
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -18,7 +18,7 @@ router.get('/health', (req, res) => {
     status: 'OK',
     message: 'Diabetes Prediction API is running',
     timestamp: new Date().toISOString()
-  });
-});
+  })
+})
 
-module.exports = { APIs_V1: router };
+export const APIs_V1 = router

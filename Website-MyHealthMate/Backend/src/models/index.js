@@ -1,9 +1,10 @@
-const userModel = require('./userModel');
-const predictionModel = require('./predictionModel');
-const patientModel = require('./patientModel');
+import userModel from './userModel'
+import adminModel from './adminModel'
+import predictionModel from './predictionModel'
+import patientModel from './patientModel'
 
-module.exports = {
-  userModel,
+export { userModel,
+  adminModel,
   predictionModel,
   patientModel
-};
+ }

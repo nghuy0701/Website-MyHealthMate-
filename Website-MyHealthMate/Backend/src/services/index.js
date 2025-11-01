@@ -1,9 +1,8 @@
-const userService = require('./userService');
-const predictionService = require('./predictionService');
-const patientService = require('./patientService');
+import userService from './userService'
+import predictionService from './predictionService'
+import patientService from './patientService'
 
-module.exports = {
-  userService,
+export { userService,
   predictionService,
   patientService
-};
+ }

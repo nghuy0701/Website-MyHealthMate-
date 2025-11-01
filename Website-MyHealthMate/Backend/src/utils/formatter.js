@@ -1,6 +1,6 @@
 // Pick specific fields from user object
 const pickUser = (user) => {
-  if (!user) return null;
+  if (!user) return null
   
   return {
     _id: user._id,
@@ -14,12 +14,12 @@ const pickUser = (user) => {
     dob: user.dob || null,
     avatar: user.avatar || null,
     createdAt: user.createdAt
-  };
-};
+  }
+}
 
 // Format prediction data
 const formatPrediction = (prediction) => {
-  if (!prediction) return null;
+  if (!prediction) return null
   
   return {
     _id: prediction._id,
@@ -40,12 +40,12 @@ const formatPrediction = (prediction) => {
     modelVersion: prediction.modelVersion,
     createdAt: prediction.createdAt,
     updatedAt: prediction.updatedAt
-  };
-};
+  }
+}
 
 // Format patient data
 const formatPatient = (patient) => {
-  if (!patient) return null;
+  if (!patient) return null
   
   return {
     _id: patient._id,
@@ -60,11 +60,10 @@ const formatPatient = (patient) => {
     notes: patient.notes,
     createdAt: patient.createdAt,
     updatedAt: patient.updatedAt
-  };
-};
+  }
+}
 
-module.exports = {
-  pickUser,
+export { pickUser,
   formatPrediction,
   formatPatient
-};
+ }

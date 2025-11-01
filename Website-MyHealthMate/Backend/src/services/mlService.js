@@ -1,7 +1,7 @@
-const axios = require('axios');
-const { env } = require('../configs/environment');
-const { StatusCodes } = require('http-status-codes');
-const ApiError = require('../utils/ApiError');
+import axios from 'axios'
+import { env  } from '~/configs/environment'
+import { StatusCodes  } from 'http-status-codes'
+import ApiError from '~/utils/ApiError'
 
 /**
  * ML Service Client
@@ -15,7 +15,7 @@ const mlClient = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
-});
+})
 
 /**
  * Call ML API to predict diabetes
@@ -33,7 +33,7 @@ const predictDiabetes = async (data) => {
       bmi,
       diabetesPedigreeFunction,
       age
-    } = data;
+    } = data
 
     // Prepare payload for ML service
     const payload = {
@@ -45,17 +45,17 @@ const predictDiabetes = async (data) => {
       bmi: Number(bmi),
       diabetes_pedigree_function: Number(diabetesPedigreeFunction),
       age: Number(age)
-    };
+    }
 
-    console.log('🔮 Calling ML Service with data:', payload);
+    console.log('🔮 Calling ML Service with data:', payload)
 
     // Call ML API
-    const response = await mlClient.post('/predict', payload);
+    const response = await mlClient.post('/predict', payload)
 
     if (response.data && response.data.success) {
-      const result = response.data.data;
+      const result = response.data.data
       
-      console.log('✅ ML Service response:', result);
+      console.log('✅ ML Service response:', result)
 
       return {
         prediction: result.prediction, // 0 or 1
@@ -67,25 +67,25 @@ const predictDiabetes = async (data) => {
         riskLevel: determineRiskLevel(result.probability || result.probability_diabetes),
         modelUsed: result.model_used || 'Unknown',
         modelVersion: result.model_version || 'Unknown'
-      };
+      }
     } else {
-      throw new Error('Invalid response from ML service');
+      throw new Error('Invalid response from ML service')
     }
   } catch (error) {
-    console.error('❌ ML Service error:', error.message);
+    console.error('❌ ML Service error:', error.message)
 
     // If ML service is unavailable, use fallback
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-      console.warn('⚠️ ML Service unavailable, using fallback prediction');
-      return fallbackPrediction(data);
+      console.warn('⚠️ ML Service unavailable, using fallback prediction')
+      return fallbackPrediction(data)
     }
 
     throw new ApiError(
       StatusCodes.SERVICE_UNAVAILABLE,
       `ML Service error: ${error.message}`
-    );
+    )
   }
-};
+}
 
 /**
  * Determine risk level based on probability
@@ -93,10 +93,10 @@ const predictDiabetes = async (data) => {
  * @returns {String} Risk level: Low, Medium, High
  */
 const determineRiskLevel = (probability) => {
-  if (probability < 0.3) return 'Low';
-  if (probability < 0.6) return 'Medium';
-  return 'High';
-};
+  if (probability < 0.3) return 'Low'
+  if (probability < 0.6) return 'Medium'
+  return 'High'
+}
 
 /**
  * Fallback prediction when ML service is unavailable
@@ -114,44 +114,44 @@ const fallbackPrediction = (data) => {
     bmi,
     diabetesPedigreeFunction,
     age
-  } = data;
+  } = data
 
-  let score = 0;
+  let score = 0
 
   // Glucose level (most important factor)
-  if (glucose > 140) score += 40;
-  else if (glucose > 100) score += 20;
-  else score += 5;
+  if (glucose > 140) score += 40
+  else if (glucose > 100) score += 20
+  else score += 5
 
   // BMI
-  if (bmi > 30) score += 25;
-  else if (bmi > 25) score += 15;
-  else score += 5;
+  if (bmi > 30) score += 25
+  else if (bmi > 25) score += 15
+  else score += 5
 
   // Age
-  if (age > 45) score += 15;
-  else if (age > 30) score += 8;
-  else score += 3;
+  if (age > 45) score += 15
+  else if (age > 30) score += 8
+  else score += 3
 
   // Diabetes Pedigree Function
-  if (diabetesPedigreeFunction > 0.5) score += 10;
-  else score += 5;
+  if (diabetesPedigreeFunction > 0.5) score += 10
+  else score += 5
 
   // Pregnancies
-  if (pregnancies > 6) score += 5;
-  else if (pregnancies > 0) score += 2;
+  if (pregnancies > 6) score += 5
+  else if (pregnancies > 0) score += 2
 
   // Insulin
-  if (insulin > 200) score += 3;
-  else if (insulin > 100) score += 1;
+  if (insulin > 200) score += 3
+  else if (insulin > 100) score += 1
 
   // Blood Pressure
-  if (bloodPressure > 80) score += 2;
+  if (bloodPressure > 80) score += 2
 
   // Calculate probability
-  const probability = Math.min(score / 100, 1);
-  const prediction = probability > 0.5 ? 1 : 0;
-  const riskLevel = determineRiskLevel(probability);
+  const probability = Math.min(score / 100, 1)
+  const prediction = probability > 0.5 ? 1 : 0
+  const riskLevel = determineRiskLevel(probability)
 
   return {
     prediction,
@@ -163,8 +163,8 @@ const fallbackPrediction = (data) => {
     riskLevel,
     modelUsed: 'Rule-Based Fallback',
     modelVersion: 'v1.0.0'
-  };
-};
+  }
+}
 
 /**
  * Check ML service health
@@ -172,18 +172,18 @@ const fallbackPrediction = (data) => {
  */
 const checkHealth = async () => {
   try {
-    const response = await mlClient.get('/health');
+    const response = await mlClient.get('/health')
     return {
       status: 'available',
       data: response.data
-    };
+    }
   } catch (error) {
     return {
       status: 'unavailable',
       error: error.message
-    };
+    }
   }
-};
+}
 
 /**
  * Get ML service info
@@ -191,19 +191,18 @@ const checkHealth = async () => {
  */
 const getInfo = async () => {
   try {
-    const response = await mlClient.get('/');
-    return response.data;
+    const response = await mlClient.get('/')
+    return response.data
   } catch (error) {
     throw new ApiError(
       StatusCodes.SERVICE_UNAVAILABLE,
       `Cannot get ML service info: ${error.message}`
-    );
+    )
   }
-};
+}
 
-module.exports = {
-  predictDiabetes,
+export { predictDiabetes,
   checkHealth,
   getInfo,
   fallbackPrediction
-};
+ }
