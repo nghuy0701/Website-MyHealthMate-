@@ -1,28 +1,26 @@
 import express from 'express'
-import * as controllers from '~/controllers'
-import * as middlewares from '~/middlewares'
+import { patientController } from '~/controllers'
+import { patientValidation } from '~/validations'
+import { isAuthenticated, isAdmin } from '~/middlewares'
 
-const router = express.Router()
+const Router = express.Router()
 
-// All patient routes require authentication and doctor role
-router.use(middlewares.isAuthenticated)
+// All patient routes require authentication
+Router.use(isAuthenticated)
 
-// Create new patient (Doctor only)
-router.post('/', middlewares.isDoctor, controllers.patientController.createNew)
+// Create new patient
+Router.route('/')
+  .post(patientValidation.createNew, patientController.createNew)
+  .get(isAdmin, patientController.getAllPatients)
 
-// Get my patients (Doctor only)
-router.get('/my-patients', middlewares.isDoctor, controllers.patientController.getMyPatients)
+// Get my patients
+Router.route('/my-patients')
+  .get(patientController.getMyPatients)
 
-// Get all patients (Admin only)
-router.get('/', middlewares.isAdmin, controllers.patientController.getAllPatients)
+// Patient operations by ID
+Router.route('/:id')
+  .get(patientController.getPatientById)
+  .put(patientValidation.update, patientController.updatePatient)
+  .delete(patientController.deletePatient)
 
-// Get patient by ID (Doctor or Admin)
-router.get('/:id', middlewares.isDoctor, controllers.patientController.getPatientById)
-
-// Update patient (Doctor or Admin)
-router.put('/:id', middlewares.isDoctor, controllers.patientController.updatePatient)
-
-// Delete patient (Doctor or Admin)
-router.delete('/:id', middlewares.isDoctor, controllers.patientController.deletePatient)
-
-export const patientRouter = router
+export const patientRoute = Router

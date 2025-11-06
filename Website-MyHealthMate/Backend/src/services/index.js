@@ -1,8 +1,5 @@
-import userService from './userService'
-import predictionService from './predictionService'
-import patientService from './patientService'
-
-export { userService,
-  predictionService,
-  patientService
- }
+export { default as userService } from './userService.js'
+export { default as adminService } from './adminService.js'
+export { default as predictionService } from './predictionService.js'
+export { default as patientService } from './patientService.js'
+export { default as mlService } from './mlService.js'

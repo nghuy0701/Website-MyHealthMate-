@@ -1,11 +1,11 @@
 import { StatusCodes  } from 'http-status-codes'
-import services from '../services'
+import { patientService } from '~/services'
 import ApiError from '~/utils/ApiError'
 
 // Create New Patient
 const createNew = async (req, res, next) => {
   try {
-    const patient = await services.patientService.createNew(req)
+    const patient = await patientService.createNew(req)
     res.status(StatusCodes.CREATED).json({
       message: 'Patient created successfully',
       data: patient
@@ -19,7 +19,7 @@ const createNew = async (req, res, next) => {
 const getPatientById = async (req, res, next) => {
   try {
     const patientId = req.params.id
-    const patient = await services.patientService.getById(patientId)
+    const patient = await patientService.getById(patientId)
     res.status(StatusCodes.OK).json({
       message: 'Patient retrieved successfully',
       data: patient
@@ -33,7 +33,7 @@ const getPatientById = async (req, res, next) => {
 const getMyPatients = async (req, res, next) => {
   try {
     const userId = req.session.user.userId
-    const patients = await services.patientService.getByUserId(userId)
+    const patients = await patientService.getByUserId(userId)
     res.status(StatusCodes.OK).json({
       message: 'Your patients retrieved successfully',
       data: patients
@@ -46,7 +46,7 @@ const getMyPatients = async (req, res, next) => {
 // Get All Patients (Admin only)
 const getAllPatients = async (req, res, next) => {
   try {
-    const patients = await services.patientService.getAllPatients()
+    const patients = await patientService.getAllPatients()
     res.status(StatusCodes.OK).json({
       message: 'All patients retrieved successfully',
       data: patients
@@ -60,7 +60,7 @@ const getAllPatients = async (req, res, next) => {
 const updatePatient = async (req, res, next) => {
   try {
     const patientId = req.params.id
-    const updatedPatient = await services.patientService.updatePatient(
+    const updatedPatient = await patientService.updatePatient(
       patientId,
       req.body
     )
@@ -77,7 +77,7 @@ const updatePatient = async (req, res, next) => {
 const deletePatient = async (req, res, next) => {
   try {
     const patientId = req.params.id
-    await services.patientService.deletePatient(patientId)
+    await patientService.deletePatient(patientId)
     res.status(StatusCodes.OK).json({
       message: 'Patient deleted successfully'
     })
@@ -86,10 +86,11 @@ const deletePatient = async (req, res, next) => {
   }
 }
 
-export { createNew,
+export const patientController = {
+  createNew,
   getPatientById,
   getMyPatients,
   getAllPatients,
   updatePatient,
   deletePatient
- }
+}

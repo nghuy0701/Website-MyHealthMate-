@@ -30,7 +30,7 @@ const START_SERVER = () => {
   app.use(session(sessionConfig))
 
   // Import All Routes
-  app.use('/v1', APIs_V1)
+  app.use('/api/v1', APIs_V1)
 
   // Welcome route
   app.get('/', async (req, res) => {
@@ -43,11 +43,11 @@ const START_SERVER = () => {
       author: env.AUTHOR,
       status: 'running',
       endpoints: {
-        health: '/v1/health',
-        users: '/v1/users',
-        predictions: '/v1/predictions',
-        patients: '/v1/patients',
-        ml: '/v1/ml'
+        health: '/api/v1/health',
+        users: '/api/v1/users',
+        predictions: '/api/v1/predictions',
+        patients: '/api/v1/patients',
+        ml: '/api/v1/ml'
       }
     })
   })

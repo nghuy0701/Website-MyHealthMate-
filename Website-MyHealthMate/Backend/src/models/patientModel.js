@@ -1,24 +1,7 @@
 import { GET_DB  } from '~/configs/mongodb'
-import Joi from 'joi'
 import { ObjectId  } from 'mongodb'
 
 const COLLECTION_NAME = 'patients'
-
-// Validation Schema for Patient
-const PATIENT_COLLECTION_SCHEMA = Joi.object({
-  userId: Joi.string().required(), // Doctor who manages this patient
-  fullName: Joi.string().required().min(3).max(100),
-  email: Joi.string().email().optional().allow(null),
-  phone: Joi.string().optional().allow(null),
-  gender: Joi.string().valid('male', 'female', 'other').optional().allow(null),
-  dob: Joi.date().optional().allow(null),
-  address: Joi.string().optional().allow(null),
-  medicalHistory: Joi.string().optional().allow(null),
-  notes: Joi.string().optional().allow(null),
-  createdAt: Joi.date().timestamp('javascript').default(Date.now),
-  updatedAt: Joi.date().timestamp('javascript').default(null),
-  _destroy: Joi.boolean().default(false)
-})
 
 // Invalid Update Fields
 const INVALID_UPDATE_FIELDS = ['_id', 'userId', 'createdAt']
@@ -26,12 +9,15 @@ const INVALID_UPDATE_FIELDS = ['_id', 'userId', 'createdAt']
 // Create New Patient
 const createNew = async (data) => {
   try {
-    const validData = await PATIENT_COLLECTION_SCHEMA.validateAsync(data, {
-      abortEarly: false
-    })
+    const newPatient = {
+      ...data,
+      createdAt: Date.now(),
+      updatedAt: null,
+      _destroy: false
+    }
     const createdPatient = await GET_DB()
       .collection(COLLECTION_NAME)
-      .insertOne(validData)
+      .insertOne(newPatient)
     return createdPatient
   } catch (error) {
     throw new Error(error)
@@ -129,11 +115,14 @@ const deletePatient = async (id) => {
   }
 }
 
-export { createNew,
+const patientModel = {
+  createNew,
   findOneById,
   findByUserId,
   findOneByEmail,
   findAll,
   update,
   deletePatient
- }
+}
+
+export default patientModel
