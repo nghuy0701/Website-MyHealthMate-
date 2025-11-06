@@ -1,11 +1,11 @@
 import { StatusCodes  } from 'http-status-codes'
-import services from '../services'
+import { predictionService } from '~/services'
 import ApiError from '~/utils/ApiError'
 
 // Create New Prediction
 const createNew = async (req, res, next) => {
   try {
-    const prediction = await services.predictionService.createNew(req)
+    const prediction = await predictionService.createNew(req)
     res.status(StatusCodes.CREATED).json({
       message: 'Prediction created successfully',
       data: prediction
@@ -19,7 +19,7 @@ const createNew = async (req, res, next) => {
 const getPredictionById = async (req, res, next) => {
   try {
     const predictionId = req.params.id
-    const prediction = await services.predictionService.getById(predictionId)
+    const prediction = await predictionService.getById(predictionId)
     res.status(StatusCodes.OK).json({
       message: 'Prediction retrieved successfully',
       data: prediction
@@ -33,7 +33,7 @@ const getPredictionById = async (req, res, next) => {
 const getPredictionsByUserId = async (req, res, next) => {
   try {
     const userId = req.params.userId || req.session.user.userId
-    const predictions = await services.predictionService.getByUserId(userId)
+    const predictions = await predictionService.getByUserId(userId)
     res.status(StatusCodes.OK).json({
       message: 'Predictions retrieved successfully',
       data: predictions
@@ -47,7 +47,7 @@ const getPredictionsByUserId = async (req, res, next) => {
 const getMyPredictions = async (req, res, next) => {
   try {
     const userId = req.session.user.userId
-    const predictions = await services.predictionService.getByUserId(userId)
+    const predictions = await predictionService.getByUserId(userId)
     res.status(StatusCodes.OK).json({
       message: 'Your predictions retrieved successfully',
       data: predictions
@@ -61,7 +61,7 @@ const getMyPredictions = async (req, res, next) => {
 const getPredictionsByPatientId = async (req, res, next) => {
   try {
     const patientId = req.params.patientId
-    const predictions = await services.predictionService.getByPatientId(patientId)
+    const predictions = await predictionService.getByPatientId(patientId)
     res.status(StatusCodes.OK).json({
       message: 'Patient predictions retrieved successfully',
       data: predictions
@@ -74,7 +74,7 @@ const getPredictionsByPatientId = async (req, res, next) => {
 // Get All Predictions (Admin only)
 const getAllPredictions = async (req, res, next) => {
   try {
-    const predictions = await services.predictionService.getAllPredictions()
+    const predictions = await predictionService.getAllPredictions()
     res.status(StatusCodes.OK).json({
       message: 'All predictions retrieved successfully',
       data: predictions
@@ -88,7 +88,7 @@ const getAllPredictions = async (req, res, next) => {
 const updatePrediction = async (req, res, next) => {
   try {
     const predictionId = req.params.id
-    const updatedPrediction = await services.predictionService.updatePrediction(
+    const updatedPrediction = await predictionService.updatePrediction(
       predictionId,
       req.body
     )
@@ -105,7 +105,7 @@ const updatePrediction = async (req, res, next) => {
 const deletePrediction = async (req, res, next) => {
   try {
     const predictionId = req.params.id
-    await services.predictionService.deletePrediction(predictionId)
+    await predictionService.deletePrediction(predictionId)
     res.status(StatusCodes.OK).json({
       message: 'Prediction deleted successfully'
     })
@@ -118,7 +118,7 @@ const deletePrediction = async (req, res, next) => {
 const getStatistics = async (req, res, next) => {
   try {
     const userId = req.query.userId || null
-    const stats = await services.predictionService.getStatistics(userId)
+    const stats = await predictionService.getStatistics(userId)
     res.status(StatusCodes.OK).json({
       message: 'Statistics retrieved successfully',
       data: stats
@@ -128,7 +128,8 @@ const getStatistics = async (req, res, next) => {
   }
 }
 
-export { createNew,
+export const predictionController = {
+  createNew,
   getPredictionById,
   getPredictionsByUserId,
   getMyPredictions,
@@ -137,4 +138,4 @@ export { createNew,
   updatePrediction,
   deletePrediction,
   getStatistics
- }
+}

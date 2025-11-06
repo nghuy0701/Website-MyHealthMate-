@@ -1,47 +1,11 @@
 import { GET_DB  } from '~/configs/mongodb'
-import Joi from 'joi'
 import { ObjectId  } from 'mongodb'
 
 const COLLECTION_NAME = 'users'
 
-// Validation Rules
-const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_RULE_MESSAGE = 'Email must be a valid email address'
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
-const PASSWORD_RULE_MESSAGE = 'Password must be at least 8 characters with uppercase, lowercase and number'
-const USERNAME_RULE = /^[a-zA-Z0-9_]{3,20}$/
-const USERNAME_RULE_MESSAGE = 'Username must be 3-20 characters, alphanumeric and underscore only'
-
 const USER_ROLES = {
   MEMBER: 'member'
 }
-
-// Validation Schema (Match SQL structure from web.sql)
-const USER_COLLECTION_SCHEMA = Joi.object({
-  email: Joi.string()
-    .required()
-    .pattern(EMAIL_RULE)
-    .message(EMAIL_RULE_MESSAGE),
-  password: Joi.string()
-    .required()
-    .pattern(PASSWORD_RULE)
-    .message(PASSWORD_RULE_MESSAGE),
-  userName: Joi.string()
-    .required()
-    .pattern(USERNAME_RULE)
-    .message(USERNAME_RULE_MESSAGE),
-  displayName: Joi.string().optional().allow(null).max(255),
-  role: Joi.string()
-    .default(USER_ROLES.MEMBER)
-    .valid(USER_ROLES.MEMBER),
-  phone: Joi.string().optional().allow(null).max(20),
-  gender: Joi.string().optional().allow(null).max(10),
-  dob: Joi.date().optional().allow(null),
-  avatar: Joi.string().optional().allow(null).max(1024),
-  createdAt: Joi.date().timestamp('javascript').default(Date.now),
-  updateAt: Joi.date().timestamp('javascript').default(null),
-  _destroy: Joi.boolean().default(false)
-})
 
 // Invalid Update Fields
 const INVALID_UPDATE_FIELDS = ['_id', 'email', 'userName', 'createdAt']
@@ -49,12 +13,16 @@ const INVALID_UPDATE_FIELDS = ['_id', 'email', 'userName', 'createdAt']
 // Create New User
 const createNew = async (data) => {
   try {
-    const validData = await USER_COLLECTION_SCHEMA.validateAsync(data, {
-      abortEarly: false
-    })
+    const newUser = {
+      ...data,
+      role: data.role || USER_ROLES.MEMBER,
+      createdAt: Date.now(),
+      updateAt: null,
+      _destroy: false
+    }
     const createdUser = await GET_DB()
       .collection(COLLECTION_NAME)
-      .insertOne(validData)
+      .insertOne(newUser)
     return createdUser
   } catch (error) {
     throw new Error(error)
@@ -147,7 +115,8 @@ const findAll = async () => {
   }
 }
 
-export { USER_ROLES,
+const userModel = {
+  USER_ROLES,
   createNew,
   findOneByEmail,
   findOneByUsername,
@@ -155,4 +124,6 @@ export { USER_ROLES,
   update,
   deleteUser,
   findAll
- }
+}
+
+export default userModel

@@ -1,8 +1,8 @@
-import { predictionModel  } from '../models'
+import predictionModel from '~/models/predictionModel.js'
 import { formatPrediction  } from '~/utils/formatter'
 import { StatusCodes  } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
-import mlService from './mlService'
+import mlService from './mlService.js'
 
 // Create New Prediction
 const createNew = async (req) => {
@@ -130,7 +130,8 @@ const getStatistics = async (userId = null) => {
   }
 }
 
-export { createNew,
+const predictionService = {
+  createNew,
   getById,
   getByUserId,
   getByPatientId,
@@ -138,4 +139,6 @@ export { createNew,
   updatePrediction,
   deletePrediction,
   getStatistics
- }
+}
+
+export default predictionService

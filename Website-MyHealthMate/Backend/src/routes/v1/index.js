@@ -1,24 +1,26 @@
 import express from 'express'
-import { userRouter } from './users'
-import { predictionRouter } from './predictions'
-import { patientRouter } from './patients'
-import { mlRouter } from './ml'
+import { userRoute } from './users.js'
+import { adminRoute } from './admin.js'
+import { predictionRoute } from './predictions.js'
+import { patientRoute } from './patients.js'
+import { mlRoute } from './ml.js'
 
-const router = express.Router()
+const Router = express.Router()
 
 // API v1 routes
-router.use('/users', userRouter)
-router.use('/predictions', predictionRouter)
-router.use('/patients', patientRouter)
-router.use('/ml', mlRouter)
+Router.use('/users', userRoute)
+Router.use('/admin', adminRoute)
+Router.use('/predictions', predictionRoute)
+Router.use('/patients', patientRoute)
+Router.use('/ml', mlRoute)
 
 // Health check endpoint
-router.get('/health', (req, res) => {
+Router.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    message: 'Diabetes Prediction API is running',
+    message: 'MyHealthMate API is running',
     timestamp: new Date().toISOString()
   })
 })
 
-export const APIs_V1 = router
+export const APIs_V1 = Router

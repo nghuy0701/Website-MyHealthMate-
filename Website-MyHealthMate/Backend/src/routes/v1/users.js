@@ -1,21 +1,31 @@
 import express from 'express'
-import * as controllers from '~/controllers'
-import * as middlewares from '~/middlewares'
+import { userController } from '~/controllers'
+import { userValidation } from '~/validations'
+import { isAuthenticated, isAdmin } from '~/middlewares'
 
-const router = express.Router()
+const Router = express.Router()
 
 // Public routes
-router.post('/register', controllers.userController.createNew)
-router.post('/login', controllers.userController.login)
+Router.route('/register')
+  .post(userValidation.createNew, userController.createNew)
+
+Router.route('/login')
+  .post(userValidation.login, userController.login)
 
 // Protected routes
-router.post('/logout', middlewares.isAuthenticated, controllers.userController.logout)
-router.get('/me', middlewares.isAuthenticated, controllers.userController.getCurrentUser)
-router.put('/:id', middlewares.isAuthenticated, controllers.userController.updateUser)
+Router.route('/logout')
+  .post(isAuthenticated, userController.logout)
+
+Router.route('/me')
+  .get(isAuthenticated, userController.getCurrentUser)
+
+Router.route('/:id')
+  .get(isAdmin, userController.getUserById)
+  .put(isAuthenticated, userValidation.update, userController.updateUser)
+  .delete(isAdmin, userController.deleteUser)
 
 // Admin only routes
-router.get('/', middlewares.isAdmin, controllers.userController.getAllUsers)
-router.get('/:id', middlewares.isAdmin, controllers.userController.getUserById)
-router.delete('/:id', middlewares.isAdmin, controllers.userController.deleteUser)
+Router.route('/')
+  .get(isAdmin, userController.getAllUsers)
 
-export const userRouter = router
+export const userRoute = Router

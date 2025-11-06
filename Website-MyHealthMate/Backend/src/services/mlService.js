@@ -201,8 +201,11 @@ const getInfo = async () => {
   }
 }
 
-export { predictDiabetes,
+const mlService = {
+  predictDiabetes,
   checkHealth,
   getInfo,
   fallbackPrediction
- }
+}
+
+export default mlService

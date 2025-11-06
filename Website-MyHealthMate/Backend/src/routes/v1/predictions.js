@@ -1,34 +1,34 @@
 import express from 'express'
-import * as controllers from '~/controllers'
-import * as middlewares from '~/middlewares'
+import { predictionController } from '~/controllers'
+import { predictionValidation } from '~/validations'
+import { isAuthenticated, isAdmin } from '~/middlewares'
 
-const router = express.Router()
+const Router = express.Router()
 
 // All prediction routes require authentication
-router.use(middlewares.isAuthenticated)
+Router.use(isAuthenticated)
 
-// Create new prediction
-router.post('/', controllers.predictionController.createNew)
+// Create new prediction and get all (admin)
+Router.route('/')
+  .post(predictionValidation.createNew, predictionController.createNew)
+  .get(isAdmin, predictionController.getAllPredictions)
 
 // Get my predictions
-router.get('/my-predictions', controllers.predictionController.getMyPredictions)
+Router.route('/my-predictions')
+  .get(predictionController.getMyPredictions)
 
 // Get statistics
-router.get('/statistics', controllers.predictionController.getStatistics)
+Router.route('/statistics')
+  .get(predictionController.getStatistics)
 
 // Get predictions by patient ID
-router.get('/patient/:patientId', controllers.predictionController.getPredictionsByPatientId)
+Router.route('/patient/:patientId')
+  .get(predictionController.getPredictionsByPatientId)
 
-// Get all predictions (Admin only)
-router.get('/', middlewares.isAdmin, controllers.predictionController.getAllPredictions)
+// Prediction operations by ID
+Router.route('/:id')
+  .get(predictionController.getPredictionById)
+  .put(predictionValidation.update, predictionController.updatePrediction)
+  .delete(predictionController.deletePrediction)
 
-// Get prediction by ID
-router.get('/:id', controllers.predictionController.getPredictionById)
-
-// Update prediction
-router.put('/:id', controllers.predictionController.updatePrediction)
-
-// Delete prediction
-router.delete('/:id', controllers.predictionController.deletePrediction)
-
-export const predictionRouter = router
+export const predictionRoute = Router

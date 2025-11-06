@@ -1,12 +1,12 @@
 import { StatusCodes  } from 'http-status-codes'
 import { env  } from '~/configs/environment'
-import services from '../services'
+import { userService } from '~/services'
 import ApiError from '~/utils/ApiError'
 
 // Register New User
 const createNew = async (req, res, next) => {
   try {
-    const createUser = await services.userService.createNew(req)
+    const createUser = await userService.createNew(req)
     res.status(StatusCodes.CREATED).json({
       message: 'User account created successfully',
       data: createUser
@@ -19,11 +19,11 @@ const createNew = async (req, res, next) => {
 // Login
 const login = async (req, res, next) => {
   try {
-    const result = await services.userService.login(req)
+    const result = await userService.login(req)
     if (result) {
       req.session.user = {
         userId: result._id.toString(),
-        username: result.username,
+        userName: result.userName,
         role: result.role
       }
     }
@@ -74,7 +74,7 @@ const getCurrentUser = async (req, res, next) => {
       return
     }
 
-    const user = await services.userService.getById(userId)
+    const user = await userService.getById(userId)
 
     res.status(StatusCodes.OK).json({
       message: 'User information retrieved successfully',
@@ -88,7 +88,7 @@ const getCurrentUser = async (req, res, next) => {
 // Get All Users (Admin only)
 const getAllUsers = async (req, res, next) => {
   try {
-    const users = await services.userService.getAllUsers()
+    const users = await userService.getAllUsers()
     res.status(StatusCodes.OK).json({
       message: 'Users retrieved successfully',
       data: users
@@ -102,7 +102,7 @@ const getAllUsers = async (req, res, next) => {
 const getUserById = async (req, res, next) => {
   try {
     const userId = req.params.id
-    const user = await services.userService.getById(userId)
+    const user = await userService.getById(userId)
     
     if (!user) {
       return next(new ApiError(StatusCodes.NOT_FOUND, 'User not found'))
@@ -121,7 +121,7 @@ const getUserById = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const userId = req.params.id
-    const updatedUser = await services.userService.updateUser(userId, req.body)
+    const updatedUser = await userService.updateUser(userId, req.body)
     res.status(StatusCodes.OK).json({
       message: 'User updated successfully',
       data: updatedUser
@@ -135,7 +135,7 @@ const updateUser = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
   try {
     const userId = req.params.id
-    await services.userService.deleteUser(userId)
+    await userService.deleteUser(userId)
     res.status(StatusCodes.OK).json({
       message: 'User deleted successfully'
     })
@@ -144,7 +144,8 @@ const deleteUser = async (req, res, next) => {
   }
 }
 
-export { createNew,
+export const userController = {
+  createNew,
   login,
   logout,
   getCurrentUser,
@@ -152,4 +153,4 @@ export { createNew,
   getUserById,
   updateUser,
   deleteUser
- }
+}
