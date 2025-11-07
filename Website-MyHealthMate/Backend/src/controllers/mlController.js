@@ -47,7 +47,8 @@ const testPredict = async (req, res, next) => {
   }
 }
 
-export { checkHealth,
+export const mlController = {
+  checkHealth,
   getInfo,
   testPredict
- }
+}

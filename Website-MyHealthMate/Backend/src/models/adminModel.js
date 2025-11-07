@@ -1,44 +1,11 @@
 import { GET_DB  } from '~/configs/mongodb'
-import Joi from 'joi'
 import { ObjectId  } from 'mongodb'
 
 const COLLECTION_NAME = 'admin'
 
-// Validation Rules
-const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const EMAIL_RULE_MESSAGE = 'Email must be a valid email address'
-const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/
-const PASSWORD_RULE_MESSAGE = 'Password must be at least 8 characters with uppercase, lowercase and number'
-const ADMIN_NAME_RULE = /^[a-zA-Z0-9_]{3,20}$/
-const ADMIN_NAME_RULE_MESSAGE = 'Admin name must be 3-20 characters, alphanumeric and underscore only'
-
 const ADMIN_ROLES = {
   ADMIN: 'admin'
 }
-
-// Validation Schema (Match SQL structure from web.sql)
-const ADMIN_COLLECTION_SCHEMA = Joi.object({
-  email: Joi.string()
-    .required()
-    .pattern(EMAIL_RULE)
-    .message(EMAIL_RULE_MESSAGE),
-  password: Joi.string()
-    .required()
-    .pattern(PASSWORD_RULE)
-    .message(PASSWORD_RULE_MESSAGE),
-  adminName: Joi.string()
-    .required()
-    .pattern(ADMIN_NAME_RULE)
-    .message(ADMIN_NAME_RULE_MESSAGE),
-  displayName: Joi.string().optional().allow(null).max(255),
-  role: Joi.string()
-    .default(ADMIN_ROLES.ADMIN)
-    .valid(ADMIN_ROLES.ADMIN),
-  avatar: Joi.string().optional().allow(null).max(1024),
-  createdAt: Joi.date().timestamp('javascript').default(Date.now),
-  updateAt: Joi.date().timestamp('javascript').default(null),
-  _destroy: Joi.boolean().default(false)
-})
 
 // Invalid Update Fields
 const INVALID_UPDATE_FIELDS = ['_id', 'email', 'adminName', 'createdAt']
@@ -46,12 +13,16 @@ const INVALID_UPDATE_FIELDS = ['_id', 'email', 'adminName', 'createdAt']
 // Create New Admin
 const createNew = async (data) => {
   try {
-    const validData = await ADMIN_COLLECTION_SCHEMA.validateAsync(data, {
-      abortEarly: false
-    })
+    const newAdmin = {
+      ...data,
+      role: data.role || ADMIN_ROLES.ADMIN,
+      createdAt: Date.now(),
+      updateAt: null,
+      _destroy: false
+    }
     const createdAdmin = await GET_DB()
       .collection(COLLECTION_NAME)
-      .insertOne(validData)
+      .insertOne(newAdmin)
     return createdAdmin
   } catch (error) {
     throw new Error(error)
@@ -146,7 +117,8 @@ const findAll = async () => {
   }
 }
 
-export { ADMIN_ROLES,
+const adminModel = {
+  ADMIN_ROLES,
   createNew,
   findOneByEmail,
   findOneByAdminName,
@@ -154,4 +126,6 @@ export { ADMIN_ROLES,
   update,
   deleteAdmin,
   findAll
- }
+}
+
+export default adminModel

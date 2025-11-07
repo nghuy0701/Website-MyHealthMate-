@@ -1,10 +1,4 @@
-import userModel from './userModel'
-import adminModel from './adminModel'
-import predictionModel from './predictionModel'
-import patientModel from './patientModel'
-
-export { userModel,
-  adminModel,
-  predictionModel,
-  patientModel
- }
+export { default as userModel } from './userModel.js'
+export { default as adminModel } from './adminModel.js'
+export { default as predictionModel } from './predictionModel.js'
+export { default as patientModel } from './patientModel.js'

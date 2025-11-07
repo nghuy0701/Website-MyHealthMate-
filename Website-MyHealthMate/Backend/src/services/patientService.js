@@ -1,4 +1,4 @@
-import { patientModel  } from '../models'
+import patientModel from '~/models/patientModel.js'
 import { formatPatient  } from '~/utils/formatter'
 import { StatusCodes  } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
@@ -107,10 +107,13 @@ const deletePatient = async (patientId) => {
   }
 }
 
-export { createNew,
+const patientService = {
+  createNew,
   getById,
   getByUserId,
   getAllPatients,
   updatePatient,
   deletePatient
- }
+}
+
+export default patientService

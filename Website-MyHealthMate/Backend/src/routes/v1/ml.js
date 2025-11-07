@@ -1,16 +1,19 @@
 import express from 'express'
-import * as controllers from '~/controllers'
-import * as middlewares from '~/middlewares'
+import { mlController } from '~/controllers'
+import { isAuthenticated } from '~/middlewares'
 
-const router = express.Router()
+const Router = express.Router()
 
 // ML Service health check (public)
-router.get('/health', controllers.mlController.checkHealth)
+Router.route('/health')
+  .get(mlController.checkHealth)
 
 // ML Service info (public)
-router.get('/info', controllers.mlController.getInfo)
+Router.route('/info')
+  .get(mlController.getInfo)
 
 // Test ML prediction (requires authentication)
-router.post('/test', middlewares.isAuthenticated, controllers.mlController.testPredict)
+Router.route('/test')
+  .post(isAuthenticated, mlController.testPredict)
 
-export const mlRouter = router
+export const mlRoute = Router

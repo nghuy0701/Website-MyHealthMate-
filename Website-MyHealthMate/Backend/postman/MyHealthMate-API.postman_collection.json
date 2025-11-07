@@ -1,0 +1,677 @@
+{
+	"info": {
+		"_postman_id": "myhealthmate-api-2025",
+		"name": "MyHealthMate API v2",
+		"description": "Complete API Collection for MyHealthMate - Diabetes Prediction System\n\nArchitecture: Frontend (Next.js) → Server → Routes → Middlewares → Validations → Controllers → Services → Providers → External Services (MongoDB, Cloudinary, Brevo)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "👤 Users",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data._id) {",
+									"        pm.environment.set('userId', jsonData.data._id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.smith@example.com\",\n  \"password\": \"@Password123\",\n  \"userName\": \"john_smith\",\n  \"displayName\": \"John Smith\",\n  \"phone\": \"+84123456789\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-05-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "register"]
+						},
+						"description": "Register a new user (Patient role)\n\nValidations:\n- Email: Valid email format\n- Password: Min 8 chars, uppercase, lowercase, number\n- Username: 3-20 chars, alphanumeric + underscore"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test('Login successful', function() {",
+									"        pm.expect(jsonData.message).to.include('successfully');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.smith@example.com\",\n  \"password\": \"@Password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "login"]
+						},
+						"description": "Login user with email and password\n\nCreates session cookie for authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "me"]
+						},
+						"description": "Get currently logged-in user information\n\nRequires: Authentication (session cookie)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users"]
+						},
+						"description": "Get all users in the system\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/{{userId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "{{userId}}"]
+						},
+						"description": "Get specific user by ID\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"displayName\": \"John Smith Updated\",\n  \"phone\": \"+84987654321\",\n  \"gender\": \"male\",\n  \"avatar\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/{{userId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "{{userId}}"]
+						},
+						"description": "Update user information\n\nRequires: Authentication (own account) or Admin"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/{{userId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "{{userId}}"]
+						},
+						"description": "Delete user (soft delete)\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout User",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users", "logout"]
+						},
+						"description": "Logout current user and destroy session"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints\n\nRole: member (patient)"
+		},
+		{
+			"name": "👨‍💼 Admin",
+			"item": [
+				{
+					"name": "Register Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data._id) {",
+									"        pm.environment.set('adminId', jsonData.data._id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@myhealthmate.com\",\n  \"password\": \"@AdminPass123\",\n  \"adminName\": \"admin_system\",\n  \"displayName\": \"System Administrator\",\n  \"avatar\": \"https://example.com/admin-avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "register"]
+						},
+						"description": "Register a new admin\n\nValidations:\n- Email: Valid email format\n- Password: Min 8 chars, uppercase, lowercase, number, special chars allowed (@$!%*?&#)\n- AdminName: 3-20 chars, alphanumeric + underscore"
+					},
+					"response": []
+				},
+				{
+					"name": "Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.test('Admin login successful', function() {",
+									"        const jsonData = pm.response.json();",
+									"        pm.expect(jsonData.data.role).to.equal('admin');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@myhealthmate.com\",\n  \"password\": \"@AdminPass123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "login"]
+						},
+						"description": "Login admin with email and password\n\nCreates admin session with role: 'admin'"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Admins",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin"]
+						},
+						"description": "Get all admins in the system\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/{{adminId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "{{adminId}}"]
+						},
+						"description": "Get specific admin by ID\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Admin",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"displayName\": \"Super Administrator\",\n  \"avatar\": \"https://example.com/new-avatar.jpg\",\n  \"password\": \"@NewAdminPass456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/{{adminId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "{{adminId}}"]
+						},
+						"description": "Update admin information\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Admin",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/{{adminId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "{{adminId}}"]
+						},
+						"description": "Delete admin (soft delete)\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout Admin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "logout"]
+						},
+						"description": "Logout admin and destroy session"
+					},
+					"response": []
+				}
+			],
+			"description": "Admin management endpoints\n\nRole: admin"
+		},
+		{
+			"name": "👥 Patients",
+			"item": [
+				{
+					"name": "Create Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data._id) {",
+									"        pm.environment.set('patientId', jsonData.data._id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"phone\": \"+84912345678\",\n  \"gender\": \"female\",\n  \"dob\": \"1985-08-20\",\n  \"address\": \"123 Health Street, HCM City\",\n  \"medicalHistory\": \"Hypertension since 2020\",\n  \"notes\": \"Regular checkups required\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients"]
+						},
+						"description": "Create a new patient record\n\nRequires: Authentication\nValidations:\n- fullName: Required, 3-100 chars\n- email: Valid email format (optional)\n- gender: male, female, other (optional)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Patients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients/my-patients",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients", "my-patients"]
+						},
+						"description": "Get all patients managed by current user\n\nRequires: Authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Patients (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients"]
+						},
+						"description": "Get all patients in the system\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Patient by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients/{{patientId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients", "{{patientId}}"]
+						},
+						"description": "Get specific patient by ID\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Patient",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Jane Doe Updated\",\n  \"phone\": \"+84987654321\",\n  \"address\": \"456 New Address, HCM City\",\n  \"medicalHistory\": \"Hypertension since 2020, Diabetes diagnosed 2024\",\n  \"notes\": \"Monthly checkups required\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients/{{patientId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients", "{{patientId}}"]
+						},
+						"description": "Update patient information\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Patient",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/patients/{{patientId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "patients", "{{patientId}}"]
+						},
+						"description": "Delete patient record (soft delete)\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				}
+			],
+			"description": "Patient management endpoints\n\nManaged by authenticated users"
+		},
+		{
+			"name": "🔮 Predictions",
+			"item": [
+				{
+					"name": "Create Prediction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data._id) {",
+									"        pm.environment.set('predictionId', jsonData.data._id);",
+									"    }",
+									"    pm.test('Prediction created successfully', function() {",
+									"        pm.expect(jsonData.data).to.have.property('prediction');",
+									"        pm.expect(jsonData.data).to.have.property('probability');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pregnancies\": 2,\n  \"glucose\": 120,\n  \"bloodPressure\": 70,\n  \"skinThickness\": 20,\n  \"insulin\": 100,\n  \"bmi\": 25.5,\n  \"diabetesPedigreeFunction\": 0.5,\n  \"age\": 30,\n  \"patientId\": null\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions"]
+						},
+						"description": "Create a new diabetes prediction\n\nRequires: Authentication\n\nInput Features:\n- pregnancies: Number of pregnancies (integer, >= 0)\n- glucose: Glucose level (number, >= 0)\n- bloodPressure: Blood pressure (number, >= 0)\n- skinThickness: Skin thickness (number, >= 0)\n- insulin: Insulin level (number, >= 0)\n- bmi: Body Mass Index (number, >= 0)\n- diabetesPedigreeFunction: Diabetes pedigree function (number, >= 0)\n- age: Age (integer, >= 0)\n- patientId: Patient ID (optional)\n\nResponse includes:\n- prediction: 0 (No Diabetes) or 1 (Diabetes)\n- probability: Confidence score (0-1)\n- riskLevel: Low, Medium, or High"
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Predictions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/my-predictions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "my-predictions"]
+						},
+						"description": "Get all predictions created by current user\n\nRequires: Authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Predictions by Patient ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/patient/{{patientId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "patient", "{{patientId}}"]
+						},
+						"description": "Get all predictions for a specific patient\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Predictions (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions"]
+						},
+						"description": "Get all predictions in the system\n\nRequires: Admin role"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prediction by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/{{predictionId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "{{predictionId}}"]
+						},
+						"description": "Get specific prediction by ID\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/statistics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "statistics"]
+						},
+						"description": "Get prediction statistics\n\nRequires: Authentication\n\nReturns:\n- Total predictions\n- Diabetes positive count\n- Diabetes negative count\n- Risk level distribution"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Prediction",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"pregnancies\": 3,\n  \"glucose\": 125,\n  \"bloodPressure\": 75,\n  \"skinThickness\": 22,\n  \"insulin\": 110,\n  \"bmi\": 26.0,\n  \"diabetesPedigreeFunction\": 0.6,\n  \"age\": 31\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/{{predictionId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "{{predictionId}}"]
+						},
+						"description": "Update prediction and recalculate result\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Prediction",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/predictions/{{predictionId}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "predictions", "{{predictionId}}"]
+						},
+						"description": "Delete prediction (soft delete)\n\nRequires: Authentication (owner or admin)"
+					},
+					"response": []
+				}
+			],
+			"description": "Diabetes prediction endpoints\n\nUses ML Service for prediction calculations"
+		},
+		{
+			"name": "💚 Health Check",
+			"item": [
+				{
+					"name": "API Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						},
+						"description": "Check if API is running"
+					},
+					"response": []
+				}
+			],
+			"description": "System health check endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		}
+	]
+}
