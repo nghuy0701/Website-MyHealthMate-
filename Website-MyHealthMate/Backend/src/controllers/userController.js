@@ -26,6 +26,14 @@ const login = async (req, res, next) => {
         userName: result.userName,
         role: result.role
       }
+      
+      // Explicitly save session
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
     }
     res.status(StatusCodes.OK).json({
       message: 'Login successful',
