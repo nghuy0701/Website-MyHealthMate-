@@ -1,0 +1,153 @@
+export const questions = [
+  {
+    id: 1,
+    text: 'Tuổi của bạn nằm trong nhóm nào?',
+    options: ['Dưới 30', '30-45', 'Trên 45'],
+    riskWeight: 3,
+  },
+  {
+    id: 2,
+    text: 'Giới tính của bạn là gì?',
+    options: ['Nam', 'Nữ'],
+    riskWeight: 1,
+  },
+  {
+    id: 3,
+    text: 'Bạn có thường xuyên cảm thấy khát nước hơn bình thường không?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+  {
+    id: 4,
+    text: 'Bạn có thường xuyên đi tiểu nhiều lần trong ngày không?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+  {
+    id: 5,
+    text: 'Bạn có cảm thấy mệt mỏi, uể oải dù nghỉ ngơi đầy đủ không?',
+    options: ['Có', 'Không'],
+    riskWeight: 4,
+  },
+  {
+    id: 6,
+    text: 'Bạn có bị giảm cân không rõ nguyên nhân trong thời gian gần đây không?',
+    options: ['Có', 'Không'],
+    riskWeight: 6,
+  },
+  {
+    id: 7,
+    text: 'Bạn có ăn nhiều nhưng vẫn thấy đói nhanh không?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+  {
+    id: 8,
+    text: 'Bạn có thường xuyên bị mờ mắt hoặc giảm thị lực tạm thời không?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+  {
+    id: 9,
+    text: 'Bạn có từng được bác sĩ chẩn đoán huyết áp cao chưa?',
+    options: ['Có', 'Không'],
+    riskWeight: 4,
+  },
+  {
+    id: 10,
+    text: 'Trong gia đình bạn có ai mắc bệnh tiểu đường không?',
+    options: ['Có', 'Không'],
+    riskWeight: 6,
+  },
+  {
+id: 11,
+    text: 'Bạn có ít vận động thể dục thể thao (dưới 2 buổi/tuần)?',
+    options: ['Có', 'Không'],
+    riskWeight: 4,
+  },
+  {
+    id: 12,
+    text: 'Bạn có thường xuyên sử dụng đồ ngọt (bánh, nước ngọt, trà sữa, cà phê sữa)?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+  {
+    id: 13,
+    text: 'Bạn có thừa cân hoặc béo phì (BMI > 25) không?',
+    options: ['Có', 'Không'],
+    riskWeight: 6,
+  },
+  {
+    id: 14,
+    text: 'Bạn có hút thuốc hoặc uống rượu bia thường xuyên không?',
+    options: ['Có', 'Không'],
+    riskWeight: 4,
+  },
+  {
+    id: 15,
+    text: 'Bạn có thường xuyên bị tê hoặc ngứa ran ở tay/chân không?',
+    options: ['Có', 'Không'],
+    riskWeight: 5,
+  },
+];
+
+export const articles = [
+  {
+    id: '1',
+    title: 'Cách kiểm soát đường huyết hiệu quả mỗi ngày',
+    excerpt: 'Tìm hiểu chế độ ăn uống và thói quen giúp bạn duy trì đường huyết ổn định.',
+    category: 'nutrition',
+    imageUrl: 'https://images.unsplash.com/photo-1670164745494-30747c120652?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbnV0cml0aW9uJTIwZm9vZHxlbnwxfHx8fDE3NjEzNjYwOTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '5 phút đọc',
+    featured: true,
+  },
+  {
+    id: '2',
+    title: 'Tầm quan trọng của xét nghiệm HbA1c trong theo dõi tiểu đường',
+    excerpt: 'HbA1c là chỉ số quan trọng giúp đánh giá mức đường huyết trung bình trong 3 tháng.',
+    category: 'testing',
+    imageUrl: 'https://images.unsplash.com/photo-1576169210859-6796c4b93c32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwdGVzdCUyMGRpYWJldGVzfGVufDF8fHx8MTc2MTM5MDc4Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '4 phút đọc',
+    featured: true,
+  },
+  {
+    id: '3',
+    title: 'Vận động thể dục: Vũ khí mạnh trong phòng ngừa tiểu đường',
+    excerpt: '30 phút tập luyện mỗi ngày có thể giảm đáng kể nguy cơ mắc bệnh tiểu đường type 2.',
+    category: 'lifestyle',
+    imageUrl: 'https://images.unsplash.com/photo-1634144646738-809a0f8897c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxleGVyY2lzZSUyMGZpdG5lc3MlMjBoZWFsdGh8ZW58MXx8fHwxNzYxMzkwNzg2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '6 phút đọc',
+    featured: true,
+  },
+  {
+    id: '4',
+    title: 'Hiểu về Insulin và vai trò của nó trong cơ thể',
+    excerpt: 'Insulin là hormone quan trọng giúp điều hòa lượng đường trong máu.',
+    category: 'education',
+    imageUrl: 'https://images.unsplash.com/photo-1606206873764-fd15e242df52?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NjEzODc4ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '7 phút đọc',
+  },
+  {
+    id: '5',
+    title: 'Chế độ ăn Low-Carb: Có phù hợp với bệnh tiểu đường?',
+    excerpt: 'Phân tích lợi ích và rủi ro của chế độ ăn giảm carbohydrate đối với người tiểu đường.',
+    category: 'nutrition',
+    imageUrl: 'https://images.unsplash.com/photo-1556911073-a517e752729c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwbGlmZXN0eWxlfGVufDF8fHx8MTc2MTI4Nzc5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '5 phút đọc',
+  },
+  {
+    id: '6',
+    title: 'Stress và tiểu đường: Mối liên hệ bạn cần biết',
+    excerpt: 'Căng thẳng kéo dài có thể ảnh hưởng trực tiếp đến mức đường huyết của bạn.',
+    category: 'lifestyle',
+    imageUrl: 'https://images.unsplash.com/photo-1758691462123-8a17ae95d203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBwYXRpZW50JTIwbWVkaWNhbHxlbnwxfHx8fDE3NjEzOTA3ODV8MA&ixlibrb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    readTime: '4 phút đọc',
+  },
+];
+
+export const categoryLabels = {
+  nutrition: 'Dinh dưỡng',
+  lifestyle: 'Lối sống',
+  testing: 'Xét nghiệm',
+  education: 'Giáo dục',
+};
