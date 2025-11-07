@@ -1,11 +1,21 @@
 /**
  * Script to create an Admin account directly in MongoDB
- * Usage: node create-admin.js
+ * Usage: node scripts/create-admin.js
  */
 
 import { MongoClient, ObjectId } from 'mongodb'
 import bcrypt from 'bcrypt'
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// Get current file directory
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Load .env from root directory (3 levels up: scripts -> Backend -> Website-MyHealthMate -> root)
+const envPath = path.resolve(__dirname, '../../../.env')
+dotenv.config({ path: envPath })
 
 const MONGODB_URI = process.env.MONGODB_URI
 const DATABASE_NAME = process.env.DATABASE_NAME
