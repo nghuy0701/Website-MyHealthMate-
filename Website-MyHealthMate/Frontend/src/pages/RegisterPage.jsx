@@ -35,12 +35,16 @@ export function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // The register function from useAuth should handle the API call
-      await register(email, password, name);
-      toast.success('Đăng ký thành công!');
-      navigate('/prediction');
+      // Convert name to userName (remove spaces, lowercase)
+      const userName = name.toLowerCase().replace(/\s+/g, '_');
+      
+      // Register with all required fields
+      await register(email, password, userName, name, null, null, null);
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      navigate('/login');
     } catch (error) {
-      toast.error('Đăng ký thất bại. Vui lòng thử lại.');
+      console.error('Register error:', error);
+      toast.error(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }

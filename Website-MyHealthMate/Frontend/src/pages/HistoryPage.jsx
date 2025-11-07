@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
+import { usePrediction } from '../lib/hooks/usePrediction';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -23,6 +25,8 @@ import { toast } from 'sonner';
 
 export function HistoryPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { getMyPredictions, deletePrediction, loading } = usePrediction();
   const [history, setHistory] = useState([]);
   const [filter, setFilter] = useState('all');
 
@@ -31,75 +35,52 @@ export function HistoryPage() {
   }, []);
 
   const loadHistory = async () => {
-    // TODO: Add API call to backend to fetch history data
-    // Example:
-    // try {
-    //   const response = await fetch(`/api/history?userId=${user?.id}`);
-    //   if (response.ok) {
-    //     const data = await response.json();
-    //     setHistory(data);
-    //   } else {
-    //     toast.error('Không thể tải lịch sử.');
-    //   }
-    // } catch (error) {
-    //   toast.error('Không thể tải lịch sử.');
-    // }
-
-    const saved = localStorage.getItem('prediction_history');
-    if (saved) {
-      const allHistory = JSON.parse(saved);
-      const userHistory = allHistory.filter((h) => h.userId === user?.id);
-      setHistory(userHistory);
+    try {
+      const data = await getMyPredictions();
+      setHistory(data || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+      toast.error('Không thể tải lịch sử dự đoán');
     }
   };
 
-  const filteredHistory = history.filter((h) => filter === 'all' || h.riskLevel === filter);
+  // Calculate risk level based on probability
+  const getRiskLevel = (probability) => {
+    if (probability < 30) return 'low';
+    if (probability < 70) return 'medium';
+    return 'high';
+  };
+
+  const filteredHistory = history.filter((h) => {
+    if (filter === 'all') return true;
+    const riskLevel = getRiskLevel(h.result?.probability || 0);
+    return riskLevel === filter;
+  });
 
   const clearHistory = async () => {
     if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử?')) {
-      // TODO: Add API call to backend to clear history
-      // Example:
-      // try {
-      //   const response = await fetch(`/api/history?userId=${user?.id}`, { method: 'DELETE' });
-      //   if (response.ok) {
-      //     setHistory([]);
-      //     toast.success('Đã xóa lịch sử!');
-      //   } else {
-      //     toast.error('Không thể xóa lịch sử.');
-      //   }
-      // } catch (error) {
-      //   toast.error('Không thể xóa lịch sử.');
-      // }
-
-      const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
-      const otherHistory = allHistory.filter((h) => h.userId !== user?.id);
-      localStorage.setItem('prediction_history', JSON.stringify(otherHistory));
-      setHistory([]);
-      toast.success('Đã xóa lịch sử!');
+      try {
+        // Delete each prediction
+        await Promise.all(history.map(h => deletePrediction(h._id)));
+        setHistory([]);
+        toast.success('Đã xóa lịch sử!');
+      } catch (error) {
+        console.error('Error clearing history:', error);
+        toast.error('Không thể xóa lịch sử.');
+      }
     }
   };
 
   const deleteRecord = async (id) => {
     if (confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) {
-      // TODO: Add API call to backend to delete a record
-      // Example:
-      // try {
-      //   const response = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-      //   if (response.ok) {
-      //     loadHistory();
-      //     toast.success('Đã xóa bản ghi!');
-      //   } else {
-      //     toast.error('Không thể xóa bản ghi.');
-      //   }
-      // } catch (error) {
-      //   toast.error('Không thể xóa bản ghi.');
-      // }
-
-      const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
-      const newHistory = allHistory.filter((h) => h.id !== id);
-      localStorage.setItem('prediction_history', JSON.stringify(newHistory));
-      loadHistory();
-      toast.success('Đã xóa bản ghi!');
+      try {
+        await deletePrediction(id);
+        loadHistory();
+        toast.success('Đã xóa bản ghi!');
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        toast.error('Không thể xóa bản ghi.');
+      }
     }
   };
 
@@ -175,12 +156,13 @@ export function HistoryPage() {
               </TableHeader>
               <TableBody>
                 {filteredHistory.map((record) => {
-                  const config = riskConfig[record.riskLevel];
+                  const riskLevel = getRiskLevel(record.result?.probability || 0);
+                  const config = riskConfig[riskLevel];
                   const Icon = config.icon;
-                  const date = new Date(record.date);
+                  const date = new Date(record.createdAt);
 
                   return (
-                    <TableRow key={record.id}>
+                    <TableRow key={record._id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />
@@ -197,17 +179,22 @@ export function HistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-lg">{record.probability}%</span>
+                        <span className="text-lg">{record.result?.probability || 0}%</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button variant="outline" size="sm" className="rounded-lg">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="rounded-lg"
+                            onClick={() => navigate(`/prediction/${record._id}`)}
+                          >
                             Chi tiết
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => deleteRecord(record.id)}
+                            onClick={() => deleteRecord(record._id)}
                             className="rounded-lg text-red-600 hover:bg-red-50"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -241,13 +228,15 @@ export function HistoryPage() {
             <Card className="p-6 rounded-2xl shadow-lg">
               <div className="text-gray-600 mb-2">Đánh giá gần nhất</div>
               <div className="text-xl text-gray-800">
-                {new Date(history[0].date).toLocaleDateString('vi-VN')}
+                {new Date(history[0].createdAt).toLocaleDateString('vi-VN')}
               </div>
             </Card>
             <Card className="p-6 rounded-2xl shadow-lg">
               <div className="text-gray-600 mb-2">Xác suất trung bình</div>
               <div className="text-3xl text-gray-800">
-                {Math.round(history.reduce((sum, h) => sum + h.probability, 0) / history.length)}%
+                {Math.round(
+                  history.reduce((sum, h) => sum + (h.result?.probability || 0), 0) / history.length
+                )}%
               </div>
             </Card>
           </div>

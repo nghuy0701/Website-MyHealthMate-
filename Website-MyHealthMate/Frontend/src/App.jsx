@@ -6,8 +6,10 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { KnowledgePage } from './pages/KnowledgePage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
+import { AdminRegisterPage } from './pages/AdminRegisterPage.jsx';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
 import { PredictionPage } from './pages/PredictionPage.jsx';
+import { PredictionDetailPage } from './pages/PredictionDetailPage.jsx';
 import { HistoryPage } from './pages/HistoryPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { Toaster } from './components/ui/sonner';
@@ -24,6 +26,7 @@ export default function App() {
               <Route path="/" element={<KnowledgePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/admin/register" element={<AdminRegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
               {/* Protected Routes */}
@@ -40,6 +43,14 @@ export default function App() {
                 element={
                   <ProtectedRoute>
                     <HistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/prediction/:id"
+                element={
+                  <ProtectedRoute>
+                    <PredictionDetailPage />
                   </ProtectedRoute>
                 }
               />

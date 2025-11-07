@@ -25,7 +25,8 @@ export function LoginPage() {
       toast.success('Đăng nhập thành công!');
       navigate('/prediction');
     } catch (error) {
-      toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
+      console.error('Login error:', error);
+      toast.error(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
