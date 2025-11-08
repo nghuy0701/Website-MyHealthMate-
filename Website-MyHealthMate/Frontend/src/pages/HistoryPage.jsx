@@ -21,30 +21,131 @@ import {
 import { Calendar, Download, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 
+// ✅ Hộp thoại xác nhận — Đã chuyển 100% sang "style" để "ép" di chuyển
+function ConfirmDialog({ open, title, message, onConfirm, onCancel }) {
+  if (!open) return null;
+
+  // Style cho nút "ngang" (theo code của bạn)
+  const horizontalButtonStyle = {
+    paddingTop: '6px',
+    paddingBottom: '6px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+  };
+
+  // Style cho toàn bộ HỘP THOẠI (theo code của bạn)
+  const dialogBoxStyle = {
+    minWidth: '450px',
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    paddingLeft: '48px',
+    paddingRight: '48px',
+    // Thêm các style này để nó không bị "đè"
+    position: 'relative', // (relative cho z-50)
+    zIndex: 50,
+    backgroundColor: 'white',
+    borderRadius: '16px', // tương đương rounded-2xl
+    textAlign: 'center',
+    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)', // tương đương shadow-xl
+  };
+
+  // Style cho TIÊU ĐỀ
+  const titleStyle = {
+    marginBottom: '12px',
+    fontSize: '1.125rem', // text-lg
+    fontWeight: '700', // font-bold
+    color: '#374151', // text-gray-800
+  };
+
+  // Style cho DÒNG CHỮ
+  const messageStyle = {
+    marginBottom: '48px',
+    color: '#4B5563', // text-gray-600
+  };
+
+  // ✅✅✅ GIẢI PHÁP CHO BẠN
+  // Style cho NỀN MỜ (thay thế cho "fixed inset-0 z-40 flex...")
+  const wrapperStyle = {
+    position: 'fixed', // <-- "DÍNH VÀ ĐI THEO MÀN HÌNH"
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 40,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // (bg-black bg-opacity-50)
+  };
+
+
+  return (
+    // ✅ ĐÃ THAY THẾ TOÀN BỘ "className" BẰNG "style"
+    <div
+      style={wrapperStyle}
+      onClick={onCancel} // Bấm ra ngoài để huỷ
+    >
+      {/* HỘP THOẠI CHÍNH */}
+      <div
+        style={dialogBoxStyle} // <-- ÁP DỤNG STYLE
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3
+          style={titleStyle} // <-- ÁP DỤNG STYLE
+        >
+          {title}
+        </h3>
+
+        <p
+          style={messageStyle} // <-- ÁP DỤNG STYLE
+        >
+          {message}
+        </p>
+
+        <div className="flex justify-center gap-6">
+          {/* Nút OK */}
+          <button
+            onClick={() => {
+              onConfirm && onConfirm();
+            }}
+            style={horizontalButtonStyle}
+            className="min-w-[110px] rounded-full border-2 border-green-600 bg-white text-lg font-medium text-green-600 hover:bg-green-50"
+          >
+            OK
+          </button>
+
+          {/* Nút Huỷ */}
+          <button
+            onClick={onCancel}
+            style={horizontalButtonStyle}
+            className="min-w-[110px] rounded-full bg-green-600 text-lg font-medium text-white hover:bg-green-700"
+          >
+            Huỷ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================
+// ✅ Code của trang HistoryPage - Không thay đổi
+// ==========================================================
 export function HistoryPage() {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    message: '',
+    onConfirm: null,
+  });
 
   useEffect(() => {
     loadHistory();
   }, []);
 
   const loadHistory = async () => {
-    // TODO: Add API call to backend to fetch history data
-    // Example:
-    // try {
-    //   const response = await fetch(`/api/history?userId=${user?.id}`);
-    //   if (response.ok) {
-    //     const data = await response.json();
-    //     setHistory(data);
-    //   } else {
-    //     toast.error('Không thể tải lịch sử.');
-    //   }
-    // } catch (error) {
-    //   toast.error('Không thể tải lịch sử.');
-    // }
-
     const saved = localStorage.getItem('prediction_history');
     if (saved) {
       const allHistory = JSON.parse(saved);
@@ -56,51 +157,33 @@ export function HistoryPage() {
   const filteredHistory = history.filter((h) => filter === 'all' || h.riskLevel === filter);
 
   const clearHistory = async () => {
-    if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử?')) {
-      // TODO: Add API call to backend to clear history
-      // Example:
-      // try {
-      //   const response = await fetch(`/api/history?userId=${user?.id}`, { method: 'DELETE' });
-      //   if (response.ok) {
-      //     setHistory([]);
-      //     toast.success('Đã xóa lịch sử!');
-      //   } else {
-      //     toast.error('Không thể xóa lịch sử.');
-      //   }
-      // } catch (error) {
-      //   toast.error('Không thể xóa lịch sử.');
-      // }
-
-      const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
-      const otherHistory = allHistory.filter((h) => h.userId !== user?.id);
-      localStorage.setItem('prediction_history', JSON.stringify(otherHistory));
-      setHistory([]);
-      toast.success('Đã xóa lịch sử!');
-    }
+    setConfirmDialog({
+      open: true,
+      message: 'Bạn có chắc chắn muốn xóa toàn bộ lịch sử?',
+      onConfirm: () => {
+        const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
+        const otherHistory = allHistory.filter((h) => h.userId !== user?.id);
+        localStorage.setItem('prediction_history', JSON.stringify(otherHistory));
+        setHistory([]);
+        toast.success('Đã xóa lịch sử!');
+        setConfirmDialog({ open: false });
+      },
+    });
   };
 
   const deleteRecord = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) {
-      // TODO: Add API call to backend to delete a record
-      // Example:
-      // try {
-      //   const response = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-      //   if (response.ok) {
-      //     loadHistory();
-      //     toast.success('Đã xóa bản ghi!');
-      //   } else {
-      //     toast.error('Không thể xóa bản ghi.');
-      //   }
-      // } catch (error) {
-      //   toast.error('Không thể xóa bản ghi.');
-      // }
-
-      const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
-      const newHistory = allHistory.filter((h) => h.id !== id);
-      localStorage.setItem('prediction_history', JSON.stringify(newHistory));
-      loadHistory();
-      toast.success('Đã xóa bản ghi!');
-    }
+    setConfirmDialog({
+      open: true,
+      message: 'Bạn có chắc chắn muốn xóa bản ghi này?',
+      onConfirm: () => {
+        const allHistory = JSON.parse(localStorage.getItem('prediction_history') || '[]');
+        const newHistory = allHistory.filter((h) => h.id !== id);
+        localStorage.setItem('prediction_history', JSON.stringify(newHistory));
+        loadHistory();
+        toast.success('Đã xóa bản ghi!');
+        setConfirmDialog({ open: false });
+      },
+    });
   };
 
   const exportToPDF = () => {
@@ -114,7 +197,17 @@ export function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
+    <div className="relative min-h-screen bg-gradient-to-b from-green-50 to-white py-12">
+      {/* Hộp thoại xác nhận đặt ở đầu để nổi phía trên */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        front-weight="bold"
+        title="Xác nhận"
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ open: false })}
+      />
+
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-8">
           <h1 className="text-gray-800 mb-2">Lịch sử dự đoán</h1>
