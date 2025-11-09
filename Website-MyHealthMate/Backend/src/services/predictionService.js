@@ -16,6 +16,7 @@ const createNew = async (req) => {
     const newPrediction = {
       userId: userId,
       patientId: req.body.patientId || null,
+      gender: req.body.gender || null,
       pregnancies: req.body.pregnancies,
       glucose: req.body.glucose,
       bloodPressure: req.body.bloodPressure,
@@ -24,6 +25,7 @@ const createNew = async (req) => {
       bmi: req.body.bmi,
       diabetesPedigreeFunction: req.body.diabetesPedigreeFunction,
       age: req.body.age,
+      notes: req.body.notes || null,
       prediction: mlResult.prediction,
       probability: mlResult.probability,
       riskLevel: mlResult.riskLevel,
