@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth-context';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -13,21 +13,49 @@ import {
 } from '../components/ui/select';
 import { Separator } from '../components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { User, Mail, Calendar, Users, Key, Globe, Moon, Sun, LogOut } from 'lucide-react';
+// <--- SỬA 1: Thêm 'Camera' vào import
+import { User, Mail, Calendar, Users, Key, Globe, Moon, Sun, LogOut, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function ProfilePage() {
-  const { user, updateProfile, logout } = useAuth();
+export const ProfilePage = () => {
+  const { user, logout, updateProfile } = useAuth();
+
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(user?.name || '');
-  const [age, setAge] = useState(user?.age || '');
-  const [gender, setGender] = useState(user?.gender || '');
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  // <--- SỬA 2: Thêm state cho avatarUrl
+  const [avatarUrl, setAvatarUrl] = useState('');
+
   const [theme, setTheme] = useState('light');
   const [language, setLanguage] = useState('vi');
 
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setAge(user.age || '');
+      setGender(user.gender || '');
+      // <--- SỬA 3: Cập nhật avatarUrl state khi có user
+      setAvatarUrl(user.avatar || '');
+    }
+  }, [user]);
+
+  const handleToggleEdit = () => {
+    const isNowEditing = !isEditing;
+    setIsEditing(isNowEditing);
+    // Nếu bắt đầu chỉnh sửa, reset form về giá trị của user
+    if (isNowEditing) {
+      setName(user?.name || '');
+      setAge(user?.age || '');
+      setGender(user?.gender || '');
+      // <--- SỬA 4: Reset cả avatarUrl khi bấm "Chỉnh sửa"
+      setAvatarUrl(user?.avatar || '');
+    }
+  };
+
   const handleSaveProfile = () => {
-    // The updateProfile function from useAuth should handle the API call
-    updateProfile({ name, age, gender });
+    // <--- SỬA 5: Thêm 'avatar: avatarUrl' vào object update
+    updateProfile({ name, age, gender, avatar: avatarUrl });
     setIsEditing(false);
     toast.success('Cập nhật hồ sơ thành công!');
   };
@@ -58,18 +86,28 @@ export function ProfilePage() {
           {/* Left Column - Profile Summary */}
           <Card className="p-6 rounded-2xl shadow-lg lg:col-span-1 h-fit">
             <div className="text-center">
-              <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="bg-green-600 text-white text-2xl">
-                  {getInitials(user?.name)}
-                </AvatarFallback>
-              </Avatar>
+              {/* <--- SỬA 6: Thêm 'relative' để icon camera đè lên */}
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <Avatar className="w-24 h-24">
+                  {/* <--- SỬA 7: Hiển thị avatarUrl (preview) khi đang sửa */}
+                  <AvatarImage src={isEditing ? avatarUrl : user?.avatar} />
+                  <AvatarFallback className="bg-green-600 text-white text-2xl">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+                {/* <--- SỬA 8: Thêm icon Camera khi đang sửa (giống code .tsx gốc) */}
+                {isEditing && (
+                  <div className="absolute -bottom-2 -right-2 bg-green-600 text-white rounded-full p-2 shadow-lg">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
               <h2 className="text-gray-800 mb-1">{user?.name}</h2>
               <p className="text-gray-600 text-sm mb-4">{user?.email}</p>
               <Button
                 variant="outline"
                 className="w-full border-green-600 text-green-600 hover:bg-green-50"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={handleToggleEdit}
               >
                 {isEditing ? 'Hủy chỉnh sửa' : 'Chỉnh sửa hồ sơ'}
               </Button>
@@ -82,16 +120,18 @@ export function ProfilePage() {
                 <Mail className="w-4 h-4" />
                 <span>{user?.email}</span>
               </div>
-              {user?.age && (
+              {/* Hiển thị tuổi từ state (nếu đang sửa) hoặc từ user */}
+              {(isEditing ? age : user?.age) && (
                 <div className="flex items-center gap-3 text-gray-600">
                   <Calendar className="w-4 h-4" />
-                  <span>{user.age} tuổi</span>
+                  <span>{isEditing ? age : user.age} tuổi</span>
                 </div>
               )}
-              {user?.gender && (
+              {/* Hiển thị giới tính từ state (nếu đang sửa) hoặc từ user */}
+              {(isEditing ? gender : user?.gender) && (
                 <div className="flex items-center gap-3 text-gray-600">
                   <Users className="w-4 h-4" />
-                  <span>{user.gender}</span>
+                  <span>{isEditing ? gender : user.gender}</span>
                 </div>
               )}
             </div>
@@ -107,6 +147,28 @@ export function ProfilePage() {
               </h3>
 
               <div className="space-y-4">
+
+                {/* Đây là đoạn code bạn đã thêm - giờ nó sẽ hoạt động */}
+                {isEditing && (
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar" className="flex items-center gap-2">
+                      <Camera className="w-4 h-4" /> {/* Sẽ hoạt động vì đã import */}
+                      URL Avatar
+                    </Label>
+                    <Input
+                      id="avatar"
+                      value={avatarUrl} // Sẽ hoạt động vì đã có useState
+                      onChange={(e) => setAvatarUrl(e.target.value)} // Sẽ hoạt động
+                      placeholder="https://example.com/avatar.jpg"
+                      className="rounded-xl"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Nhập đường dẫn ảnh đại diện của bạn. Avatar sẽ được xem trước ở bên trái.
+                    </p>
+                  </div>
+                )}
+                {/* Hết đoạn code bạn thêm */}
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Họ và tên</Label>
                   <Input
@@ -133,7 +195,7 @@ export function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="gender">Giới tính</Label>
-                    <Select value={gender} onValueChange={setGender} disabled={!isEditing}>
+                    <Select value={gender} onValueChange={(value) => setGender(value)} disabled={!isEditing}>
                       <SelectTrigger className="rounded-xl">
                         <SelectValue placeholder="Chọn giới tính" />
                       </SelectTrigger>
@@ -245,4 +307,4 @@ export function ProfilePage() {
       </div>
     </div>
   );
-}
+};
