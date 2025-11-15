@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Trash2, Edit } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import {
@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +44,7 @@ export function UserManagement() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [users, setUsers] = useState([
     {
       id: '#001',
@@ -161,7 +162,7 @@ export function UserManagement() {
 
   return (
     <div>
-      <h1 className="mb-8 text-gray-800">Quản lý Người dùng</h1>
+      <h1 className="text-4xl font-bold mb-8 text-gray-800">Quản lý Người dùng</h1>
 
       {/* Toolbar */}
       <div className="flex items-center gap-4 mb-6">
@@ -177,7 +178,7 @@ export function UserManagement() {
         
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[180px] rounded-xl border-gray-300">
-            <SelectValue />
+            <SelectValue placeholder="Lọc theo" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
@@ -212,20 +213,20 @@ export function UserManagement() {
         <Table>
           <TableHeader>
             <TableRow className="bg-green-50 hover:bg-green-50">
-              <TableHead className="text-green-700">Mã</TableHead>
-              <TableHead className="text-green-700">Username</TableHead>
-              <TableHead className="text-green-700">DisplayName</TableHead>
-              <TableHead className="text-green-700">Email</TableHead>
-              <TableHead className="text-green-700">Phone</TableHead>
-              <TableHead className="text-green-700">Địa chỉ</TableHead>
-              <TableHead className="text-green-700">Ngày tạo</TableHead>
-              <TableHead className="text-green-700 text-center">Thao tác</TableHead>
+              <TableHead className="text-green-700 font-semibold">Mã</TableHead>
+              <TableHead className="text-green-700 font-semibold">Username</TableHead>
+              <TableHead className="text-green-700 font-semibold">Tên hiển thị</TableHead>
+              <TableHead className="text-green-700 font-semibold">Email</TableHead>
+              <TableHead className="text-green-700 font-semibold">Phone</TableHead>
+              <TableHead className="text-green-700 font-semibold">Địa chỉ</TableHead>
+              <TableHead className="text-green-700 font-semibold">Ngày tạo</TableHead>
+              <TableHead className="text-green-700 font-semibold text-center">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredUsers.map((user) => (
               <TableRow key={user.id} className="hover:bg-gray-50">
-                <TableCell>{user.id}</TableCell>
+                <TableCell className="font-medium">{user.id}</TableCell>
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.displayName}</TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -262,9 +263,9 @@ export function UserManagement() {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-md rounded-[20px]">
           <DialogHeader>
-            <DialogTitle>{selectedUser ? 'Chỉnh sửa' : 'Thêm'} người dùng</DialogTitle>
+            <DialogTitle className="text-2xl">{selectedUser ? 'Chỉnh sửa' : 'Thêm'} người dùng</DialogTitle>
             <DialogDescription>
-              Điền đầy đủ thông tin để {selectedUser ? 'cập nhật' : 'thêm'} người dùng
+              Điền đầy đủ thông tin để {selectedUser ? 'cập nhật' : 'thêm mới'} người dùng.
             </DialogDescription>
           </DialogHeader>
           
@@ -323,13 +324,22 @@ export function UserManagement() {
             {!selectedUser && (
               <div className="space-y-2">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="rounded-xl"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="rounded-xl pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
             )}
             
@@ -353,13 +363,13 @@ export function UserManagement() {
               onClick={() => setShowAddDialog(false)}
               className="rounded-xl"
             >
-              ❌ Hủy
+              Hủy
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700 rounded-xl"
               onClick={handleSave}
             >
-              💾 Lưu
+              Lưu
             </Button>
           </DialogFooter>
         </DialogContent>

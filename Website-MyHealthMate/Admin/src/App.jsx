@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { UserManagement } from './components/UserManagement';
 import { ArticleManagement } from './components/ArticleManagement';
 import { QuestionManagement } from './components/QuestionManagement';
 import { AdminProfile } from './components/AdminProfile';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
-export default function App() {
+function AdminLayout() {
   const [activePage, setActivePage] = useState('dashboard');
   const [adminProfile, setAdminProfile] = useState({
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
@@ -45,5 +49,22 @@ export default function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route 
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        } 
+      />
+    </Routes>
   );
 }

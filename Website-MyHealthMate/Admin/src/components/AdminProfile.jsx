@@ -23,10 +23,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { useAuth } from '../lib/AuthContext';
 
 
 export function AdminProfile({ profile, onUpdateProfile }) {
+  const { logout } = useAuth();
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
@@ -88,19 +90,20 @@ export function AdminProfile({ profile, onUpdateProfile }) {
   };
 
   const handleLogout = () => {
-    toast.success('Đã đăng xuất thành công!');
     setShowLogoutDialog(false);
+    toast.success('Đã đăng xuất thành công!');
+    logout();
   };
 
   return (
     <div className="max-w-3xl mx-auto">
-      <h1 className="mb-8 text-gray-800">Hồ sơ Admin</h1>
+      <h1 className="text-4xl font-bold mb-8 text-gray-800">Hồ sơ Admin</h1>
 
       <Card className="rounded-[20px] shadow-md border-0 p-8">
         <div className="flex gap-8">
           {/* Left side - Avatar */}
           <div className="flex flex-col items-center gap-4">
-            <Avatar className="w-[120px] h-[120px] border-4 border-green-100 shadow-md">
+            <Avatar className="w-[120px] h-[120px] border-4 border-green-100 shadow-md rounded-full">
               <AvatarImage src={profileData.avatarUrl} />
               <AvatarFallback>{profileData.fullName.charAt(0)}</AvatarFallback>
             </Avatar>
@@ -173,7 +176,7 @@ export function AdminProfile({ profile, onUpdateProfile }) {
 
           <Button
             variant="outline"
-            className="rounded-xl text-gray-600 border-gray-300 hover:bg-gray-50"
+            className="rounded-xl text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
             onClick={() => setShowLogoutDialog(true)}
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -258,7 +261,7 @@ export function AdminProfile({ profile, onUpdateProfile }) {
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-gray-600 hover:bg-gray-700 rounded-xl"
+              className="bg-red-600 hover:bg-red-700 rounded-xl"
               onClick={handleLogout}
             >
               Đăng xuất
