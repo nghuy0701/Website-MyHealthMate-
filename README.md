@@ -154,6 +154,8 @@ cd Website-MyHealthMate-
 cd Backend
 
 yarn install
+yarn add --dev cross-env nodemon @babel/node
+yarn add dotenv
 ```
 
 **Backend sẽ tự động cài đặt:**
