@@ -16,6 +16,7 @@ import { ProfilePage } from './pages/ProfilePage.jsx';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
 import AdminApp from './pages/admin/AdminApp.jsx';
 import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
+import { AdminVerifyEmailPage } from './pages/admin/AdminVerifyEmailPage.jsx';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
             {/* Admin Routes - No Header/Footer */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/register" element={<AdminRegisterPage />} />
+            <Route path="/admin/verify-email/:token" element={<AdminVerifyEmailPage />} />
             <Route path="/admin/*" element={<AdminApp />} />
 
             {/* Regular User Routes - With Header/Footer */}

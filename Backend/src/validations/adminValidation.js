@@ -31,7 +31,11 @@ const createNew = async (req, res, next) => {
         'string.pattern.base': ADMIN_NAME_RULE_MESSAGE
       }),
     displayName: Joi.string().optional().allow(null).max(255),
-    avatar: Joi.string().optional().allow(null).max(1024)
+    avatar: Joi.string().optional().allow(null).max(1024),
+    secretKey: Joi.string().required().min(1).messages({
+      'any.required': 'Secret key is required',
+      'string.empty': 'Secret key cannot be empty'
+    })
   })
 
   try {

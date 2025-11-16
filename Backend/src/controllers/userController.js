@@ -85,6 +85,26 @@ const getCurrentUser = async (req, res, next) => {
   }
 }
 
+// Update Current User
+const updateMe = async (req, res, next) => {
+  try {
+    const userId = req.session.user?.userId
+
+    if (!userId) {
+      return next(new ApiError(StatusCodes.UNAUTHORIZED, 'Not authenticated'))
+    }
+
+    const updatedUser = await userService.updateUser(userId, req.body)
+    
+    res.status(StatusCodes.OK).json({
+      message: 'Profile updated successfully',
+      data: updatedUser
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message))
+  }
+}
+
 // Get All Users (Admin only)
 const getAllUsers = async (req, res, next) => {
   try {
@@ -144,13 +164,61 @@ const deleteUser = async (req, res, next) => {
   }
 }
 
+// Change Password
+const changePassword = async (req, res, next) => {
+  try {
+    const userId = req.session.user?.userId
+
+    if (!userId) {
+      return next(new ApiError(StatusCodes.UNAUTHORIZED, 'Not authenticated'))
+    }
+
+    const { oldPassword, newPassword } = req.body
+
+    const result = await userService.changePassword(userId, oldPassword, newPassword)
+    
+    res.status(StatusCodes.OK).json({
+      message: result.message
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message))
+  }
+}
+
+// Upload Avatar
+const uploadAvatar = async (req, res, next) => {
+  try {
+    const userId = req.session.user?.userId
+
+    if (!userId) {
+      return next(new ApiError(StatusCodes.UNAUTHORIZED, 'Not authenticated'))
+    }
+
+    if (!req.file) {
+      return next(new ApiError(StatusCodes.BAD_REQUEST, 'No file uploaded'))
+    }
+
+    const updatedUser = await userService.uploadAvatar(userId, req.file)
+    
+    res.status(StatusCodes.OK).json({
+      message: 'Avatar uploaded successfully',
+      data: updatedUser
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message))
+  }
+}
+
 export const userController = {
   createNew,
   login,
   logout,
   getCurrentUser,
+  updateMe,
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  changePassword,
+  uploadAvatar
 }

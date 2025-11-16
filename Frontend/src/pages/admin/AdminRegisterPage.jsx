@@ -5,25 +5,30 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
-import { Leaf, Lock } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Leaf, Lock, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAdmin } from '../../lib/admin-context';
+
 export function AdminRegisterPage() {
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [adminName, setAdminName] = useState('');
+    const [displayName, setDisplayName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [secretKey, setSecretKey] = useState('');
-    const [birthYear, setBirthYear] = useState('');
-    const [address, setAddress] = useState('');
-    const [avatarUrl, setAvatarUrl] = useState('');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { register } = useAdmin();
 
-    // UI-only registration for admin (no API calls). This page mirrors admin register layout.
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (!secretKey.trim()) {
+            toast.error('Vui lòng nhập khóa bí mật!');
+            return;
+        }
 
         if (password !== confirmPassword) {
             toast.error('Mật khẩu xác nhận không khớp!');
@@ -37,13 +42,29 @@ export function AdminRegisterPage() {
 
         setIsLoading(true);
 
-        // Simulate success (UI-only). Do not call APIs here per request.
-        setTimeout(() => {
+        try {
+            await register({
+                adminName: adminName.trim(),
+                displayName: displayName.trim() || adminName.trim(),
+                email: email.trim(),
+                password,
+                secretKey: secretKey.trim()
+            });
+            
+            toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.', {
+                duration: 5000,
+            });
+            
+            // Show message and redirect after delay
+            setTimeout(() => {
+                navigate('/admin/login');
+            }, 2000);
+        } catch (error) {
+            // Error is already handled in admin-context with toast
+            console.error('Registration error:', error);
+        } finally {
             setIsLoading(false);
-            // Note: all provided values remain client-side only in this UI-only flow.
-            toast.success('Tài khoản Admin (UI-only) đã được tạo — hãy đăng nhập.');
-            navigate('/admin/login');
-        }, 800);
+        }
     };
 
     return (
@@ -58,19 +79,32 @@ export function AdminRegisterPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="firstName">Tên</Label>
-                            <Input
-                                id="firstName"
-                                type="text"
-                                placeholder="Văn"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                required
-                                className="rounded-xl"
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="adminName">Tên đăng nhập Admin</Label>
+                        <Input
+                            id="adminName"
+                            type="text"
+                            placeholder="admin_user123"
+                            value={adminName}
+                            onChange={(e) => setAdminName(e.target.value)}
+                            required
+                            className="rounded-xl"
+                            minLength={3}
+                            maxLength={20}
+                        />
+                        <p className="text-xs text-gray-500">3-20 ký tự, chỉ chữ cái, số và dấu gạch dưới</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="displayName">Tên hiển thị</Label>
+                        <Input
+                            id="displayName"
+                            type="text"
+                            placeholder="Nguyễn Văn A"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            className="rounded-xl"
+                        />
                     </div>
 
                     <div className="space-y-2">
@@ -130,8 +164,15 @@ export function AdminRegisterPage() {
                             placeholder="••••••••"
                             value={secretKey}
                             onChange={(e) => setSecretKey(e.target.value)}
+                            required
                             className="rounded-xl"
                         />
+                        <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-yellow-800">
+                                Khóa bí mật được cung cấp bởi quản trị viên hệ thống. Chỉ những người được ủy quyền mới có thể tạo tài khoản admin.
+                            </p>
+                        </div>
                     </div>
 
 

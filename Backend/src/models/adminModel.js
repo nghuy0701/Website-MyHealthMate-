@@ -65,6 +65,21 @@ const findOneById = async (id) => {
   }
 }
 
+// Find Admin by Verification Token
+const findOneByVerificationToken = async (token) => {
+  try {
+    const result = await GET_DB()
+      .collection(COLLECTION_NAME)
+      .findOne({ 
+        verificationToken: token, 
+        _destroy: false 
+      })
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 // Update Admin
 const update = async (id, data) => {
   try {
@@ -123,6 +138,7 @@ const adminModel = {
   findOneByEmail,
   findOneByAdminName,
   findOneById,
+  findOneByVerificationToken,
   update,
   deleteAdmin,
   findAll

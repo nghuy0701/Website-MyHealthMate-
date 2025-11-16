@@ -14,7 +14,12 @@ cloudinary.config({
 
 const uploadImage = async (file, folder = 'myhealthmate') => {
   try {
-    const result = await cloudinary.uploader.upload(file, {
+    // Convert buffer to base64 if file is a buffer
+    const fileData = Buffer.isBuffer(file) 
+      ? `data:image/jpeg;base64,${file.toString('base64')}`
+      : file
+
+    const result = await cloudinary.uploader.upload(fileData, {
       folder,
       resource_type: 'auto',
       transformation: [
@@ -44,4 +49,5 @@ const cloudinaryProvider = {
   deleteImage
 }
 
+export { cloudinaryProvider }
 export default cloudinaryProvider

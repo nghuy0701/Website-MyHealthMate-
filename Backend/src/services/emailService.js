@@ -250,9 +250,117 @@ const sendPredictionResultEmail = async (patientEmail, patientName, predictionRe
   }
 }
 
+// Send admin verification email
+const sendAdminVerificationEmail = async (adminEmail, adminName, verificationToken) => {
+  try {
+    if (!env.BREVO_API_KEY) {
+      console.log('⚠️  Brevo API key not configured, skipping email')
+      return { success: false, error: 'Email service not configured' }
+    }
+
+    const verificationUrl = `${env.CLIENT_URL || 'http://localhost:3000'}/admin/verify-email/${verificationToken}`
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': env.BREVO_API_KEY,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: {
+          name: 'MyHealthMate Admin',
+          email: env.BREVO_SENDER_EMAIL || 'noreply@myhealthmate.com'
+        },
+        to: [
+          {
+            email: adminEmail,
+            name: adminName || 'Admin'
+          }
+        ],
+        subject: '🔐 Xác thực tài khoản Admin - MyHealthMate',
+        htmlContent: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+              .button { display: inline-block; background: #7c3aed; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: bold; font-size: 16px; }
+              .button:hover { background: #6366f1; }
+              .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 5px; }
+              .code-box { background: white; border: 2px dashed #7c3aed; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center; }
+              .token { font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold; color: #7c3aed; letter-spacing: 2px; }
+              .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🔐 MyHealthMate Admin</h1>
+                <p>Xác thực tài khoản quản trị viên</p>
+              </div>
+              <div class="content">
+                <h2>Xin chào ${adminName || 'Admin'}!</h2>
+                <p>Cảm ơn bạn đã đăng ký tài khoản quản trị viên tại <strong>MyHealthMate</strong>.</p>
+                
+                <div class="warning-box">
+                  <strong>⚠️ Bước quan trọng:</strong><br>
+                  Để hoàn tất quá trình đăng ký và kích hoạt tài khoản, vui lòng xác thực địa chỉ email của bạn.
+                </div>
+
+                <p><strong>Vui lòng nhấn vào nút bên dưới để xác thực email:</strong></p>
+                <div style="text-align: center;">
+                  <a href="${verificationUrl}" class="button">Xác thực Email</a>
+                </div>
+
+                <div class="code-box">
+                  <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">Hoặc sử dụng mã xác thực:</p>
+                  <div class="token">${verificationToken}</div>
+                </div>
+
+                <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+                  <strong>Lưu ý:</strong> Link xác thực này sẽ hết hạn sau <strong>24 giờ</strong>. 
+                  Nếu bạn không yêu cầu tạo tài khoản này, vui lòng bỏ qua email này.
+                </p>
+
+                <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                  <strong>🔒 Bảo mật:</strong><br>
+                  Đây là email xác thực tài khoản quản trị viên. Vui lòng không chia sẻ link hoặc mã xác thực với bất kỳ ai.
+                </div>
+              </div>
+              <div class="footer">
+                <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+                <p>&copy; 2025 MyHealthMate Admin System. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('❌ Brevo API error:', errorData)
+      return { success: false, error: errorData.message || 'Failed to send email' }
+    }
+
+    const data = await response.json()
+    console.log('✅ Admin verification email sent via Brevo:', data.messageId)
+    return { success: true, messageId: data.messageId }
+  } catch (error) {
+    console.error('❌ Error sending admin verification email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 const emailService = {
   sendWelcomeEmail,
-  sendPredictionResultEmail
+  sendPredictionResultEmail,
+  sendAdminVerificationEmail
 }
 
 export default emailService

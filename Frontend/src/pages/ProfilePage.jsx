@@ -5,6 +5,14 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '../components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,7 +26,7 @@ import { User, Mail, Calendar, Users, Key, Globe, Moon, Sun, LogOut, Camera } fr
 import { toast } from 'sonner';
 
 export const ProfilePage = () => {
-  const { user, logout, updateProfile } = useAuth();
+  const { user, logout, updateProfile, refreshUser } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
@@ -26,9 +34,17 @@ export const ProfilePage = () => {
   const [gender, setGender] = useState('');
   // <--- SỬA 2: Thêm state cho avatarUrl
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const [theme, setTheme] = useState('light');
   const [language, setLanguage] = useState('vi');
+
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -53,15 +69,140 @@ export const ProfilePage = () => {
     }
   };
 
-  const handleSaveProfile = () => {
-    // <--- SỬA 5: Thêm 'avatar: avatarUrl' vào object update
-    updateProfile({ name, age, gender, avatar: avatarUrl });
-    setIsEditing(false);
-    toast.success('Cập nhật hồ sơ thành công!');
+  const handleSaveProfile = async () => {
+    try {
+      console.log('Updating profile with:', { name, age, gender });
+      const response = await updateProfile({ name, age, gender });
+      console.log('Update response:', response);
+      setIsEditing(false);
+      toast.success('Cập nhật hồ sơ thành công!');
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast.error(error.message || 'Có lỗi xảy ra khi cập nhật hồ sơ!');
+    }
   };
 
-  const handleChangePassword = () => {
-    toast.info('Tính năng đổi mật khẩu sẽ được cập nhật trong phiên bản tới!');
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Vui lòng chọn file ảnh!');
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Kích thước ảnh không được vượt quá 5MB!');
+        return;
+      }
+
+      setAvatarFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarUrl(previewUrl);
+    }
+  };
+
+  const handleUploadAvatar = async () => {
+    if (!avatarFile) {
+      toast.error('Vui lòng chọn ảnh!');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017/api/v1';
+      const response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Upload failed');
+      }
+
+      const result = await response.json();
+      console.log('Avatar upload result:', result);
+      
+      // Update local state with new avatar URL
+      setAvatarUrl(result.data.avatar);
+      setAvatarFile(null);
+      
+      // Refresh user data to get updated avatar from server
+      await refreshUser();
+      
+      toast.success('Cập nhật ảnh đại diện thành công!');
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error(error.message || 'Có lỗi xảy ra khi tải ảnh lên. Vui lòng kiểm tra Backend đã chạy chưa!');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      toast.error('Vui lòng điền đầy đủ thông tin!');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu mới không khớp!');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error('Mật khẩu mới phải có ít nhất 8 ký tự!');
+      return;
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      toast.error('Mật khẩu phải chứa chữ hoa, chữ thường và số!');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017/api/v1';
+      const response = await fetch(`${API_BASE_URL}/users/me/change-password`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to change password');
+      }
+
+      toast.success('Đổi mật khẩu thành công!');
+      setShowPasswordDialog(false);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Change password error:', error);
+      if (error.message.includes('incorrect')) {
+        toast.error('Mật khẩu hiện tại không đúng!');
+      } else {
+        toast.error(error.message || 'Có lỗi xảy ra khi đổi mật khẩu!');
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const getInitials = (name) => {
@@ -152,18 +293,27 @@ export const ProfilePage = () => {
                 {isEditing && (
                   <div className="space-y-2">
                     <Label htmlFor="avatar" className="flex items-center gap-2">
-                      <Camera className="w-4 h-4" /> {/* Sẽ hoạt động vì đã import */}
-                      URL Avatar
+                      <Camera className="w-4 h-4" />
+                      Ảnh đại diện
                     </Label>
-                    <Input
-                      id="avatar"
-                      value={avatarUrl} // Sẽ hoạt động vì đã có useState
-                      onChange={(e) => setAvatarUrl(e.target.value)} // Sẽ hoạt động
-                      placeholder="https://example.com/avatar.jpg"
-                      className="rounded-xl"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="avatar-file"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="rounded-xl flex-1"
+                      />
+                      <Button
+                        onClick={handleUploadAvatar}
+                        disabled={!avatarFile || isUploadingAvatar}
+                        className="bg-green-600 hover:bg-green-700 rounded-xl whitespace-nowrap"
+                      >
+                        {isUploadingAvatar ? 'Đang tải...' : 'Tải lên'}
+                      </Button>
+                    </div>
                     <p className="text-xs text-gray-500">
-                      Nhập đường dẫn ảnh đại diện của bạn. Avatar sẽ được xem trước ở bên trái.
+                      Chọn ảnh (tối đa 5MB). Ảnh sẽ được xem trước ở bên trái.
                     </p>
                   </div>
                 )}
@@ -231,7 +381,7 @@ export const ProfilePage = () => {
                   </div>
                   <Button
                     variant="outline"
-                    onClick={handleChangePassword}
+                    onClick={() => setShowPasswordDialog(true)}
                     className="border-green-600 text-green-600 hover:bg-green-50 rounded-xl"
                   >
                     Đổi mật khẩu
@@ -305,6 +455,98 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-2xl font-bold text-gray-800">Đổi mật khẩu</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Nhập mật khẩu hiện tại và mật khẩu mới của bạn để thay đổi.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-5 py-6">
+            <div className="space-y-2">
+              <Label htmlFor="old-password" className="text-sm font-medium text-gray-700">
+                Mật khẩu hiện tại <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="old-password"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                placeholder="Nhập mật khẩu hiện tại"
+                className="rounded-xl h-11 border-gray-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+            
+            <div className="h-px bg-gray-200" />
+            
+            <div className="space-y-2">
+              <Label htmlFor="new-password" className="text-sm font-medium text-gray-700">
+                Mật khẩu mới <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nhập mật khẩu mới"
+                className="rounded-xl h-11 border-gray-300 focus:border-green-500 focus:ring-green-500"
+              />
+              <p className="text-xs text-gray-500 mt-1.5 ml-1">
+                • Ít nhất 8 ký tự<br/>
+                • Có chữ hoa và chữ thường<br/>
+                • Có ít nhất 1 chữ số
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" className="text-sm font-medium text-gray-700">
+                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu mới"
+                className="rounded-xl h-11 border-gray-300 focus:border-green-500 focus:ring-green-500"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-3 sm:gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPasswordDialog(false);
+                setOldPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+              }}
+              className="rounded-xl h-11 px-6 border-gray-300 hover:bg-gray-50"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword}
+              className="bg-green-600 hover:bg-green-700 rounded-xl h-11 px-6 min-w-[140px]"
+            >
+              {isChangingPassword ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Đang xử lý...
+                </>
+              ) : (
+                'Đổi mật khẩu'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

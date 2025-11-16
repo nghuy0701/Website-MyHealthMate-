@@ -72,10 +72,16 @@ const login = async (req, res, next) => {
 const update = async (req, res, next) => {
   const correctCondition = Joi.object({
     displayName: Joi.string().optional().max(255),
+    name: Joi.string().optional().max(255),
+    age: Joi.alternatives().try(
+      Joi.number().integer().min(0).max(150),
+      Joi.string().allow('').max(10)
+    ).optional().allow(null),
     phone: Joi.string().optional().allow(null).max(20),
-    gender: Joi.string().optional().allow(null).valid('male', 'female', 'other'),
+    gender: Joi.string().optional().allow(null).valid('male', 'female', 'other', 'Nam', 'Nữ', 'Khác'),
     dob: Joi.date().optional().allow(null),
     avatar: Joi.string().optional().allow(null).max(1024),
+    avatarPublicId: Joi.string().optional().allow(null).max(255),
     password: Joi.string()
       .optional()
       .pattern(PASSWORD_RULE)

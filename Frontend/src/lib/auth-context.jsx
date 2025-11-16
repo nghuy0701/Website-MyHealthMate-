@@ -62,23 +62,31 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const updateProfile = (updates) => {
-    // TODO: Add API call to backend to update user profile
-    // Example:
-    // const { data, error } = await supabase.from('profiles').update(updates).eq('id', user.id);
-    // if (error) throw error;
-    // setUser(data[0]);
-    // localStorage.setItem('diabetes_user', JSON.stringify(data[0]));
-
-    if (user) {
-      const updatedUser = { ...user, ...updates };
+  const updateProfile = async (updates) => {
+    try {
+      const response = await userAPI.updateMe(updates);
+      const updatedUser = response.data;
       setUser(updatedUser);
-      localStorage.setItem('diabetes_user', JSON.stringify(updatedUser));
+      return response;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const response = await userAPI.getMe();
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Refresh user error:', error);
+      throw error;
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateProfile, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

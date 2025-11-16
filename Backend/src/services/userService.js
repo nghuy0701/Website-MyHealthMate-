@@ -4,6 +4,7 @@ import { StatusCodes  } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import bcrypt from 'bcryptjs'
 import emailService from '~/services/emailService'
+import { cloudinaryProvider } from '~/providers/cloudinaryProvider'
 
 // Create New User (Register)
 const createNew = async (req) => {
@@ -11,13 +12,13 @@ const createNew = async (req) => {
     // Check if email already exists
     const existUser = await userModel.findOneByEmail(req.body.email)
     if (existUser) {
-      throw new ApiError(StatusCodes.CONFLICT, 'Email already exists!')
+      throw new ApiError(StatusCodes.CONFLICT, 'Email đã tồn tại!')
     }
 
     // Check if userName already exists
     const existUsername = await userModel.findOneByUsername(req.body.userName)
     if (existUsername) {
-      throw new ApiError(StatusCodes.CONFLICT, 'Username already exists!')
+      throw new ApiError(StatusCodes.CONFLICT, 'Tên đăng nhập đã tồn tại!')
     }
 
     // Create new user
@@ -72,7 +73,7 @@ const login = async (req) => {
     }
     
     if (!user) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Người dùng không tồn tại')
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password)
@@ -80,7 +81,7 @@ const login = async (req) => {
     if (!passwordIsValid) {
       throw new ApiError(
         StatusCodes.UNAUTHORIZED,
-        'Your Email/Username or Password is incorrect!'
+        'Email/Tên đăng nhập hoặc Mật khẩu không đúng!'
       )
     }
 
@@ -146,13 +147,77 @@ const deleteUser = async (userId) => {
   }
 }
 
+// Change Password
+const changePassword = async (userId, oldPassword, newPassword) => {
+  try {
+    const user = await userModel.findOneById(userId)
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    // Verify old password
+    const isPasswordValid = bcrypt.compareSync(oldPassword, user.password)
+    if (!isPasswordValid) {
+      throw new ApiError(StatusCodes.UNAUTHORIZED, 'Mật khẩu hiện tại không đúng')
+    }
+
+    // Hash new password
+    const hashedPassword = bcrypt.hashSync(newPassword, 8)
+
+    // Update password
+    await userModel.update(userId, {
+      password: hashedPassword,
+      updateAt: Date.now()
+    })
+
+    return { message: 'Đổi mật khẩu thành công' }
+  } catch (error) {
+    throw error
+  }
+}
+
+// Upload Avatar
+const uploadAvatar = async (userId, file) => {
+  try {
+    const user = await userModel.findOneById(userId)
+    if (!user) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
+
+    // Delete old avatar if exists
+    if (user.avatar && user.avatarPublicId) {
+      try {
+        await cloudinaryProvider.deleteImage(user.avatarPublicId)
+      } catch (error) {
+        console.error('Error deleting old avatar:', error)
+      }
+    }
+
+    // Upload new avatar
+    const uploadResult = await cloudinaryProvider.uploadImage(file.buffer, 'myhealthmate/avatars')
+    
+    // Update user with new avatar
+    const updatedUser = await userModel.update(userId, {
+      avatar: uploadResult.url,
+      avatarPublicId: uploadResult.publicId,
+      updateAt: Date.now()
+    })
+
+    return pickUser(updatedUser)
+  } catch (error) {
+    throw error
+  }
+}
+
 const userService = {
   createNew,
   login,
   getById,
   getAllUsers,
   updateUser,
-  deleteUser
+  deleteUser,
+  changePassword,
+  uploadAvatar
 }
 
 export default userService

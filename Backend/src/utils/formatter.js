@@ -7,11 +7,14 @@ const pickUser = (user) => {
     email: user.email,
     userName: user.userName,
     displayName: user.displayName,
+    name: user.name || user.displayName || user.userName,
     role: user.role,
     phone: user.phone || null,
     gender: user.gender || null,
+    age: user.age || null,
     dob: user.dob || null,
     avatar: user.avatar || null,
+    avatarPublicId: user.avatarPublicId || null,
     createdAt: user.createdAt
   }
 }

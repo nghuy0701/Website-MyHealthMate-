@@ -3,30 +3,45 @@ import { pickUser } from '~/utils/formatter'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import bcrypt from 'bcryptjs'
+import { env } from '~/configs/environment'
+import crypto from 'crypto'
+import emailService from './emailService.js'
 
 // Create New Admin (Register)
 const createNew = async (reqBody) => {
   try {
+    // Verify secret key
+    if (reqBody.secretKey !== env.ADMIN_SECRET_KEY) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'Khóa bí mật không hợp lệ! Chỉ người được ủy quyền mới có thể tạo tài khoản admin.')
+    }
+
     // Check if email already exists
     const existAdmin = await adminModel.findOneByEmail(reqBody.email)
     if (existAdmin) {
-      throw new ApiError(StatusCodes.CONFLICT, 'Email already exists!')
+      throw new ApiError(StatusCodes.CONFLICT, 'Email đã tồn tại!')
     }
 
     // Check if adminName already exists
     const existAdminName = await adminModel.findOneByAdminName(reqBody.adminName)
     if (existAdminName) {
-      throw new ApiError(StatusCodes.CONFLICT, 'Admin name already exists!')
+      throw new ApiError(StatusCodes.CONFLICT, 'Tên admin đã tồn tại!')
     }
 
-    // Create new admin
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const verificationExpires = Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+
+    // Create new admin with unverified status
     const newAdmin = {
       email: reqBody.email,
       adminName: reqBody.adminName,
       password: bcrypt.hashSync(reqBody.password, 8),
       displayName: reqBody.displayName || reqBody.adminName,
       avatar: reqBody.avatar || null,
-      role: 'admin'
+      role: 'admin',
+      isEmailVerified: false,
+      verificationToken: verificationToken,
+      verificationExpires: verificationExpires
     }
 
     const createdAdmin = await adminModel.createNew(newAdmin)
@@ -39,7 +54,54 @@ const createNew = async (reqBody) => {
       )
     }
 
+    // Send verification email (async, don't wait)
+    emailService.sendAdminVerificationEmail(
+      getNewAdmin.email,
+      getNewAdmin.displayName,
+      verificationToken
+    )
+      .then(result => {
+        if (result.success) {
+          console.log(`📧 Verification email sent to ${getNewAdmin.email}`)
+        } else {
+          console.log(`⚠️  Failed to send verification email: ${result.error}`)
+        }
+      })
+      .catch(err => console.error('Email error:', err))
+
     return pickUser(getNewAdmin)
+  } catch (error) {
+    throw error
+  }
+}
+
+// Verify Email
+const verifyEmail = async (token) => {
+  try {
+    const admin = await adminModel.findOneByVerificationToken(token)
+    
+    if (!admin) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Mã xác thực không hợp lệ hoặc đã hết hạn')
+    }
+
+    // Check if token has expired
+    if (admin.verificationExpires < Date.now()) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Mã xác thực đã hết hạn')
+    }
+
+    // Check if already verified
+    if (admin.isEmailVerified) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Email đã được xác thực')
+    }
+
+    // Update admin to verified status
+    await adminModel.update(admin._id.toString(), {
+      isEmailVerified: true,
+      verificationToken: null,
+      verificationExpires: null
+    })
+
+    return { message: 'Xác thực email thành công' }
   } catch (error) {
     throw error
   }
@@ -53,7 +115,16 @@ const login = async (reqBody) => {
     
     if (!admin) {
       console.log('❌ Admin not found:', reqBody.email)
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Admin not found')
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Admin không tồn tại')
+    }
+
+    // Check if email is verified
+    if (!admin.isEmailVerified) {
+      console.log('❌ Email not verified:', reqBody.email)
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hóp thư để lấy liên kết xác thực.'
+      )
     }
 
     console.log('✅ Admin found:', admin.email)
@@ -133,6 +204,7 @@ const deleteAdmin = async (adminId) => {
 
 const adminService = {
   createNew,
+  verifyEmail,
   login,
   getById,
   getAllAdmins,

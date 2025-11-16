@@ -38,7 +38,7 @@ export function LoginPage() {
           <div className="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center mx-auto mb-4">
             <Leaf className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-gray-800 mb-2">Diabetes Predictor</h1>
+          <h1 className="text-gray-800 mb-2">Dự đoán Tiểu đường</h1>
           <p className="text-gray-600">Đánh giá nguy cơ mắc bệnh tiểu đường</p>
         </div>
 
@@ -48,7 +48,7 @@ export function LoginPage() {
             <Input
               id="email"
               type="text"
-              placeholder="email@example.com hoặc username"
+              placeholder="email@example.com hoặc tên đăng nhập"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

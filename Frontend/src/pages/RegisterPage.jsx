@@ -63,7 +63,7 @@ export function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="userName">Username <span className="text-red-500">*</span></Label>
+            <Label htmlFor="userName">Tên đăng nhập <span className="text-red-500">*</span></Label>
             <Input
               id="userName"
               type="text"

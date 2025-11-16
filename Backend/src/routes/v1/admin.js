@@ -12,6 +12,9 @@ Router.route('/register')
 Router.route('/login')
   .post(adminValidation.login, adminController.login)
 
+Router.route('/verify-email/:token')
+  .get(adminController.verifyEmail)
+
 // Protected routes (Admin only)
 Router.route('/logout')
   .post(isAuthenticated, adminController.logout)

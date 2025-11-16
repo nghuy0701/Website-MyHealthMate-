@@ -29,5 +29,8 @@ export const env = {
   BREVO_API_KEY: process.env.BREVO_API_KEY,
   BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL,
   
+  // Admin Secret Key
+  ADMIN_SECRET_KEY: process.env.ADMIN_SECRET_KEY || 'default-admin-secret-2024',
+  
   AUTHOR: process.env.AUTHOR
 }

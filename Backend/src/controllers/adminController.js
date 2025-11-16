@@ -122,6 +122,20 @@ const deleteAdmin = async (req, res, next) => {
   }
 }
 
+// Verify Email
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.params
+    const result = await adminService.verifyEmail(token)
+    res.status(StatusCodes.OK).json({
+      message: result.message,
+      data: result
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message))
+  }
+}
+
 export const adminController = {
   createNew,
   login,
@@ -129,5 +143,6 @@ export const adminController = {
   getAllAdmins,
   getAdminById,
   updateAdmin,
-  deleteAdmin
+  deleteAdmin,
+  verifyEmail
 }
