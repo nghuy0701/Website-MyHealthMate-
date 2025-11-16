@@ -7,7 +7,6 @@ Website dự đoán tiểu đường sử dụng Machine Learning, giúp ngườ
 - [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
 - [Công nghệ sử dụng](#công-nghệ-sử-dụng)
 - [Cài đặt](#cài-đặt)
-- [Cấu hình](#cấu-hình)
 - [Chạy ứng dụng](#chạy-ứng-dụng)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
 

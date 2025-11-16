@@ -136,7 +136,11 @@ export function ArticleManagement() {
     try {
       if (selectedArticle) {
         // Update existing article
-        await articleAPI.update(selectedArticle._id, formData);
+        const updateData = {
+          ...formData,
+          category: normalizeCategoryInput(formData.category),
+        };
+        await articleAPI.update(selectedArticle._id, updateData);
         toast.success('Cập nhật bài viết thành công!');
       } else {
         // Create new article
@@ -145,7 +149,7 @@ export function ArticleManagement() {
           title: formData.title,
           description: formData.description,
           image: formData.image || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=100',
-          category: formData.category,
+          category: normalizeCategoryInput(formData.category),
           content: formData.content,
         };
         await articleAPI.create(newArticle);
@@ -170,6 +174,41 @@ export function ArticleManagement() {
 
   const getCategoryLabel = (category) => {
     return categoryLabels[category] || category;
+  };
+
+  // Chuyển đổi input danh mục (tiếng Việt hoặc tiếng Anh) sang key chuẩn
+  const normalizeCategoryInput = (input) => {
+    if (!input) return 'nutrition';
+    
+    const inputLower = input.toLowerCase().trim();
+    
+    // Ánh xạ tiếng Việt -> key
+    const vietnameseMap = {
+      'dinh dưỡng': 'nutrition',
+      'dinhduong': 'nutrition',
+      'lối sống': 'lifestyle',
+      'loi song': 'lifestyle',
+      'lifestyle': 'lifestyle',
+      'xét nghiệm': 'testing',
+      'xetnghiem': 'testing',
+      'testing': 'testing',
+      'giáo dục': 'education',
+      'giaoduc': 'education',
+      'education': 'education',
+      'nutrition': 'nutrition',
+    };
+    
+    // Tìm khớp trong map
+    const normalized = vietnameseMap[inputLower];
+    if (normalized) return normalized;
+    
+    // Kiểm tra xem có phải key chuẩn không
+    if (['nutrition', 'lifestyle', 'testing', 'education'].includes(inputLower)) {
+      return inputLower;
+    }
+    
+    // Mặc định trả về nutrition nếu không khớp
+    return 'nutrition';
   };
 
   const filteredArticles = articles.filter(article => {
@@ -367,16 +406,12 @@ export function ArticleManagement() {
 
             <div className="space-y-2">
               <Label htmlFor="category">Danh mục</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(categoryLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="rounded-xl"
+              />
             </div>
 
             <div className="space-y-2">
