@@ -1,34 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
-import { articles as initialArticles, categoryLabels } from '../lib/data';
+import { categoryLabels } from '../lib/data';
+import { articleAPI } from '../lib/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { ChevronLeft, ChevronRight, Search, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function KnowledgePage() {
   const { user } = useAuth();
-  const [articles, setArticles] = useState(initialArticles);
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
-  // TODO: Fetch articles from a backend API instead of the local data.js file
-  // useEffect(() => {
-  //   const fetchArticles = async () => {
-  //     try {
-  //       const response = await fetch('/api/articles');
-  //       const data = await response.json();
-  //       setArticles(data);
-  //     } catch (error) {
-  //       console.error("Failed to fetch articles:", error);
-  //     }
-  //   };
-  //
-  //   fetchArticles();
-  // }, []);
+  // Fetch articles from backend
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setLoading(true);
+        const response = await articleAPI.getAll();
+        setArticles(response.data);
+      } catch (error) {
+        toast.error('Không thể tải bài viết: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArticles();
+  }, []);
 
   const featuredArticles = articles.filter((a) => a.featured);
   const currentFeatured = featuredArticles[featuredIndex];
@@ -38,7 +43,7 @@ export function KnowledgePage() {
     const matchesSearch =
       searchQuery === '' ||
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      article.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      (article.description && article.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch && !article.featured;
   });
 
@@ -86,7 +91,7 @@ export function KnowledgePage() {
           <Card className="overflow-hidden rounded-2xl shadow-lg">
             <div className="relative h-96">
               <img
-                src={currentFeatured.imageUrl}
+                src={currentFeatured.image}
                 alt={currentFeatured.title}
                 className="w-full h-full object-cover"
               />
@@ -94,14 +99,14 @@ export function KnowledgePage() {
               <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
                 <Badge className="bg-green-600 mb-3">{categoryLabels[currentFeatured.category]}</Badge>
                 <h2 className="text-white mb-3">{currentFeatured.title}</h2>
-                <p className="text-white/90 mb-4">{currentFeatured.excerpt}</p>
+                <p className="text-white/90 mb-4">{currentFeatured.description}</p>
                 <div className="flex items-center gap-4">
-                  <Link to={`/article/${currentFeatured.id}`}>
+                  <Link to={`/article/${currentFeatured._id}`}>
                     <Button className="bg-white text-green-600 hover:bg-gray-100">Đọc ngay</Button>
                   </Link>
                   <div className="flex items-center gap-2 text-white/80 text-sm">
                     <Clock className="w-4 h-4" />
-                    {currentFeatured.readTime}
+                    5 phút đọc
                   </div>
                 </div>
               </div>
@@ -174,7 +179,7 @@ export function KnowledgePage() {
         {/* Articles Grid */}
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredArticles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
+            <ArticleCard key={article._id} article={article} />
           ))}
         </div>
 
@@ -190,11 +195,11 @@ export function KnowledgePage() {
 
 function ArticleCard({ article }) {
   return (
-    <Link to={`/article/${article.id}`}>
+    <Link to={`/article/${article._id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group rounded-2xl">
         <div className="aspect-video overflow-hidden">
           <img
-            src={article.imageUrl}
+            src={article.image}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -204,10 +209,10 @@ function ArticleCard({ article }) {
             {categoryLabels[article.category]}
           </Badge>
           <h3 className="text-gray-800 mb-2 line-clamp-2">{article.title}</h3>
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{article.excerpt}</p>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{article.description}</p>
           <div className="flex items-center gap-2 text-gray-500 text-sm">
             <Clock className="w-4 h-4" />
-            {article.readTime}
+            5 phút đọc
           </div>
         </div>
       </Card>

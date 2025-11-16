@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -39,6 +39,7 @@ import {
 } from '../ui/select';
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
+import { questionAPI } from '../../lib/api';
 
 export function QuestionManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,37 +47,55 @@ export function QuestionManagement() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [loading, setLoading] = useState(true);
   
-  const [questions, setQuestions] = useState([
-    { id: 1, content: 'Bạn có thường xuyên cảm thấy khát nước hơn bình thường không?', type: 'yes_no' },
-    { id: 2, content: 'Bạn có thường xuyên đi tiểu nhiều lần trong ngày không?', type: 'yes_no' },
-    { id: 3, content: 'Bạn có cảm thấy mệt mỏi, uể oải dù nghỉ ngơi đầy đủ không?', type: 'yes_no' },
-    { id: 4, content: 'Bạn có bị giảm cân không rõ nguyên nhân trong thời gian gần đây không?', type: 'yes_no' },
-    { id: 5, content: 'Bạn có ăn nhiều nhưng vẫn thấy đói nhanh không?', type: 'yes_no' },
-    { id: 6, content: 'Bạn có thường xuyên bị mờ mắt hoặc giảm thị lực tạm thời không?', type: 'yes_no' },
-    { id: 7, content: 'Bạn có từng được bác sĩ chẩn đoán huyết áp cao chưa?', type: 'yes_no' },
-    { id: 8, content: 'Trong gia đình bạn có ai mắc bệnh tiểu đường không?', type: 'yes_no' },
-    { id: 9, content: 'Bạn có ít vận động thể dục thể thao (dưới 2 buổi/tuần)?', type: 'yes_no' },
-    { id: 10, content: 'Bạn có thường xuyên sử dụng đồ ngọt (bánh, nước ngọt, trà sữa, cà phê sữa)?', type: 'yes_no' },
-    { id: 11, content: 'Bạn có thừa cân hoặc béo phì (BMI > 25) không?', type: 'yes_no' },
-    { id: 12, content: 'Bạn có hút thuốc hoặc uống rượu bia thường xuyên không?', type: 'yes_no' },
-    { id: 13, content: 'Tuổi của bạn nằm trong nhóm nào?', type: 'choice', options: ['Dưới 30', '30–45', 'Trên 45'] },
-    { id: 14, content: 'Giới tính của bạn là gì?', type: 'choice', options: ['Nam', 'Nữ'] },
-    { id: 15, content: 'Bạn có thường xuyên bị tê hoặc ngứa ran ở tay/chân không?', type: 'yes_no' },
-  ]);
+  const [questions, setQuestions] = useState([]);
 
   const [formData, setFormData] = useState({
-    content: '',
-    type: 'yes_no',
+    questionId: '',
+    text: '',
+    type: 'select',
+    placeholder: '',
     options: '',
+    min: '',
+    max: '',
+    step: '',
+    unit: '',
+    hint: '',
+    order: ''
   });
+
+  // Fetch questions on mount
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
+
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
+      const response = await questionAPI.getAll();
+      setQuestions(response.data);
+    } catch (error) {
+      toast.error('Không thể tải danh sách câu hỏi: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEdit = (question) => {
     setSelectedQuestion(question);
     setFormData({
-      content: question.content,
-      type: question.type,
-      options: question.options?.join(', ') || '',
+      questionId: question.questionId || '',
+      text: question.text || '',
+      type: question.type || 'select',
+      placeholder: question.placeholder || '',
+      options: question.options ? JSON.stringify(question.options) : '',
+      min: question.min?.toString() || '',
+      max: question.max?.toString() || '',
+      step: question.step?.toString() || '',
+      unit: question.unit || '',
+      hint: question.hint || '',
+      order: question.order?.toString() || ''
     });
     setShowAddDialog(true);
   };
@@ -86,68 +105,89 @@ export function QuestionManagement() {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setSelectedQuestion(null);
+  };
+
+  const confirmDelete = async () => {
     if (selectedQuestion) {
-      setQuestions(questions.filter(q => q.id !== selectedQuestion.id));
-      toast.success('Đã xóa câu hỏi thành công!');
-      setShowDeleteDialog(false);
-      setSelectedQuestion(null);
+      try {
+        await questionAPI.delete(selectedQuestion._id);
+        toast.success('Đã xóa câu hỏi thành công!');
+        setShowDeleteDialog(false);
+        setSelectedQuestion(null);
+        await fetchQuestions();
+      } catch (error) {
+        toast.error('Không thể xóa câu hỏi: ' + error.message);
+        setShowDeleteDialog(false);
+        setSelectedQuestion(null);
+      }
     }
   };
 
-  const handleSave = () => {
-    if (!formData.content) {
-      toast.error('Vui lòng nhập nội dung câu hỏi!');
+  const handleSave = async () => {
+    if (!formData.questionId || !formData.text) {
+      toast.error('Vui lòng nhập ID và nội dung câu hỏi!');
       return;
     }
 
-    if (formData.type === 'choice' && !formData.options) {
-      toast.error('Vui lòng nhập các lựa chọn!');
-      return;
+    try {
+      const questionData = {
+        questionId: formData.questionId,
+        text: formData.text,
+        type: formData.type,
+        placeholder: formData.placeholder || null,
+        options: formData.options ? JSON.parse(formData.options) : null,
+        min: formData.min ? parseFloat(formData.min) : null,
+        max: formData.max ? parseFloat(formData.max) : null,
+        step: formData.step ? parseFloat(formData.step) : null,
+        unit: formData.unit || null,
+        hint: formData.hint || null,
+        order: formData.order ? parseInt(formData.order) : 0
+      };
+
+      if (selectedQuestion) {
+        await questionAPI.update(selectedQuestion._id, questionData);
+        toast.success('Cập nhật câu hỏi thành công!');
+      } else {
+        await questionAPI.create(questionData);
+        toast.success('Thêm câu hỏi thành công!');
+      }
+
+      fetchQuestions();
+      setShowAddDialog(false);
+      setSelectedQuestion(null);
+      setFormData({
+        questionId: '',
+        text: '',
+        type: 'select',
+        placeholder: '',
+        options: '',
+        min: '',
+        max: '',
+        step: '',
+        unit: '',
+        hint: '',
+        order: ''
+      });
+    } catch (error) {
+      toast.error('Không thể lưu câu hỏi: ' + error.message);
     }
-
-    const questionData = {
-      id: selectedQuestion?.id || Math.max(...questions.map(q => q.id), 0) + 1,
-      content: formData.content,
-      type: formData.type,
-      options: formData.type === 'choice' ? formData.options.split(',').map(o => o.trim()) : undefined,
-    };
-
-    if (selectedQuestion) {
-      setQuestions(questions.map(q => 
-        q.id === selectedQuestion.id ? questionData : q
-      ));
-      toast.success('Cập nhật câu hỏi thành công!');
-    } else {
-      setQuestions([...questions, questionData]);
-      toast.success('Thêm câu hỏi thành công!');
-    }
-
-    setShowAddDialog(false);
-    setSelectedQuestion(null);
-    setFormData({
-      content: '',
-      type: 'yes_no',
-      options: '',
-    });
   };
 
   const getTypeLabel = (type) => {
     const labels = {
-      yes_no: 'Có / Không',
-      choice: 'Lựa chọn',
-      text: 'Tự nhập',
+      select: 'Lựa chọn (Select)',
+      number: 'Nhập số (Number)',
+      text: 'Nhập text (Text)'
     };
     return labels[type] || type;
   };
 
   const filteredQuestions = questions.filter(question => {
-    const matchesSearch = question.content.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = 
-      filter === 'all' || 
-      (filter === 'yes_no' && question.type === 'yes_no') ||
-      (filter === 'choice' && question.type === 'choice') ||
-      (filter === 'text' && question.type === 'text');
+    const matchesSearch = question.text?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filter === 'all' || question.type === filter;
     return matchesSearch && matchesFilter;
   });
 
@@ -185,20 +225,28 @@ export function QuestionManagement() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="yes_no">Có/Không</SelectItem>
-            <SelectItem value="choice">Lựa chọn</SelectItem>
-            <SelectItem value="text">Tự nhập</SelectItem>
+            <SelectItem value="select">Lựa chọn</SelectItem>
+            <SelectItem value="number">Nhập số</SelectItem>
+            <SelectItem value="text">Nhập text</SelectItem>
           </SelectContent>
         </Select>
 
         <Button 
-          className="bg-blue-600 hover:bg-blue-700 rounded-xl"
+          className="bg-green-600 hover:bg-green-700 rounded-xl text-white shadow-sm"
           onClick={() => {
             setSelectedQuestion(null);
             setFormData({
-              content: '',
-              type: 'yes_no',
+              questionId: '',
+              text: '',
+              type: 'select',
+              placeholder: '',
               options: '',
+              min: '',
+              max: '',
+              step: '',
+              unit: '',
+              hint: '',
+              order: ''
             });
             setShowAddDialog(true);
           }}
@@ -224,47 +272,62 @@ export function QuestionManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredQuestions.map((question, index) => (
-              <TableRow key={question.id} className="hover:bg-gray-50">
-                <TableCell>{index + 1}</TableCell>
-                <TableCell className="text-gray-700">{question.content}</TableCell>
-                <TableCell className="text-gray-600">
-                  {getTypeLabel(question.type)}
-                  {question.options && (
-                    <span className="text-xs text-gray-500 ml-2">
-                      ({question.options.join(' / ')})
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      onClick={() => handleEdit(question)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDelete(question)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  Đang tải...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : filteredQuestions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                  Không có câu hỏi nào
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredQuestions.map((question, index) => (
+                <TableRow key={question._id || `question-${index}`} className="hover:bg-gray-50">
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell className="text-gray-700">
+                    <div className="font-medium">{question.questionId}</div>
+                    <div className="text-sm text-gray-600">{question.text}</div>
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {getTypeLabel(question.type)}
+                    {question.unit && (
+                      <span className="text-xs text-gray-500 ml-2">({question.unit})</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                        onClick={() => handleEdit(question)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => handleDelete(question)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-lg rounded-[20px]">
+        <DialogContent className="max-w-2xl rounded-[20px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedQuestion ? 'Chỉnh sửa' : 'Thêm'} Câu Hỏi</DialogTitle>
             <DialogDescription>
@@ -273,54 +336,152 @@ export function QuestionManagement() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="questionId">Mã câu hỏi (ID) *</Label>
+                <Input
+                  id="questionId"
+                  value={formData.questionId}
+                  onChange={(e) => setFormData({ ...formData, questionId: e.target.value })}
+                  className="rounded-xl"
+                  placeholder="VD: glucose, age, gender"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="type">Loại câu hỏi *</Label>
+                <Select 
+                  key={`type-${formData.type}`}
+                  value={formData.type} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, type: value }));
+                  }}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="select">Lựa chọn (Select/Dropdown)</SelectItem>
+                    <SelectItem value="number">Nhập số (Number)</SelectItem>
+                    <SelectItem value="text">Nhập text (Text)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="content">Nội dung câu hỏi</Label>
+              <Label htmlFor="text">Nội dung câu hỏi *</Label>
               <Textarea
-                id="content"
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                className="rounded-xl min-h-[80px]"
-                placeholder="Nhập nội dung câu hỏi..."
+                id="text"
+                value={formData.text}
+                onChange={(e) => setFormData({ ...formData, text: e.target.value })}
+                className="rounded-xl min-h-[60px]"
+                placeholder="VD: Tuổi của bạn?"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="placeholder">Placeholder (gợi ý nhập)</Label>
+              <Input
+                id="placeholder"
+                value={formData.placeholder}
+                onChange={(e) => setFormData({ ...formData, placeholder: e.target.value })}
+                className="rounded-xl"
+                placeholder="VD: Nhập tuổi (VD: 25)"
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="type">Loại trả lời</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => 
-                  setFormData({ ...formData, type: value })
-                }
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes_no">Có / Không</SelectItem>
-                  <SelectItem value="choice">Lựa chọn (dropdown nhiều đáp án)</SelectItem>
-                  <SelectItem value="text">Tự nhập (text)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {formData.type === 'choice' && (
+            {formData.type === 'select' && (
               <div className="space-y-2">
-                <Label htmlFor="options">Các lựa chọn (phân cách bằng dấu phẩy)</Label>
-                <Input
+                <Label htmlFor="options">Các lựa chọn (JSON array) *</Label>
+                <Textarea
                   id="options"
                   value={formData.options}
                   onChange={(e) => setFormData({ ...formData, options: e.target.value })}
-                  className="rounded-xl"
-                  placeholder="VD: Dưới 30, 30-45, Trên 45"
+                  className="rounded-xl min-h-[100px] font-mono text-sm"
+                  placeholder='[{"value": "male", "label": "Nam"}, {"value": "female", "label": "Nữ"}]'
                 />
                 <p className="text-xs text-gray-500">
-                  Nhập các đáp án, cách nhau bằng dấu phẩy
+                  Nhập mảng JSON với format: [{`{"value": "...", "label": "..."}`}, ...]
                 </p>
               </div>
             )}
+            
+            {formData.type === 'number' && (
+              <div className="grid grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="min">Min</Label>
+                  <Input
+                    id="min"
+                    type="number"
+                    value={formData.min}
+                    onChange={(e) => setFormData({ ...formData, min: e.target.value })}
+                    className="rounded-xl"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="max">Max</Label>
+                  <Input
+                    id="max"
+                    type="number"
+                    value={formData.max}
+                    onChange={(e) => setFormData({ ...formData, max: e.target.value })}
+                    className="rounded-xl"
+                    placeholder="100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="step">Step</Label>
+                  <Input
+                    id="step"
+                    type="number"
+                    value={formData.step}
+                    onChange={(e) => setFormData({ ...formData, step: e.target.value })}
+                    className="rounded-xl"
+                    placeholder="1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Đơn vị</Label>
+                  <Input
+                    id="unit"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    className="rounded-xl"
+                    placeholder="tuổi"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="hint">Gợi ý (Hint)</Label>
+                <Input
+                  id="hint"
+                  value={formData.hint}
+                  onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
+                  className="rounded-xl"
+                  placeholder="Tuổi hiện tại của bạn"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="order">Thứ tự hiển thị</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                  className="rounded-xl"
+                  placeholder="1"
+                />
+              </div>
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button
               variant="outline"
               onClick={() => setShowAddDialog(false)}
@@ -339,25 +500,38 @@ export function QuestionManagement() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="rounded-[20px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xóa câu hỏi?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc muốn xóa câu hỏi này? Hành động này không thể hoàn tác.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 rounded-xl"
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="rounded-[20px] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xóa câu hỏi?</DialogTitle>
+            <DialogDescription>
+              {selectedQuestion && (
+                <>
+                  Bạn có chắc muốn xóa câu hỏi <strong>{selectedQuestion.text}</strong>?
+                  <br />
+                  Hành động này không thể hoàn tác.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button 
+              variant="outline"
+              onClick={handleCancelDelete} 
+              className="rounded-xl"
+            >
+              Hủy
+            </Button>
+            <Button 
+              variant="outline"
               onClick={confirmDelete}
+              className="rounded-xl text-red-600 border-red-600 hover:bg-red-50"
             >
               Xóa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { adminRoute } from './admin.js'
 import { predictionRoute } from './predictions.js'
 import { patientRoute } from './patients.js'
 import { mlRoute } from './ml.js'
+import { articleRoute } from './articles.js'
+import { questionRoute } from './questions.js'
 
 const Router = express.Router()
 
@@ -13,6 +15,8 @@ Router.use('/admin', adminRoute)
 Router.use('/predictions', predictionRoute)
 Router.use('/patients', patientRoute)
 Router.use('/ml', mlRoute)
+Router.use('/articles', articleRoute)
+Router.use('/questions', questionRoute)
 
 // Health check endpoint
 Router.get('/health', (req, res) => {

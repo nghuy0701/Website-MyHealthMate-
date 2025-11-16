@@ -102,7 +102,9 @@ export function AdminProfile({ profile, onUpdateProfile }) {
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-[120px] h-[120px] border-4 border-green-100 shadow-md">
               <AvatarImage src={profileData.avatarUrl} />
-              <AvatarFallback>{profileData.fullName.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-2xl bg-green-100 text-green-600">
+                {profileData.fullName.charAt(0)}
+              </AvatarFallback>
             </Avatar>
             <p className="text-sm text-gray-600">Admin</p>
           </div>
@@ -115,6 +117,7 @@ export function AdminProfile({ profile, onUpdateProfile }) {
                 id="avatarUrl"
                 value={profileData.avatarUrl}
                 onChange={(e) => setProfileData({ ...profileData, avatarUrl: e.target.value })}
+                placeholder="https://example.com/avatar.jpg"
                 className="rounded-xl"
               />
             </div>
@@ -124,8 +127,8 @@ export function AdminProfile({ profile, onUpdateProfile }) {
               <Input
                 id="username"
                 value={profileData.username}
-                onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                className="rounded-xl"
+                disabled
+                className="rounded-xl bg-gray-50"
               />
             </div>
 
@@ -145,8 +148,8 @@ export function AdminProfile({ profile, onUpdateProfile }) {
                 id="email"
                 type="email"
                 value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                className="rounded-xl"
+                disabled
+                className="rounded-xl bg-gray-50"
               />
             </div>
           </div>

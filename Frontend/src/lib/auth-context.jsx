@@ -14,11 +14,21 @@ export function AuthProvider({ children }) {
 
   const checkAuth = async () => {
     try {
+      // First try to get from localStorage for instant UI
+      const savedUser = localStorage.getItem('user_data');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+      
+      // Then verify with server
       const response = await userAPI.getMe();
-      setUser(response.data);
+      const userData = response.data;
+      setUser(userData);
+      localStorage.setItem('user_data', JSON.stringify(userData));
     } catch (error) {
       // No active session
       setUser(null);
+      localStorage.removeItem('user_data');
     } finally {
       setIsLoading(false);
     }
@@ -27,7 +37,9 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const response = await authAPI.loginUser({ email, password });
-      setUser(response.data);
+      const userData = response.data;
+      setUser(userData);
+      localStorage.setItem('user_data', JSON.stringify(userData));
       return response;
     } catch (error) {
       throw error;
@@ -55,9 +67,11 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logoutUser();
       setUser(null);
+      localStorage.removeItem('user_data');
     } catch (error) {
       // Even if logout fails, clear user state
       setUser(null);
+      localStorage.removeItem('user_data');
       throw error;
     }
   };
@@ -67,6 +81,7 @@ export function AuthProvider({ children }) {
       const response = await userAPI.updateMe(updates);
       const updatedUser = response.data;
       setUser(updatedUser);
+      localStorage.setItem('user_data', JSON.stringify(updatedUser));
       return response;
     } catch (error) {
       console.error('Update profile error:', error);
@@ -77,8 +92,10 @@ export function AuthProvider({ children }) {
   const refreshUser = async () => {
     try {
       const response = await userAPI.getMe();
-      setUser(response.data);
-      return response.data;
+      const userData = response.data;
+      setUser(userData);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      return userData;
     } catch (error) {
       console.error('Refresh user error:', error);
       throw error;

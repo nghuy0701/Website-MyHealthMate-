@@ -1,7 +1,7 @@
 import express from 'express'
 import { adminController } from '~/controllers'
 import { adminValidation } from '~/validations'
-import { isAuthenticated, isAdmin } from '~/middlewares'
+import { isAuthenticated, isAdmin, uploadMiddleware } from '~/middlewares'
 
 const Router = express.Router()
 
@@ -18,6 +18,10 @@ Router.route('/verify-email/:token')
 // Protected routes (Admin only)
 Router.route('/logout')
   .post(isAuthenticated, adminController.logout)
+
+// Upload avatar
+Router.route('/me/avatar')
+  .post(isAuthenticated, uploadMiddleware.single('avatar'), adminController.uploadAvatar)
 
 Router.route('/')
   .get(isAdmin, adminController.getAllAdmins)

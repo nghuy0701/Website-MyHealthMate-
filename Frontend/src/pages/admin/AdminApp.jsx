@@ -12,7 +12,7 @@ import { AdminProfile } from '../../components/admin/AdminProfile';
 export default function AdminApp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin, logout, updateAdmin } = useAdmin();
+  const { admin, logout, updateAdmin, isLoading } = useAdmin();
   const [adminProfile, setAdminProfile] = useState({
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
     username: 'admin_owen',
@@ -32,13 +32,13 @@ export default function AdminApp() {
 
   // Check if admin is logged in
   useEffect(() => {
-    if (!admin) {
+    if (!isLoading && !admin) {
       // Save the current location to redirect back after login
       navigate('/admin/login', { 
         state: { from: location.pathname },
         replace: true 
       });
-    } else {
+    } else if (admin) {
       // Update admin profile from logged in admin data
       setAdminProfile({
         avatarUrl: admin.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
@@ -47,15 +47,13 @@ export default function AdminApp() {
         email: admin.email || '',
       });
     }
-  }, [admin, navigate, location.pathname]);
+  }, [admin, isLoading, navigate, location.pathname]);
 
   const handleUpdateProfile = async (updatedProfile) => {
     try {
       if (admin && admin._id) {
         await updateAdmin(admin._id, {
           displayName: updatedProfile.fullName,
-          email: updatedProfile.email,
-          adminName: updatedProfile.username,
           avatar: updatedProfile.avatarUrl,
         });
         setAdminProfile(updatedProfile);
@@ -80,6 +78,17 @@ export default function AdminApp() {
     };
     navigate(routes[page] || '/admin/dashboard');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!admin) {
     return null;

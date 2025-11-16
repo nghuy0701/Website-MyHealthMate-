@@ -31,7 +31,7 @@ const createNew = async (req, res, next) => {
         'string.pattern.base': ADMIN_NAME_RULE_MESSAGE
       }),
     displayName: Joi.string().optional().allow(null).max(255),
-    avatar: Joi.string().optional().allow(null).max(1024),
+    avatar: Joi.string().optional().allow(null).max(200000), // 200KB for base64 images
     secretKey: Joi.string().required().min(1).messages({
       'any.required': 'Secret key is required',
       'string.empty': 'Secret key cannot be empty'
@@ -68,7 +68,7 @@ const login = async (req, res, next) => {
 const update = async (req, res, next) => {
   const correctCondition = Joi.object({
     displayName: Joi.string().optional().max(255),
-    avatar: Joi.string().optional().allow(null).max(1024),
+    avatar: Joi.string().optional().allow(null).max(200000), // 200KB for base64 images
     password: Joi.string()
       .optional()
       .pattern(PASSWORD_RULE)

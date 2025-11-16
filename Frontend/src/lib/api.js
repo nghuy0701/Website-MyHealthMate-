@@ -130,3 +130,26 @@ export const adminAPI = {
   updateUser: (id, data) => apiClient.put(`/admin/users/${id}`, data),
   deleteUser: (id) => apiClient.delete(`/admin/users/${id}`),
 }
+
+// ============================================================================
+// Article APIs
+// ============================================================================
+export const articleAPI = {
+  getAll: () => apiClient.get('/articles'),
+  getById: (id) => apiClient.get(`/articles/${id}`),
+  create: (data) => apiClient.post('/articles', data), // Admin only
+  update: (id, data) => apiClient.put(`/articles/${id}`, data), // Admin only
+  delete: (id) => apiClient.delete(`/articles/${id}`), // Admin only
+}
+
+// ============================================================================
+// Question APIs
+// ============================================================================
+export const questionAPI = {
+  getAll: () => apiClient.get('/questions'),
+  getById: (id) => apiClient.get(`/questions/${id}`),
+  create: (data) => apiClient.post('/questions', data), // Admin only
+  update: (id, data) => apiClient.put(`/questions/${id}`, data), // Admin only
+  delete: (id) => apiClient.delete(`/questions/${id}`), // Admin only
+}
+

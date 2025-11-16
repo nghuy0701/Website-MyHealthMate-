@@ -64,6 +64,7 @@ export function AdminProvider({ children }) {
 
   const checkAuth = async () => {
     try {
+      // Load from localStorage
       const savedAdmin = localStorage.getItem('admin_user');
       if (savedAdmin) {
         const adminData = JSON.parse(savedAdmin);
@@ -71,6 +72,8 @@ export function AdminProvider({ children }) {
       }
     } catch (error) {
       console.error('Error checking admin auth:', error);
+      setAdmin(null);
+      localStorage.removeItem('admin_user');
     } finally {
       setIsLoading(false);
     }

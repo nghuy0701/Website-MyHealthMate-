@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Plus, Eye, Edit, Trash2, Expand } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -20,16 +20,6 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -39,6 +29,16 @@ import {
 import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback.jsx';
+import { articleAPI } from '../../lib/api';
+import { categoryLabels } from '../../lib/data';
+
+const truncateText = (text = '', maxLength) => {
+  if (!text) return '';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + '...';
+};
 
 export function ArticleManagement() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,36 +47,11 @@ export function ArticleManagement() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
-  
-  const [articles, setArticles] = useState([
-    {
-      id: '1',
-      code: 'B001',
-      title: 'Cách kiểm soát đường huyết',
-      description: 'Gợi ý ăn uống lành mạnh',
-      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=100',
-      category: 'nutrition',
-      content: 'Nội dung chi tiết về cách kiểm soát đường huyết hiệu quả...',
-    },
-    {
-      id: '2',
-      code: 'B002',
-      title: 'Lợi ích của vận động đều đặn',
-      description: 'Tập thể dục giúp kiểm soát đường huyết',
-      image: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=100',
-      category: 'lifestyle',
-      content: 'Tập thể dục đều đặn giúp cải thiện sức khỏe và kiểm soát đường huyết...',
-    },
-    {
-      id: '3',
-      code: 'B003',
-      title: 'Hiểu về bệnh tiểu đường',
-      description: 'Thông tin cơ bản về bệnh tiểu đường',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=100',
-      category: 'education',
-      content: 'Bệnh tiểu đường là một bệnh mãn tính ảnh hưởng đến cách cơ thể xử lý đường trong máu...',
-    },
-  ]);
+
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [isContentMaximized, setIsContentMaximized] = useState(false);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -86,6 +61,27 @@ export function ArticleManagement() {
     category: 'nutrition',
     content: '',
   });
+
+  // Fetch articles on mount
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      setLoading(true);
+      const response = await articleAPI.getAll();
+      const articlesWithCode = response.data.map((article, index) => ({
+        ...article,
+        code: article.code || `B${String(index + 1).padStart(3, '0')}`,
+      }));
+      setArticles(articlesWithCode);
+    } catch (error) {
+      toast.error('Không thể tải danh sách bài viết: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleView = (article) => {
     setSelectedArticle(article);
@@ -110,61 +106,70 @@ export function ArticleManagement() {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+    setSelectedArticle(null);
+  };
+
+  const confirmDelete = async () => {
     if (selectedArticle) {
-      setArticles(articles.filter(a => a.id !== selectedArticle.id));
-      toast.success('Đã xóa bài viết thành công!');
-      setShowDeleteDialog(false);
-      setSelectedArticle(null);
+      try {
+        await articleAPI.delete(selectedArticle._id);
+        toast.success('Đã xóa bài viết thành công!');
+        setShowDeleteDialog(false);
+        setSelectedArticle(null);
+        await fetchArticles();
+      } catch (error) {
+        toast.error('Không thể xóa bài viết: ' + error.message);
+        setShowDeleteDialog(false);
+        setSelectedArticle(null);
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title || !formData.description) {
       toast.error('Vui lòng điền đầy đủ thông tin!');
       return;
     }
 
-    if (selectedArticle) {
-      setArticles(articles.map(a => 
-        a.id === selectedArticle.id 
-          ? { ...a, ...formData }
-          : a
-      ));
-      toast.success('Cập nhật bài viết thành công!');
-    } else {
-      const newArticle = {
-        id: String(articles.length + 1),
-        code: formData.code || `B${String(articles.length + 1).padStart(3, '0')}`,
-        title: formData.title,
-        description: formData.description,
-        image: formData.image || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=100',
-        category: formData.category,
-        content: formData.content,
-      };
-      setArticles([...articles, newArticle]);
-      toast.success('Thêm bài viết thành công!');
-    }
+    try {
+      if (selectedArticle) {
+        // Update existing article
+        await articleAPI.update(selectedArticle._id, formData);
+        toast.success('Cập nhật bài viết thành công!');
+      } else {
+        // Create new article
+        const newArticle = {
+          code: formData.code || `B${String(articles.length + 1).padStart(3, '0')}`,
+          title: formData.title,
+          description: formData.description,
+          image: formData.image || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=100',
+          category: formData.category,
+          content: formData.content,
+        };
+        await articleAPI.create(newArticle);
+        toast.success('Thêm bài viết thành công!');
+      }
 
-    setShowAddDialog(false);
-    setSelectedArticle(null);
-    setFormData({
-      code: '',
-      title: '',
-      description: '',
-      image: '',
-      category: 'nutrition',
-      content: '',
-    });
+      fetchArticles(); // Refresh list
+      setShowAddDialog(false);
+      setSelectedArticle(null);
+      setFormData({
+        code: '',
+        title: '',
+        description: '',
+        image: '',
+        category: 'nutrition',
+        content: '',
+      });
+    } catch (error) {
+      toast.error('Không thể lưu bài viết: ' + error.message);
+    }
   };
 
   const getCategoryLabel = (category) => {
-    const labels = {
-      nutrition: 'Dinh dưỡng',
-      lifestyle: 'Lối sống',
-      education: 'Giáo dục',
-    };
-    return labels[category] || category;
+    return categoryLabels[category] || category;
   };
 
   const filteredArticles = articles.filter(article => {
@@ -188,21 +193,21 @@ export function ArticleManagement() {
             className="pl-10 rounded-xl border-gray-300"
           />
         </div>
-        
+
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[180px] rounded-xl border-gray-300">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="nutrition">Dinh dưỡng</SelectItem>
-            <SelectItem value="lifestyle">Lối sống</SelectItem>
-            <SelectItem value="education">Giáo dục</SelectItem>
+            {Object.entries(categoryLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700 rounded-xl"
+        <Button
+          className="bg-green-600 hover:bg-green-700 rounded-xl text-white shadow-sm"
           onClick={() => {
             setSelectedArticle(null);
             setFormData({
@@ -240,8 +245,8 @@ export function ArticleManagement() {
               <TableRow key={article.id} className="hover:bg-gray-50">
                 <TableCell>{index + 1}</TableCell>
                 <TableCell>{article.code}</TableCell>
-                <TableCell className="max-w-xs">{article.title}</TableCell>
-                <TableCell className="max-w-md text-gray-600">{article.description}</TableCell>
+                <TableCell className="max-w-xs">{truncateText(article.title, 30)}</TableCell>
+                <TableCell className="max-w-md text-gray-600">{truncateText(article.description, 50)}</TableCell>
                 <TableCell>{getCategoryLabel(article.category)}</TableCell>
                 <TableCell>
                   <ImageWithFallback
@@ -290,7 +295,7 @@ export function ArticleManagement() {
           <DialogHeader>
             <DialogTitle>Chi tiết bài viết</DialogTitle>
           </DialogHeader>
-          
+
           {selectedArticle && (
             <div className="space-y-4 py-4">
               <ImageWithFallback
@@ -327,7 +332,7 @@ export function ArticleManagement() {
               Điền đầy đủ thông tin để {selectedArticle ? 'cập nhật' : 'thêm'} bài viết
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="code">Mã bài viết</Label>
@@ -339,7 +344,7 @@ export function ArticleManagement() {
                 placeholder="VD: B001"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="title">Tiêu đề</Label>
               <Input
@@ -349,7 +354,7 @@ export function ArticleManagement() {
                 className="rounded-xl"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả ngắn</Label>
               <Input
@@ -359,7 +364,7 @@ export function ArticleManagement() {
                 className="rounded-xl"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="category">Danh mục</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -367,13 +372,13 @@ export function ArticleManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="nutrition">Dinh dưỡng</SelectItem>
-                  <SelectItem value="lifestyle">Lối sống</SelectItem>
-                  <SelectItem value="education">Giáo dục</SelectItem>
+                  {Object.entries(categoryLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="image">URL Ảnh đại diện</Label>
               <Input
@@ -384,9 +389,15 @@ export function ArticleManagement() {
                 placeholder="https://..."
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="content">Nội dung</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="content">Nội dung</Label>
+                <Button variant="ghost" size="sm" onClick={() => setIsContentMaximized(true)}>
+                  <Expand className="w-4 h-4 mr-2" />
+                  Phóng to
+                </Button>
+              </div>
               <Textarea
                 id="content"
                 value={formData.content}
@@ -415,26 +426,60 @@ export function ArticleManagement() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="rounded-[20px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xóa bài viết?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc muốn xóa bài viết <strong>{selectedArticle?.title}</strong>? 
-              Hành động này không thể hoàn tác.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 rounded-xl"
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="rounded-[20px] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xóa bài viết?</DialogTitle>
+            <DialogDescription>
+              {selectedArticle && (
+                <>
+                  Bạn có chắc muốn xóa bài viết <strong>{selectedArticle.title}</strong>?
+                  <br />
+                  Hành động này không thể hoàn tác.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button 
+              variant="outline"
+              onClick={handleCancelDelete} 
+              className="rounded-xl"
+            >
+              Hủy
+            </Button>
+            <Button 
+              variant="outline"
               onClick={confirmDelete}
+              className="rounded-xl text-red-600 border-red-600 hover:bg-red-50"
             >
               Xóa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Maximized Content Editor Dialog */}
+      <Dialog open={isContentMaximized} onOpenChange={setIsContentMaximized}>
+        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col rounded-[20px]">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa nội dung</DialogTitle>
+          </DialogHeader>
+          <div className="flex-grow mt-4">
+            <Textarea
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              className="w-full h-full rounded-xl resize-none border-gray-300"
+              placeholder="Nhập nội dung chi tiết cho bài viết..."
+            />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button onClick={() => setIsContentMaximized(false)} className="rounded-xl bg-blue-600 hover:bg-blue-700">
+              Hoàn tất
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

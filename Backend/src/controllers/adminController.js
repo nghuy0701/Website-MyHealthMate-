@@ -136,6 +136,27 @@ const verifyEmail = async (req, res, next) => {
   }
 }
 
+// Upload Avatar
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new ApiError(StatusCodes.BAD_REQUEST, 'No file uploaded'))
+    }
+
+    const adminId = req.session.admin.userId
+    const avatarUrl = `/uploads/${req.file.filename}`
+
+    const updatedAdmin = await adminService.updateAdmin(adminId, { avatar: avatarUrl })
+    
+    res.status(StatusCodes.OK).json({
+      message: 'Avatar uploaded successfully',
+      data: { avatar: avatarUrl, admin: updatedAdmin }
+    })
+  } catch (error) {
+    next(new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, error.message))
+  }
+}
+
 export const adminController = {
   createNew,
   login,
@@ -144,5 +165,6 @@ export const adminController = {
   getAdminById,
   updateAdmin,
   deleteAdmin,
-  verifyEmail
+  verifyEmail,
+  uploadAvatar
 }

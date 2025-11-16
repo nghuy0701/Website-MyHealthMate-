@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -14,6 +14,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +24,10 @@ export function LoginPage() {
       // The login function from useAuth should handle the API call
       await login(email, password);
       toast.success('Đăng nhập thành công!');
-      navigate('/prediction');
+      
+      // Redirect to the page user was trying to access, or default to /prediction
+      const from = location.state?.from?.pathname || '/prediction';
+      navigate(from, { replace: true });
     } catch (error) {
       toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {

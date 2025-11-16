@@ -155,12 +155,15 @@ const update = async (id, data) => {
   }
 }
 
-// Delete Prediction (Hard Delete)
+// Delete Prediction (Soft Delete)
 const deletePrediction = async (id) => {
   try {
     await GET_DB()
       .collection(COLLECTION_NAME)
-      .deleteOne({ _id: new ObjectId(id) })
+      .findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: { _destroy: true, updatedAt: Date.now() } }
+      )
   } catch (error) {
     throw new Error(error)
   }
