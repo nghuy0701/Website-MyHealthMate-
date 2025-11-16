@@ -236,12 +236,6 @@ export const ProfilePage = () => {
                     {getInitials(user?.name)}
                   </AvatarFallback>
                 </Avatar>
-                {/* <--- SỬA 8: Thêm icon Camera khi đang sửa (giống code .tsx gốc) */}
-                {isEditing && (
-                  <div className="absolute -bottom-2 -right-2 bg-green-600 text-white rounded-full p-2 shadow-lg">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                )}
               </div>
               <h2 className="text-gray-800 mb-1">{user?.name}</h2>
               <p className="text-gray-600 text-sm mb-4">{user?.email}</p>
