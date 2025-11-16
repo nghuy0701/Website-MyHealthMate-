@@ -1,0 +1,456 @@
+# 🏥 MyHealthMate - Diabetes Prediction Website
+
+Website dự đoán tiểu đường sử dụng Machine Learning, giúp người dùng đánh giá nguy cơ mắc bệnh tiểu đường dựa trên các chỉ số sức khỏe.
+
+## 📋 Mục lục
+- [Tổng quan](#tổng-quan)
+- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
+- [Cài đặt](#cài-đặt)
+- [Cấu hình](#cấu-hình)
+- [Chạy ứng dụng](#chạy-ứng-dụng)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+
+---
+
+## 🎯 Tổng quan
+
+**MyHealthMate** là một hệ thống web full-stack giúp:
+- ✅ Dự đoán nguy cơ tiểu đường dựa trên Machine Learning
+- ✅ Quản lý hồ sơ sức khỏe người dùng
+- ✅ Lưu trữ lịch sử dự đoán
+- ✅ Quản trị hệ thống (Admin Dashboard)
+- ✅ Cung cấp bài viết sức khỏe
+
+---
+
+## 🏗️ Kiến trúc hệ thống
+
+Hệ thống được chia thành **3 phần chính**:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      FRONTEND                           │
+│              (React + Vite + TailwindCSS)              │
+│                    Port: 3000                           │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP Requests
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                      BACKEND                            │
+│           (Node.js + Express + MongoDB)                │
+│                    Port: 8017                           │
+└────────────┬───────────────────────┬────────────────────┘
+             │                       │
+             │ Store Data            │ ML Prediction API
+             ▼                       ▼
+   ┌──────────────────┐    ┌─────────────────────┐
+   │    MongoDB       │    │   ML SERVICE        │
+   │  Cloud Atlas     │    │  (Flask + Sklearn)  │
+   │                  │    │    Port: 5001       │
+   └──────────────────┘    └─────────────────────┘
+```
+
+### 1️⃣ **Frontend** (React Application)
+- **Framework**: React 18.3 với Vite
+- **UI Library**: Radix UI + TailwindCSS + Shadcn/ui
+- **Routing**: React Router DOM
+- **State Management**: Context API
+- **Charts**: Recharts
+- **Notifications**: Sonner
+
+### 2️⃣ **Backend** (REST API Server)
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB Atlas (Cloud)
+- **Authentication**: Express Session + bcrypt
+- **Validation**: Joi
+- **File Upload**: Multer + Cloudinary
+- **Email**: Brevo (SendInBlue)
+
+### 3️⃣ **ML Service** (Machine Learning API)
+- **Framework**: Flask (Python)
+- **ML Library**: Scikit-learn
+- **Model**: Logistic Regression
+- **Data Processing**: Pandas, NumPy
+
+---
+
+## 💻 Công nghệ sử dụng
+
+### Backend Dependencies
+```json
+{
+  "dependencies": {
+    "express": "^4.18.2",           // Web framework
+    "mongodb": "^6.9.0",             // Database driver
+    "bcryptjs": "^2.4.3",            // Password hashing
+    "express-session": "^1.17.3",    // Session management
+    "connect-mongo": "^5.0.0",       // Session store
+    "joi": "^17.11.0",               // Validation
+    "cloudinary": "^2.8.0",          // Image upload
+    "multer": "^2.0.2",              // File handling
+    "axios": "^1.13.1",              // HTTP client
+    "cors": "^2.8.5",                // CORS handling
+    "dotenv": "^16.3.1",             // Environment variables
+    "http-status-codes": "^2.3.0",   // Status codes
+    "uuid": "^9.0.1"                 // Unique ID generator
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.10",       // ES6+ transpiler
+    "nodemon": "^3.0.1",             // Auto-restart
+    "eslint": "^9.36.0"              // Code linting
+  }
+}
+```
+
+### Frontend Dependencies
+```json
+{
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "*",
+    "@radix-ui/*": "...",            // 20+ UI components
+    "lucide-react": "^0.487.0",      // Icons
+    "recharts": "^2.15.2",           // Charts
+    "sonner": "^2.0.3",              // Toast notifications
+    "tailwind-merge": "*",           // TailwindCSS utilities
+    "class-variance-authority": "^0.7.1"
+  }
+}
+```
+
+### ML Service Dependencies
+```
+Flask>=3.0.0
+flask-cors>=4.0.0
+numpy>=1.26.0
+pandas>=2.1.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+```
+
+---
+
+## 🚀 Cài đặt
+
+### Yêu cầu hệ thống
+- **Node.js**: >= 18.0.0
+- **Python**: >= 3.9.0
+- **npm** hoặc **yarn**
+- **MongoDB Atlas Account** (hoặc MongoDB local)
+- **Cloudinary Account** (cho upload ảnh)
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/nghuy0701/Website-MyHealthMate-.git
+cd Website-MyHealthMate-
+```
+
+### 2. Cài đặt Backend
+```bash
+cd Backend
+
+# Cài đặt tất cả dependencies
+npm install
+
+# Hoặc sử dụng yarn
+yarn install
+```
+
+**Backend sẽ tự động cài đặt:**
+- Express và các middleware (cors, session, etc.)
+- MongoDB driver
+- Babel transpiler cho ES6+
+- Validation library (Joi)
+- Authentication (bcryptjs)
+- File upload (Multer, Cloudinary)
+- Development tools (Nodemon, ESLint)
+
+### 3. Cài đặt Frontend
+```bash
+cd ../Frontend
+
+# Cài đặt dependencies
+npm install
+
+# Hoặc
+yarn install
+```
+
+**Frontend sẽ tự động cài đặt:**
+- React 18 và React Router
+- Vite build tool
+- TailwindCSS và Radix UI components
+- Chart libraries (Recharts)
+- Icons và utilities
+
+### 4. Cài đặt ML Service
+```bash
+cd ../ml-service
+
+# Tạo virtual environment (khuyến nghị)
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Cài đặt dependencies
+pip install -r requirements.txt
+```
+
+**ML Service sẽ cài đặt:**
+- Flask web framework
+- NumPy, Pandas (data processing)
+- Scikit-learn (ML models)
+- Joblib (model serialization)
+
+---
+
+## ⚙️ Cấu hình
+
+### Backend Configuration (.env)
+Tạo file `.env` trong thư mục `Backend/`:
+
+```env
+# Server Configuration
+APP_HOST=localhost
+APP_PORT=8017
+
+# Frontend URL
+WEBSITE_DOMAIN_DEV=http://localhost:3000
+CLIENT_URL=http://localhost:3000
+
+# MongoDB Configuration
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
+
+# Session Secret
+SESSION_SECRET=your-secret-key-here
+
+# Cloudinary (Image Upload)
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+
+# Brevo Email Service
+BREVO_API_KEY=your-brevo-api-key
+BREVO_SENDER_EMAIL=your-email@example.com
+
+# Admin Secret
+ADMIN_SECRET_KEY=your-admin-secret-key
+
+# ML Service
+ML_SERVICE_URL=http://localhost:5001
+```
+
+### Frontend Configuration (.env)
+Tạo file `.env` trong thư mục `Frontend/`:
+
+```env
+VITE_API_URL=http://localhost:8017/api/v1
+```
+
+### ML Service Configuration (.env)
+Tạo file `.env` trong thư mục `ml-service/`:
+
+```env
+FLASK_APP=app.py
+FLASK_ENV=development
+PORT=5001
+```
+
+---
+
+## ▶️ Chạy ứng dụng
+
+### 1. Khởi động Backend
+```bash
+cd Backend
+
+# Development mode (auto-reload)
+npm run dev
+
+# Production mode
+npm run build
+npm start
+```
+✅ Backend sẽ chạy tại: **http://localhost:8017**
+
+### 2. Khởi động Frontend
+```bash
+cd Frontend
+
+# Development mode
+npm run dev
+```
+✅ Frontend sẽ chạy tại: **http://localhost:3000**
+
+### 3. Khởi động ML Service
+```bash
+cd ml-service
+
+# Activate virtual environment
+venv\Scripts\activate  # Windows
+# hoặc
+source venv/bin/activate  # Mac/Linux
+
+# Chạy Flask server
+python app.py
+```
+✅ ML Service sẽ chạy tại: **http://localhost:5001**
+
+---
+
+## 📁 Cấu trúc thư mục
+
+```
+Website-MyHealthMate/
+│
+├── Backend/                    # Node.js Backend
+│   ├── src/
+│   │   ├── configs/           # Cấu hình (DB, CORS, Session)
+│   │   ├── controllers/       # Business logic
+│   │   ├── middlewares/       # Auth, Upload, Error handling
+│   │   ├── models/            # Database models
+│   │   ├── routes/            # API routes
+│   │   ├── services/          # Service layer
+│   │   ├── validations/       # Input validation
+│   │   ├── providers/         # External services (Cloudinary, Brevo)
+│   │   └── utils/             # Helpers, constants
+│   ├── .env                   # Environment variables
+│   ├── package.json
+│   └── server.js
+│
+├── Frontend/                   # React Frontend
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   │   ├── ui/           # Shadcn UI components
+│   │   │   └── admin/        # Admin dashboard components
+│   │   ├── pages/            # Page components
+│   │   ├── lib/              # Context, API client, utilities
+│   │   └── styles/           # CSS files
+│   ├── public/
+│   ├── .env
+│   ├── package.json
+│   └── vite.config.js
+│
+├── ml-service/                # Python ML Service
+│   ├── models/               # Trained ML models
+│   ├── data/                 # Training datasets
+│   ├── notebooks/            # Jupyter notebooks
+│   ├── app.py               # Flask application
+│   ├── requirements.txt
+│   └── .env
+│
+└── README.md                 # This file
+```
+
+---
+
+## 🔑 Tính năng chính
+
+### User Features
+- 📝 Đăng ký/Đăng nhập
+- 👤 Quản lý profile (avatar, thông tin cá nhân)
+- 🔮 Thực hiện test dự đoán tiểu đường
+- 📊 Xem lịch sử dự đoán
+- 📚 Đọc bài viết sức khỏe
+- 💬 Bình luận bài viết
+
+### Admin Features
+- 👥 Quản lý người dùng
+- 📄 Quản lý bài viết
+- ❓ Quản lý câu hỏi khảo sát
+- 📈 Dashboard thống kê
+- 🔐 Xác thực email admin
+
+---
+
+## 🛠️ Scripts hữu ích
+
+### Backend
+```bash
+npm run dev          # Chạy development mode với nodemon
+npm run build        # Build production code
+npm run start        # Chạy production build
+npm run lint         # Kiểm tra code với ESLint
+```
+
+### Frontend
+```bash
+npm run dev          # Chạy dev server
+npm run build        # Build production
+```
+
+### ML Service
+```bash
+python app.py                              # Chạy Flask server
+python models/diabetes_ml_pipeline.py      # Train lại model
+```
+
+---
+
+## 📝 API Endpoints
+
+### Authentication
+- `POST /api/v1/users/register` - Đăng ký user
+- `POST /api/v1/users/login` - Đăng nhập user
+- `POST /api/v1/users/logout` - Đăng xuất
+- `POST /api/v1/admin/login` - Đăng nhập admin
+
+### Users
+- `GET /api/v1/users/me` - Lấy thông tin user hiện tại
+- `PUT /api/v1/users/me` - Cập nhật profile
+- `POST /api/v1/users/me/avatar` - Upload avatar
+- `PUT /api/v1/users/me/change-password` - Đổi mật khẩu
+
+### Predictions
+- `POST /api/v1/predictions` - Tạo dự đoán mới
+- `GET /api/v1/predictions/user/:userId` - Lấy lịch sử dự đoán
+- `GET /api/v1/predictions/:id` - Lấy chi tiết dự đoán
+
+### Articles
+- `GET /api/v1/articles` - Lấy danh sách bài viết
+- `GET /api/v1/articles/:id` - Lấy chi tiết bài viết
+- `POST /api/v1/articles` - Tạo bài viết (Admin)
+- `PUT /api/v1/articles/:id` - Cập nhật bài viết (Admin)
+- `DELETE /api/v1/articles/:id` - Xóa bài viết (Admin)
+
+### Questions
+- `GET /api/v1/questions` - Lấy danh sách câu hỏi
+- `POST /api/v1/questions` - Tạo câu hỏi (Admin)
+- `PUT /api/v1/questions/:id` - Cập nhật câu hỏi (Admin)
+- `DELETE /api/v1/questions/:id` - Xóa câu hỏi (Admin)
+
+---
+
+## 👥 Team
+
+**MyHealthMate Team**
+
+---
+
+## 📄 License
+
+MIT License - Xem file LICENSE để biết thêm chi tiết.
+
+---
+
+## 🤝 Contributing
+
+Mọi đóng góp đều được chào đón! Vui lòng tạo pull request hoặc mở issue.
+
+---
+
+## 📞 Liên hệ
+
+- GitHub: [@nghuy0701](https://github.com/nghuy0701)
+- Email: jwyy2005@gmail.com
+
+---
+
+**Lưu ý**: Đảm bảo cấu hình đúng các biến môi trường và có kết nối internet để kết nối MongoDB Atlas và Cloudinary.
