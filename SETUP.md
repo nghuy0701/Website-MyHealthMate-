@@ -40,8 +40,6 @@ File `.env` mặc định đã đủ.
 #### Backend (Node.js)
 ```bash
 cd Backend
-npm install
-# hoặc
 yarn install
 ```
 
@@ -49,8 +47,6 @@ yarn install
 ```bash
 cd ../Frontend
 npm install
-# hoặc
-yarn install
 ```
 
 #### ML Service (Python)
@@ -77,7 +73,7 @@ pip install -r requirements.txt
 #### Terminal 1 - Backend
 ```bash
 cd Backend
-npm run dev
+yarn dev
 ```
 ✅ Backend chạy tại: http://localhost:8017
 
@@ -109,7 +105,7 @@ python app.py
 ```bash
 # Xóa node_modules và cài lại
 rm -rf node_modules package-lock.json
-npm install
+yarn install
 ```
 
 ### Lỗi: "MongoDB connection failed"
@@ -141,7 +137,7 @@ lsof -ti:8017 | xargs kill -9
 ```
 Website-MyHealthMate/
 ├── Backend/
-│   ├── node_modules/     ✅ Tự động tạo sau npm install
+│   ├── node_modules/     ✅ Tự động tạo sau yarn install
 │   ├── .env              ✅ Tự tạo từ .env.example
 │   └── ...
 ├── Frontend/
@@ -157,14 +153,13 @@ Website-MyHealthMate/
 ## 🔧 Scripts hữu ích
 
 ### Backend
-- `npm run dev` - Chạy development mode (auto-reload)
-- `npm run build` - Build production
-- `npm start` - Chạy production build
-- `npm run lint` - Check code style
+- `yarn dev` - Chạy development mode (auto-reload)
+- `yarn build` - Build production
+- `yarn start` - Chạy production build
+- `yarn lint` - Check code style
 
 ### Frontend
 - `npm run dev` - Chạy development server
-- `npm run build` - Build production
 
 ### ML Service
 - `python app.py` - Chạy Flask server
