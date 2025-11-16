@@ -6,11 +6,24 @@ import { v2 as cloudinary } from 'cloudinary'
 import { env } from '~/configs/environment'
 
 // Configure Cloudinary
-cloudinary.config({
-  cloud_name: env.CLOUDINARY_CLOUD_NAME,
-  api_key: env.CLOUDINARY_API_KEY,
-  api_secret: env.CLOUDINARY_API_SECRET
-})
+// Parse CLOUDINARY_URL if available (format: cloudinary://api_key:api_secret@cloud_name)
+if (process.env.CLOUDINARY_URL) {
+  const cloudinaryUrl = process.env.CLOUDINARY_URL
+  const matches = cloudinaryUrl.match(/cloudinary:\/\/(\d+):([^@]+)@(.+)/)
+  if (matches) {
+    cloudinary.config({
+      cloud_name: matches[3],
+      api_key: matches[1],
+      api_secret: matches[2]
+    })
+  }
+} else {
+  cloudinary.config({
+    cloud_name: env.CLOUDINARY_CLOUD_NAME,
+    api_key: env.CLOUDINARY_API_KEY,
+    api_secret: env.CLOUDINARY_API_SECRET
+  })
+}
 
 const uploadImage = async (file, folder = 'myhealthmate') => {
   try {
