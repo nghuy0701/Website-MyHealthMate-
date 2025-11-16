@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+venv/
+env/
+__pycache__/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Package lock files (optional - uncomment if you want to commit them)
+# package-lock.json
+# yarn.lock

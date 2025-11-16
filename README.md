@@ -154,10 +154,6 @@ cd Website-MyHealthMate-
 ```bash
 cd Backend
 
-# Cài đặt tất cả dependencies
-npm install
-
-# Hoặc sử dụng yarn
 yarn install
 ```
 
@@ -177,8 +173,6 @@ cd ../Frontend
 # Cài đặt dependencies
 npm install
 
-# Hoặc
-yarn install
 ```
 
 **Frontend sẽ tự động cài đặt:**
@@ -213,58 +207,6 @@ pip install -r requirements.txt
 
 ---
 
-## ⚙️ Cấu hình
-
-### Backend Configuration (.env)
-Tạo file `.env` trong thư mục `Backend/`:
-
-```env
-# Server Configuration
-APP_HOST=localhost
-APP_PORT=8017
-
-# Frontend URL
-WEBSITE_DOMAIN_DEV=http://localhost:3000
-CLIENT_URL=http://localhost:3000
-
-# MongoDB Configuration
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
-
-# Session Secret
-SESSION_SECRET=your-secret-key-here
-
-# Cloudinary (Image Upload)
-CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
-
-# Brevo Email Service
-BREVO_API_KEY=your-brevo-api-key
-BREVO_SENDER_EMAIL=your-email@example.com
-
-# Admin Secret
-ADMIN_SECRET_KEY=your-admin-secret-key
-
-# ML Service
-ML_SERVICE_URL=http://localhost:5001
-```
-
-### Frontend Configuration (.env)
-Tạo file `.env` trong thư mục `Frontend/`:
-
-```env
-VITE_API_URL=http://localhost:8017/api/v1
-```
-
-### ML Service Configuration (.env)
-Tạo file `.env` trong thư mục `ml-service/`:
-
-```env
-FLASK_APP=app.py
-FLASK_ENV=development
-PORT=5001
-```
-
----
-
 ## ▶️ Chạy ứng dụng
 
 ### 1. Khởi động Backend
@@ -272,11 +214,7 @@ PORT=5001
 cd Backend
 
 # Development mode (auto-reload)
-npm run dev
-
-# Production mode
-npm run build
-npm start
+yarn dev
 ```
 ✅ Backend sẽ chạy tại: **http://localhost:8017**
 
@@ -292,11 +230,6 @@ npm run dev
 ### 3. Khởi động ML Service
 ```bash
 cd ml-service
-
-# Activate virtual environment
-venv\Scripts\activate  # Windows
-# hoặc
-source venv/bin/activate  # Mac/Linux
 
 # Chạy Flask server
 python app.py
@@ -374,16 +307,12 @@ Website-MyHealthMate/
 
 ### Backend
 ```bash
-npm run dev          # Chạy development mode với nodemon
-npm run build        # Build production code
-npm run start        # Chạy production build
-npm run lint         # Kiểm tra code với ESLint
+yarn dev
 ```
 
 ### Frontend
 ```bash
-npm run dev          # Chạy dev server
-npm run build        # Build production
+npm run dev
 ```
 
 ### ML Service
