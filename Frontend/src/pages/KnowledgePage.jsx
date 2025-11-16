@@ -96,7 +96,9 @@ export function KnowledgePage() {
                 <h2 className="text-white mb-3">{currentFeatured.title}</h2>
                 <p className="text-white/90 mb-4">{currentFeatured.excerpt}</p>
                 <div className="flex items-center gap-4">
-                  <Button className="bg-white text-green-600 hover:bg-gray-100">Đọc ngay</Button>
+                  <Link to={`/article/${currentFeatured.id}`}>
+                    <Button className="bg-white text-green-600 hover:bg-gray-100">Đọc ngay</Button>
+                  </Link>
                   <div className="flex items-center gap-2 text-white/80 text-sm">
                     <Clock className="w-4 h-4" />
                     {currentFeatured.readTime}
@@ -188,25 +190,27 @@ export function KnowledgePage() {
 
 function ArticleCard({ article }) {
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group rounded-2xl">
-      <div className="aspect-video overflow-hidden">
-        <img
-          src={article.imageUrl}
-          alt={article.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-      </div>
-      <div className="p-5">
-        <Badge className="mb-2 bg-green-100 text-green-700 hover:bg-green-100">
-          {categoryLabels[article.category]}
-        </Badge>
-        <h3 className="text-gray-800 mb-2 line-clamp-2">{article.title}</h3>
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{article.excerpt}</p>
-        <div className="flex items-center gap-2 text-gray-500 text-sm">
-          <Clock className="w-4 h-4" />
-          {article.readTime}
+    <Link to={`/article/${article.id}`}>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group rounded-2xl">
+        <div className="aspect-video overflow-hidden">
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         </div>
-      </div>
-    </Card>
+        <div className="p-5">
+          <Badge className="mb-2 bg-green-100 text-green-700 hover:bg-green-100">
+            {categoryLabels[article.category]}
+          </Badge>
+          <h3 className="text-gray-800 mb-2 line-clamp-2">{article.title}</h3>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{article.excerpt}</p>
+          <div className="flex items-center gap-2 text-gray-500 text-sm">
+            <Clock className="w-4 h-4" />
+            {article.readTime}
+          </div>
+        </div>
+      </Card>
+    </Link>
   );
 }

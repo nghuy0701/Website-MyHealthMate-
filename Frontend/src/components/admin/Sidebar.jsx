@@ -13,12 +13,12 @@ export function Sidebar({ activePage, onPageChange, adminProfile }) {
   return (
     <div className="fixed left-0 top-0 h-screen w-[280px] bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
-      <div 
+      <div
         className="p-6 cursor-pointer hover:brightness-105 transition-all"
         onClick={() => onPageChange('dashboard')}
       >
-        <div className="bg-gradient-to-r from-green-600 to-green-500 rounded-2xl p-4 text-white">
-          <h1 className="text-xl">🩺 Diabetes Predictor</h1>
+        <div className="rounded-2xl p-4 text-white shadow-sm" style={{ backgroundColor: '#00A63E' }}>
+          <h1 className="text-xl font-semibold">🩺 Diabetes Predictor</h1>
         </div>
       </div>
 
@@ -27,16 +27,15 @@ export function Sidebar({ activePage, onPageChange, adminProfile }) {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activePage === item.id;
-          
+
           return (
             <button
               key={item.id}
               onClick={() => onPageChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
-                isActive
-                  ? 'bg-green-50 text-green-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${isActive
+                ? 'bg-green-50 text-green-600'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span>{item.label}</span>
@@ -56,8 +55,8 @@ export function Sidebar({ activePage, onPageChange, adminProfile }) {
             <p className="text-sm text-gray-700">{adminProfile.fullName}</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full mt-2 text-gray-600 hover:text-green-600 hover:border-green-300"
           onClick={() => onPageChange('profile')}
         >

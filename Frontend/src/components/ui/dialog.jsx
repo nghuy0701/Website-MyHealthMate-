@@ -65,8 +65,12 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 9999,
-          width: '90%',
-          maxWidth: '500px',
+          // narrower default width to reduce horizontal footprint
+          width: 'min(92%, 900px)',
+          maxWidth: '900px',
+          // limit height and enable internal vertical scroll when content is large
+          maxHeight: '80vh',
+          overflowY: 'auto',
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.2)',

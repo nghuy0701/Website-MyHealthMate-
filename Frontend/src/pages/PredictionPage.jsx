@@ -83,20 +83,20 @@ export function PredictionPage() {
 
   const calculateResult = async () => {
     setIsLoading(true);
-    
+
     try {
       // Convert answers to input data format for backend
       const inputData = {};
       const symptomScores = {};
-      
+
       answers.forEach(answer => {
         const question = questions.find(q => q.id === answer.questionId);
         if (question) {
           // Parse based on step (if step is decimal, use float, else use int)
-          const value = question.step && question.step < 1 
-            ? parseFloat(answer.answer) 
+          const value = question.step && question.step < 1
+            ? parseFloat(answer.answer)
             : parseInt(answer.answer);
-          
+
           // Phân loại: chỉ số y tế vs triệu chứng
           if (answer.questionId.startsWith('symptom_')) {
             symptomScores[answer.questionId] = value;
@@ -109,7 +109,7 @@ export function PredictionPage() {
       // Validate all required medical fields (8 chỉ số y tế)
       const requiredFields = ['age', 'pregnancies', 'glucose', 'bloodPressure', 'skinThickness', 'insulin', 'bmi', 'diabetesPedigreeFunction'];
       const missingFields = requiredFields.filter(field => inputData[field] === undefined);
-      
+
       if (missingFields.length > 0) {
         toast.error(`Thiếu thông tin: ${missingFields.join(', ')}`);
         setIsLoading(false);
@@ -127,7 +127,7 @@ export function PredictionPage() {
       console.log('📊 Sending prediction data:', predictionData);
 
       const savedPrediction = await createPrediction(predictionData);
-      
+
       setResult(savedPrediction);
       toast.success('Dự đoán hoàn tất!');
     } catch (error) {
@@ -206,11 +206,12 @@ export function PredictionPage() {
             </Card>
           </div>
 
-          <Card className="p-8 rounded-2xl shadow-lg mb-8">
+          <Card className="p-8 rounded-2xl shadow-lg mb-8 items-center">
             <h2 className="text-2xl font-semibold mb-6 text-gray-800">Quy trình đánh giá</h2>
-            <div className="space-y-4">
+
+            <div className="space-y-4 w-full">
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
+                <div className="w-8 h-8 aspect-square rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
                   1
                 </div>
                 <div>
@@ -218,8 +219,9 @@ export function PredictionPage() {
                   <p className="text-gray-600 text-sm">Cung cấp tên và email của bệnh nhân cần đánh giá</p>
                 </div>
               </div>
+
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
+                <div className="w-8 h-8 aspect-square rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
                   2
                 </div>
                 <div>
@@ -227,8 +229,9 @@ export function PredictionPage() {
                   <p className="text-gray-600 text-sm">Nhập các chỉ số y tế và triệu chứng theo hướng dẫn</p>
                 </div>
               </div>
+
               <div className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
+                <div className="w-8 h-8 aspect-square rounded-full bg-green-600 text-white flex items-center justify-center flex-shrink-0 font-semibold">
                   3
                 </div>
                 <div>
@@ -239,6 +242,7 @@ export function PredictionPage() {
             </div>
           </Card>
 
+
           <Alert className="bg-blue-50 border-blue-200 mb-8">
             <AlertCircle className="h-5 w-5 text-blue-600" />
             <AlertDescription className="text-gray-700">
@@ -248,7 +252,7 @@ export function PredictionPage() {
           </Alert>
 
           <div className="text-center">
-            <Button 
+            <Button
               onClick={() => {
                 setShowIntro(false);
                 setShowPatientForm(true);
@@ -312,7 +316,7 @@ export function PredictionPage() {
                 </AlertDescription>
               </Alert>
 
-              <Button 
+              <Button
                 onClick={handleStartPrediction}
                 className="w-full bg-green-600 hover:bg-green-700 rounded-xl text-lg py-6"
               >
@@ -409,7 +413,7 @@ export function PredictionPage() {
                 />
               </div>
             )}
-            
+
             {currentQuestionData.type !== 'select' && (
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <span>Giá trị hợp lệ:</span>
@@ -432,8 +436,8 @@ export function PredictionPage() {
             <ChevronLeft className="w-4 h-4 mr-2" />
             Quay lại
           </Button>
-          <Button 
-            onClick={handleNext} 
+          <Button
+            onClick={handleNext}
             className="flex-1 bg-green-600 hover:bg-green-700 rounded-xl"
             disabled={isLoading}
           >
@@ -483,7 +487,7 @@ function ResultView({
   let riskLevel = 'low';
   if (probability >= 70) riskLevel = 'high';
   else if (probability >= 30) riskLevel = 'medium';
-  
+
   const riskConfig = {
     low: {
       color: 'text-green-600',

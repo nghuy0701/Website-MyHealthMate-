@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Shield, Mail, Lock } from 'lucide-react';
+import { Shield, Mail, Lock, Leaf } from 'lucide-react';
 
 export function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -32,11 +32,11 @@ export function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md p-8 rounded-2xl shadow-xl">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="w-16 h-16 rounded-full bg-green-600 flex items-center justify-center mx-auto mb-4">
+            <Leaf className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-gray-800 mb-2">Admin Portal</h1>
           <p className="text-gray-600">MyHealthMate Management System</p>
@@ -77,13 +77,24 @@ export function AdminLoginPage() {
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button
+              type="submit"
+              className="w-full bg-green-600 hover:bg-green-700 rounded-xl"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/admin/register')}
+              className="w-full rounded-xl border-gray-200 text-gray-700"
+            >
+              Đăng ký
+            </Button>
+          </div>
         </form>
 
         <div className="mt-6 text-center">

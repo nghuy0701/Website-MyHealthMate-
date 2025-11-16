@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { KnowledgePage } from './pages/KnowledgePage.jsx';
+import { ArticleDetailPage } from './pages/ArticleDetailPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
@@ -14,6 +15,7 @@ import { PredictionDetailPage } from './pages/PredictionDetailPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
 import AdminApp from './pages/admin/AdminApp.jsx';
+import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
@@ -24,6 +26,7 @@ export default function App() {
           <Routes>
             {/* Admin Routes - No Header/Footer */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/register" element={<AdminRegisterPage />} />
             <Route path="/admin/*" element={<AdminApp />} />
 
             {/* Regular User Routes - With Header/Footer */}
@@ -39,6 +42,7 @@ export default function App() {
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/register" element={<RegisterPage />} />
                       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                      <Route path="/article/:id" element={<ArticleDetailPage />} />
 
                       {/* Protected Routes */}
                       <Route

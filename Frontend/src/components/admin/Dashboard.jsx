@@ -34,35 +34,35 @@ export function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch users
       const usersResponse = await fetch(`${API_BASE_URL}/users`, {
         credentials: 'include',
       });
       const usersData = await usersResponse.json();
-      
+
       // Fetch predictions
       const predictionsResponse = await fetch(`${API_BASE_URL}/predictions`, {
         credentials: 'include',
       });
       const predictionsData = await predictionsResponse.json();
-      
+
       // Calculate statistics
       const totalUsers = usersData.data?.length || 0;
       const totalPredictions = predictionsData.data?.length || 0;
-      
+
       // Calculate average risk from predictions (using probability field)
       let averageRisk = 0;
       let highRiskCount = 0;
       let mediumRiskCount = 0;
       let lowRiskCount = 0;
-      
+
       if (predictionsData.data && predictionsData.data.length > 0) {
         const totalRisk = predictionsData.data.reduce((sum, pred) => {
           return sum + (pred.probability || 0);
         }, 0);
         averageRisk = Math.round(totalRisk / predictionsData.data.length);
-        
+
         // Count by risk level
         predictionsData.data.forEach(pred => {
           const prob = pred.probability || 0;
@@ -71,7 +71,7 @@ export function Dashboard() {
           else lowRiskCount++;
         });
       }
-      
+
       setStats({
         totalUsers,
         totalPredictions,
@@ -124,7 +124,7 @@ export function Dashboard() {
   return (
     <div>
       <h1 className="mb-8 text-gray-800">Thống kê & Báo cáo</h1>
-      
+
       <div className="grid grid-cols-3 gap-6">
         {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
@@ -150,7 +150,7 @@ export function Dashboard() {
 
       {/* Statistics Detail Dialog */}
       <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
-        <DialogContent className="max-w-3xl rounded-[20px]">
+        <DialogContent className="max-w-5xl rounded-[20px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Thống kê chi tiết nguy cơ tiểu đường</DialogTitle>
             <DialogDescription>
@@ -158,36 +158,38 @@ export function Dashboard() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
-            {/* Overview Cards */}
-            <div className="grid grid-cols-4 gap-4">
-              <Card className="bg-blue-50 border-0 p-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-1">Tổng dự đoán</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.totalPredictions}</p>
-                </div>
-              </Card>
-              <Card className="bg-red-50 border-0 p-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-1">Nguy cơ cao</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.highRiskCount}</p>
-                  <p className="text-xs text-gray-500 mt-1">≥70%</p>
-                </div>
-              </Card>
-              <Card className="bg-yellow-50 border-0 p-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-1">Trung bình</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.mediumRiskCount}</p>
-                  <p className="text-xs text-gray-500 mt-1">30-70%</p>
-                </div>
-              </Card>
-              <Card className="bg-green-50 border-0 p-4">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-1">Nguy cơ thấp</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.lowRiskCount}</p>
-                  <p className="text-xs text-gray-500 mt-1">&lt;30%</p>
-                </div>
-              </Card>
+          <div className="space-y-4 py-3">
+            {/* Overview Cards (horizontal, allow horizontal scroll on small viewports) */}
+            <div className="overflow-x-auto">
+              <div className="min-w-max grid grid-cols-4 gap-4">
+                <Card className="bg-blue-50 border-0 p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Tổng dự đoán</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.totalPredictions}</p>
+                  </div>
+                </Card>
+                <Card className="bg-red-50 border-0 p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Nguy cơ cao</p>
+                    <p className="text-2xl font-bold text-red-600">{stats.highRiskCount}</p>
+                    <p className="text-xs text-gray-500 mt-1">≥70%</p>
+                  </div>
+                </Card>
+                <Card className="bg-yellow-50 border-0 p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Trung bình</p>
+                    <p className="text-2xl font-bold text-yellow-600">{stats.mediumRiskCount}</p>
+                    <p className="text-xs text-gray-500 mt-1">30-70%</p>
+                  </div>
+                </Card>
+                <Card className="bg-green-50 border-0 p-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-1">Nguy cơ thấp</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.lowRiskCount}</p>
+                    <p className="text-xs text-gray-500 mt-1">&lt;30%</p>
+                  </div>
+                </Card>
+              </div>
             </div>
 
             {/* Risk Distribution */}
@@ -202,7 +204,7 @@ export function Dashboard() {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-red-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${stats.totalPredictions > 0 ? (stats.highRiskCount / stats.totalPredictions) * 100 : 0}%` }}
                     ></div>
@@ -217,7 +219,7 @@ export function Dashboard() {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${stats.totalPredictions > 0 ? (stats.mediumRiskCount / stats.totalPredictions) * 100 : 0}%` }}
                     ></div>
@@ -232,7 +234,7 @@ export function Dashboard() {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${stats.totalPredictions > 0 ? (stats.lowRiskCount / stats.totalPredictions) * 100 : 0}%` }}
                     ></div>
@@ -259,7 +261,7 @@ export function Dashboard() {
 
             {/* Quick Actions */}
             <div className="flex gap-3 pt-4">
-              <Button 
+              <Button
                 onClick={() => {
                   setShowStatsDialog(false);
                   navigate('/admin/predictions');
@@ -268,7 +270,7 @@ export function Dashboard() {
               >
                 Xem tất cả dự đoán
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => setShowStatsDialog(false)}
                 className="rounded-xl"
