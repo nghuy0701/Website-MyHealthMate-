@@ -11,7 +11,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017/api/v1';
 
 export function Dashboard() {
   const navigate = useNavigate();

@@ -3,7 +3,7 @@
  * Handles all HTTP requests with session-based authentication
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017/api/v1'
 
 /**
  * HTTP Client with credentials support (session cookies)

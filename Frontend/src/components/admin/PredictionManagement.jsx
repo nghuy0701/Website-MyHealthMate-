@@ -38,7 +38,7 @@ import {
 import { Card } from '../ui/card';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017/api/v1';
 
 export function PredictionManagement() {
   const [searchTerm, setSearchTerm] = useState('');
