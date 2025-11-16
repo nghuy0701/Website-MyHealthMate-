@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, Expand } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -40,6 +40,26 @@ import { Label } from '../ui/label';
 import { toast } from 'sonner';
 import { ImageWithFallback } from './figma/ImageWithFallback.jsx';
 
+import { articles as articlesData, categoryLabels } from '../../lib/data';
+
+const initialArticles = articlesData.map((article, index) => ({
+  id: article.id,
+  code: `B${String(index + 1).padStart(3, '0')}`,
+  title: article.title,
+  description: article.excerpt,
+  image: article.imageUrl,
+  category: article.category,
+  content: article.content ? JSON.stringify(article.content, null, 2) : '',
+}));
+
+const truncateText = (text = '', maxLength) => {
+  if (!text) return '';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + '...';
+};
+
 export function ArticleManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
@@ -47,36 +67,10 @@ export function ArticleManagement() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState(null);
-  
-  const [articles, setArticles] = useState([
-    {
-      id: '1',
-      code: 'B001',
-      title: 'Cách kiểm soát đường huyết',
-      description: 'Gợi ý ăn uống lành mạnh',
-      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=100',
-      category: 'nutrition',
-      content: 'Nội dung chi tiết về cách kiểm soát đường huyết hiệu quả...',
-    },
-    {
-      id: '2',
-      code: 'B002',
-      title: 'Lợi ích của vận động đều đặn',
-      description: 'Tập thể dục giúp kiểm soát đường huyết',
-      image: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=100',
-      category: 'lifestyle',
-      content: 'Tập thể dục đều đặn giúp cải thiện sức khỏe và kiểm soát đường huyết...',
-    },
-    {
-      id: '3',
-      code: 'B003',
-      title: 'Hiểu về bệnh tiểu đường',
-      description: 'Thông tin cơ bản về bệnh tiểu đường',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=100',
-      category: 'education',
-      content: 'Bệnh tiểu đường là một bệnh mãn tính ảnh hưởng đến cách cơ thể xử lý đường trong máu...',
-    },
-  ]);
+
+  const [articles, setArticles] = useState(initialArticles);
+
+  const [isContentMaximized, setIsContentMaximized] = useState(false);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -126,8 +120,8 @@ export function ArticleManagement() {
     }
 
     if (selectedArticle) {
-      setArticles(articles.map(a => 
-        a.id === selectedArticle.id 
+      setArticles(articles.map(a =>
+        a.id === selectedArticle.id
           ? { ...a, ...formData }
           : a
       ));
@@ -159,12 +153,7 @@ export function ArticleManagement() {
   };
 
   const getCategoryLabel = (category) => {
-    const labels = {
-      nutrition: 'Dinh dưỡng',
-      lifestyle: 'Lối sống',
-      education: 'Giáo dục',
-    };
-    return labels[category] || category;
+    return categoryLabels[category] || category;
   };
 
   const filteredArticles = articles.filter(article => {
@@ -188,20 +177,20 @@ export function ArticleManagement() {
             className="pl-10 rounded-xl border-gray-300"
           />
         </div>
-        
+
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[180px] rounded-xl border-gray-300">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="nutrition">Dinh dưỡng</SelectItem>
-            <SelectItem value="lifestyle">Lối sống</SelectItem>
-            <SelectItem value="education">Giáo dục</SelectItem>
+            {Object.entries(categoryLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        <Button 
+        <Button
           className="bg-blue-600 hover:bg-blue-700 rounded-xl"
           onClick={() => {
             setSelectedArticle(null);
@@ -240,8 +229,8 @@ export function ArticleManagement() {
               <TableRow key={article.id} className="hover:bg-gray-50">
                 <TableCell>{index + 1}</TableCell>
                 <TableCell>{article.code}</TableCell>
-                <TableCell className="max-w-xs">{article.title}</TableCell>
-                <TableCell className="max-w-md text-gray-600">{article.description}</TableCell>
+                <TableCell className="max-w-xs">{truncateText(article.title, 30)}</TableCell>
+                <TableCell className="max-w-md text-gray-600">{truncateText(article.description, 50)}</TableCell>
                 <TableCell>{getCategoryLabel(article.category)}</TableCell>
                 <TableCell>
                   <ImageWithFallback
@@ -290,7 +279,7 @@ export function ArticleManagement() {
           <DialogHeader>
             <DialogTitle>Chi tiết bài viết</DialogTitle>
           </DialogHeader>
-          
+
           {selectedArticle && (
             <div className="space-y-4 py-4">
               <ImageWithFallback
@@ -327,7 +316,7 @@ export function ArticleManagement() {
               Điền đầy đủ thông tin để {selectedArticle ? 'cập nhật' : 'thêm'} bài viết
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="code">Mã bài viết</Label>
@@ -339,7 +328,7 @@ export function ArticleManagement() {
                 placeholder="VD: B001"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="title">Tiêu đề</Label>
               <Input
@@ -349,7 +338,7 @@ export function ArticleManagement() {
                 className="rounded-xl"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả ngắn</Label>
               <Input
@@ -359,7 +348,7 @@ export function ArticleManagement() {
                 className="rounded-xl"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="category">Danh mục</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
@@ -367,13 +356,13 @@ export function ArticleManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="nutrition">Dinh dưỡng</SelectItem>
-                  <SelectItem value="lifestyle">Lối sống</SelectItem>
-                  <SelectItem value="education">Giáo dục</SelectItem>
+                  {Object.entries(categoryLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="image">URL Ảnh đại diện</Label>
               <Input
@@ -384,9 +373,15 @@ export function ArticleManagement() {
                 placeholder="https://..."
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="content">Nội dung</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="content">Nội dung</Label>
+                <Button variant="ghost" size="sm" onClick={() => setIsContentMaximized(true)}>
+                  <Expand className="w-4 h-4 mr-2" />
+                  Phóng to
+                </Button>
+              </div>
               <Textarea
                 id="content"
                 value={formData.content}
@@ -420,7 +415,7 @@ export function ArticleManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa bài viết?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa bài viết <strong>{selectedArticle?.title}</strong>? 
+              Bạn có chắc muốn xóa bài viết <strong>{selectedArticle?.title}</strong>?
               Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -435,6 +430,28 @@ export function ArticleManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Maximized Content Editor Dialog */}
+      <Dialog open={isContentMaximized} onOpenChange={setIsContentMaximized}>
+        <DialogContent className="max-w-[90vw] h-[90vh] flex flex-col rounded-[20px]">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa nội dung</DialogTitle>
+          </DialogHeader>
+          <div className="flex-grow mt-4">
+            <Textarea
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              className="w-full h-full rounded-xl resize-none border-gray-300"
+              placeholder="Nhập nội dung chi tiết cho bài viết..."
+            />
+          </div>
+          <DialogFooter className="mt-4">
+            <Button onClick={() => setIsContentMaximized(false)} className="rounded-xl bg-blue-600 hover:bg-blue-700">
+              Hoàn tất
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
