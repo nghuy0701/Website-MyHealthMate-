@@ -122,6 +122,7 @@ Hệ thống được chia thành **3 phần chính**:
 
 ### ML Service Dependencies
 ```
+# Core ML Libraries
 Flask>=3.0.0
 flask-cors>=4.0.0
 numpy>=1.26.0
@@ -130,7 +131,101 @@ scikit-learn>=1.3.0
 joblib>=1.3.0
 python-dotenv>=1.0.0
 requests>=2.31.0
+
+# Advanced ML Models (Optional)
+xgboost>=2.0.0
+lightgbm>=4.0.0
+catboost>=1.2.0
+
+# Imbalanced Learning
+imbalanced-learn>=0.11.0
+
+# Hyperparameter Optimization
+optuna>=3.4.0
+
+# Data Visualization
+matplotlib>=3.8.0
+seaborn>=0.13.0
+plotly>=5.18.0
+
+# Additional utilities
+scipy>=1.11.0
 ```
+
+---
+
+## 🤖 Machine Learning Models
+
+MyHealthMate sử dụng một **pipeline ML toàn diện** với **15+ thuật toán** khác nhau để dự đoán bệnh tiểu đường:
+
+### 📊 Model Categories
+
+#### 1. Linear Models (4 models)
+- **Logistic Regression** ⭐ **(Production Model)**
+  - ROC-AUC: 0.844 (CV), 0.810 (Test)
+  - Accuracy: 70.1%
+  - Nhanh, ổn định, dễ giải thích
+- **Ridge Classifier** - L2 regularization
+- **Linear Discriminant Analysis (LDA)**
+- **Quadratic Discriminant Analysis (QDA)**
+
+#### 2. Tree-based Models (3 models)
+- **Random Forest** - Ensemble of decision trees
+- **Extra Trees** - Extremely randomized trees
+- **Decision Tree** - Single tree classifier
+
+#### 3. Boosting Models (2-5 models)
+- **Gradient Boosting** - Sequential ensemble
+- **AdaBoost** - Adaptive boosting
+- **XGBoost** 🚀 - Extreme gradient boosting (optional)
+- **LightGBM** 🚀 - Light gradient boosting (optional)
+- **CatBoost** 🚀 - Categorical boosting (optional)
+
+#### 4. Other Models (4 models)
+- **Support Vector Machine (SVM)** - Kernel methods
+- **K-Nearest Neighbors (KNN)** - Instance-based
+- **Naive Bayes** - Probabilistic classifier
+- **Neural Network (MLP)** - Multi-layer perceptron
+
+### 🎯 Model Selection Process
+
+1. **Data Preprocessing**
+   - Handle zero values (median imputation)
+   - Feature scaling (StandardScaler)
+   - Optional class balancing (SMOTE/ADASYN)
+
+2. **Cross-Validation**
+   - 5-fold StratifiedKFold
+   - Metrics: Accuracy, Precision, Recall, F1, ROC-AUC
+
+3. **Hyperparameter Tuning**
+   - RandomizedSearchCV (100 iterations)
+   - Optimize by ROC-AUC score
+
+4. **Model Export**
+   - Best model saved as `.joblib`
+   - Scaler saved for preprocessing
+   - Metadata saved as JSON
+
+### 📁 ML Files Structure
+```
+ml-service/
+├── models/
+│   ├── diabetes_ml_pipeline.py              # Training pipeline
+│   ├── model_config.py                      # Models configuration
+│   ├── diabetes_model_*.joblib              # Trained model
+│   ├── scaler_*.joblib                      # Feature scaler
+│   ├── diabetes_predictor_*.py              # Production code
+│   └── model_metadata_*.json                # Model info & metrics
+├── data/
+│   └── pima_clean.csv                       # Cleaned dataset
+├── notebooks/
+│   └── diabetes_model_training.ipynb        # Training notebook
+├── MODELS_DOCUMENTATION.md                  # Detailed ML docs
+└── app.py                                   # Flask API
+
+```
+
 
 ---
 
@@ -319,7 +414,22 @@ npm run dev
 ### ML Service
 ```bash
 python app.py                              # Chạy Flask server
-python models/diabetes_ml_pipeline.py      # Train lại model
+python models/diabetes_ml_pipeline.py      # Train model mới
+python models/model_config.py              # Xem cấu hình models
+```
+
+**Training Models:**
+```python
+# Sử dụng pipeline để train models
+from models.diabetes_ml_pipeline import DiabetesPredictionPipeline
+
+pipeline = DiabetesPredictionPipeline()
+pipeline.load_data('data/pima_clean.csv')
+pipeline.preprocess_data()
+pipeline.define_models()
+pipeline.train_and_evaluate_models()
+pipeline.optimize_best_model()
+pipeline.save_best_model()
 ```
 
 ---
@@ -379,7 +489,7 @@ Mọi đóng góp đều được chào đón! Vui lòng tạo pull request ho�
 ## 📞 Liên hệ
 
 - GitHub: [@nghuy0701](https://github.com/nghuy0701)
-- Email: jwyy2005@gmail.com
+- Email: nguyentnhuy2k5@gmail.com
 
 ---
 
