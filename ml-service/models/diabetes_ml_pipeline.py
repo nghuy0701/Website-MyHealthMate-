@@ -15,30 +15,67 @@ from pathlib import Path
 # Scikit-learn imports
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, StratifiedKFold
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import (
+    RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier,
+    ExtraTreesClassifier
+)
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score, 
     roc_auc_score, confusion_matrix, classification_report, roc_curve
 )
 
-# Advanced ML libraries
-import xgboost as xgb
-import lightgbm as lgb
-from catboost import CatBoostClassifier
+# Advanced ML libraries (optional)
+try:
+    import xgboost as xgb
+    XGBOOST_AVAILABLE = True
+except ImportError:
+    XGBOOST_AVAILABLE = False
+    xgb = None
+    print("⚠️ XGBoost not available. Install: pip install xgboost")
 
-# Imbalanced learning
-from imblearn.over_sampling import SMOTE, ADASYN
-from imblearn.under_sampling import RandomUnderSampler
-from imblearn.combine import SMOTEENN
+try:
+    import lightgbm as lgb
+    LIGHTGBM_AVAILABLE = True
+except ImportError:
+    LIGHTGBM_AVAILABLE = False
+    lgb = None
+    print("⚠️ LightGBM not available. Install: pip install lightgbm")
+
+try:
+    from catboost import CatBoostClassifier
+    CATBOOST_AVAILABLE = True
+except ImportError:
+    CATBOOST_AVAILABLE = False
+    CatBoostClassifier = None
+    print("⚠️ CatBoost not available. Install: pip install catboost")
+
+# Imbalanced learning (optional)
+try:
+    from imblearn.over_sampling import SMOTE, ADASYN
+    from imblearn.under_sampling import RandomUnderSampler
+    from imblearn.combine import SMOTEENN
+    IMBLEARN_AVAILABLE = True
+except ImportError:
+    IMBLEARN_AVAILABLE = False
+    SMOTE = ADASYN = RandomUnderSampler = SMOTEENN = None
+    print("⚠️ Imbalanced-learn not available. Install: pip install imbalanced-learn")
 
 # Hyperparameter optimization
 from sklearn.model_selection import RandomizedSearchCV
-import optuna
+try:
+    import optuna
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+    optuna = None
+    print("⚠️ Optuna not available. Install: pip install optuna")
 
 warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8')
@@ -240,7 +277,7 @@ class DiabetesPredictionPipeline:
         self.scalers['main'] = scaler
         
         # Handle class imbalance
-        if balance_method:
+        if balance_method and IMBLEARN_AVAILABLE:
             print(f"⚖️  Balancing method: {balance_method}")
             original_distribution = np.bincount(self.y_train)
             
@@ -260,6 +297,8 @@ class DiabetesPredictionPipeline:
             
             print(f"  - Trước balancing: {original_distribution}")
             print(f"  - Sau balancing: {new_distribution}")
+        elif balance_method and not IMBLEARN_AVAILABLE:
+            print(f"⚠️ imbalanced-learn không available, bỏ qua balancing")
         
         print("✅ Preprocessing hoàn thành!")
         return self
@@ -270,26 +309,70 @@ class DiabetesPredictionPipeline:
         print("🤖 DEFINING ML MODELS")
         print("="*50)
         
-        self.models = {
-            # Traditional ML Models
-            'Logistic_Regression': LogisticRegression(random_state=42, max_iter=1000),
-            'Random_Forest': RandomForestClassifier(random_state=42, n_estimators=100),
-            'Gradient_Boosting': GradientBoostingClassifier(random_state=42),
-            'SVM': SVC(random_state=42, probability=True),
-            'KNN': KNeighborsClassifier(),
-            'Naive_Bayes': GaussianNB(),
-            'Decision_Tree': DecisionTreeClassifier(random_state=42),
-            'AdaBoost': AdaBoostClassifier(random_state=42),
-            
-            # Advanced Models
-            'XGBoost': xgb.XGBClassifier(random_state=42, eval_metric='logloss'),
-            'LightGBM': lgb.LGBMClassifier(random_state=42, verbose=-1),
-            'CatBoost': CatBoostClassifier(random_state=42, verbose=False)
-        }
+        self.models = {}
+        
+        # 1. Linear Models
+        self.models['Logistic_Regression'] = LogisticRegression(random_state=42, max_iter=1000)
+        self.models['Ridge_Classifier'] = RidgeClassifier(random_state=42)
+        self.models['Linear_Discriminant'] = LinearDiscriminantAnalysis()
+        self.models['Quadratic_Discriminant'] = QuadraticDiscriminantAnalysis()
+        
+        # 2. Tree-based Models
+        self.models['Decision_Tree'] = DecisionTreeClassifier(random_state=42)
+        self.models['Random_Forest'] = RandomForestClassifier(
+            n_estimators=100, random_state=42, n_jobs=-1
+        )
+        self.models['Extra_Trees'] = ExtraTreesClassifier(
+            n_estimators=100, random_state=42, n_jobs=-1
+        )
+        
+        # 3. Boosting Models
+        self.models['Gradient_Boosting'] = GradientBoostingClassifier(random_state=42)
+        self.models['AdaBoost'] = AdaBoostClassifier(random_state=42)
+        
+        # 4. Advanced Gradient Boosting (if available)
+        if XGBOOST_AVAILABLE:
+            self.models['XGBoost'] = xgb.XGBClassifier(
+                random_state=42, eval_metric='logloss', verbosity=0
+            )
+        
+        if LIGHTGBM_AVAILABLE:
+            self.models['LightGBM'] = lgb.LGBMClassifier(
+                random_state=42, verbosity=-1
+            )
+        
+        if CATBOOST_AVAILABLE:
+            self.models['CatBoost'] = CatBoostClassifier(
+                random_state=42, verbose=False
+            )
+        
+        # 5. Instance-based Models
+        self.models['K_Nearest_Neighbors'] = KNeighborsClassifier(n_neighbors=5)
+        
+        # 6. Kernel Methods
+        self.models['Support_Vector_Machine'] = SVC(random_state=42, probability=True)
+        
+        # 7. Probabilistic Models
+        self.models['Naive_Bayes'] = GaussianNB()
+        
+        # 8. Neural Network
+        self.models['Neural_Network'] = MLPClassifier(
+            hidden_layer_sizes=(100,), random_state=42, max_iter=500
+        )
         
         print(f"✅ Đã định nghĩa {len(self.models)} models:")
-        for name in self.models.keys():
-            print(f"  - {name}")
+        print(f"\n🎯 Model Categories:")
+        print(f"• Linear Models: 4")
+        print(f"• Tree-based Models: 3")
+        print(f"• Boosting Models: 2 + {sum([XGBOOST_AVAILABLE, LIGHTGBM_AVAILABLE, CATBOOST_AVAILABLE])} advanced")
+        print(f"• Instance-based: 1")
+        print(f"• Kernel Methods: 1")
+        print(f"• Probabilistic: 1")
+        print(f"• Neural Networks: 1")
+        
+        print(f"\n📋 Available Models:")
+        for i, name in enumerate(self.models.keys(), 1):
+            print(f"{i:2d}. {name}")
             
         return self
     
