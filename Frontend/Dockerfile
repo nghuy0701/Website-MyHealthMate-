@@ -22,6 +22,9 @@ RUN npm run build
 # Production stage - Nginx
 FROM nginx:alpine
 
+# Install wget for health check
+RUN apk add --no-cache wget
+
 # Copy built files from builder - outDir is configured as 'build' in vite.config.js
 COPY --from=builder /app/build /usr/share/nginx/html
 
