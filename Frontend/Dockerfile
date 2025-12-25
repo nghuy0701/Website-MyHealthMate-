@@ -18,8 +18,8 @@ RUN npm run build
 # Production stage - Nginx
 FROM nginx:alpine
 
-# Copy built files from builder - Vite builds to 'dist' not 'build'
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copy built files from builder - outDir is configured as 'build' in vite.config.js
+COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
