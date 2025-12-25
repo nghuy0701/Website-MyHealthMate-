@@ -134,206 +134,212 @@ docker-compose down -v
 
 MyHealthMate sử dụng một **pipeline ML toàn diện** với **15+ thuật toán** khác nhau để dự đoán bệnh tiểu đường:
 
-### 📊 Model Categories
+### 📊 Các Nhóm Mô Hình
 
-#### 1. Linear Models (4 models)
-- **Logistic Regression** ⭐ **(Production Model)**
+#### 1. Mô Hình Tuyến Tính (4 mô hình)
+- **Logistic Regression** ⭐ **(Mô hình Production)**
   - ROC-AUC: 0.844 (CV), 0.810 (Test)
-  - Accuracy: 70.1%
+  - Độ chính xác: 70.1%
   - Nhanh, ổn định, dễ giải thích
-- **Ridge Classifier** - L2 regularization
-- **Linear Discriminant Analysis (LDA)**
-- **Quadratic Discriminant Analysis (QDA)**
+- **Ridge Classifier** - Hồi quy Ridge với chuẩn hóa L2
+- **Linear Discriminant Analysis (LDA)** - Phân tích biệt thức tuyến tính
+- **Quadratic Discriminant Analysis (QDA)** - Phân tích biệt thức bậc hai
 
-#### 2. Tree-based Models (3 models)
-- **Random Forest** - Ensemble of decision trees
-- **Extra Trees** - Extremely randomized trees
-- **Decision Tree** - Single tree classifier
+#### 2. Mô Hình Cây Quyết Định (3 mô hình)
+- **Random Forest** - Rừng cây quyết định ngẫu nhiên
+- **Extra Trees** - Cây ngẫu nhiên cực đại
+- **Decision Tree** - Cây quyết định đơn
 
-#### 3. Boosting Models (2-5 models)
-- **Gradient Boosting** - Sequential ensemble
-- **AdaBoost** - Adaptive boosting
-- **XGBoost** 🚀 - Extreme gradient boosting (optional)
-- **LightGBM** 🚀 - Light gradient boosting (optional)
-- **CatBoost** 🚀 - Categorical boosting (optional)
+#### 3. Mô Hình Boosting (2-5 mô hình)
+- **Gradient Boosting** - Tăng cường gradient tuần tự
+- **AdaBoost** - Tăng cường thích ứng
+- **XGBoost** 🚀 - Tăng cường gradient cực đại (tùy chọn)
+- **LightGBM** 🚀 - Tăng cường gradient nhẹ (tùy chọn)
+- **CatBoost** 🚀 - Tăng cường phân loại (tùy chọn)
 
-#### 4. Other Models (4 models)
-- **Support Vector Machine (SVM)** - Kernel methods
-- **K-Nearest Neighbors (KNN)** - Instance-based
-- **Naive Bayes** - Probabilistic classifier
-- **Neural Network (MLP)** - Multi-layer perceptron
+#### 4. Các Mô Hình Khác (4 mô hình)
+- **Support Vector Machine (SVM)** - Máy vector hỗ trợ
+- **K-Nearest Neighbors (KNN)** - K láng giềng gần nhất
+- **Naive Bayes** - Phân loại xác suất Bayes
+- **Neural Network (MLP)** - Mạng nơ-ron đa lớp
 
-### 🎯 Model Selection Process
+### 🎯 Quy Trình Lựa Chọn Mô Hình
 
-1. **Data Preprocessing**
-   - Handle zero values (median imputation)
-   - Feature scaling (StandardScaler)
-   - Optional class balancing (SMOTE/ADASYN)
+1. **Tiền Xử Lý Dữ Liệu**
+   - Xử lý giá trị 0 (thay thế bằng trung vị)
+   - Chuẩn hóa đặc trưng (StandardScaler)
+   - Cân bằng lớp dữ liệu (SMOTE/ADASYN - tùy chọn)
 
-2. **Cross-Validation**
-   - 5-fold StratifiedKFold
-   - Metrics: Accuracy, Precision, Recall, F1, ROC-AUC
+2. **Kiểm Định Chéo**
+   - Chia 5 fold phân tầng (StratifiedKFold)
+   - Các chỉ số: Độ chính xác, Precision, Recall, F1, ROC-AUC
 
-3. **Hyperparameter Tuning**
-   - RandomizedSearchCV (100 iterations)
-   - Optimize by ROC-AUC score
+3. **Tối Ưu Siêu Tham Số**
+   - RandomizedSearchCV (100 lần lặp)
+   - Tối ưu hóa theo điểm ROC-AUC
 
-4. **Model Export**
-   - Best model saved as `.joblib`
-   - Scaler saved for preprocessing
-   - Metadata saved as JSON
+4. **Xuất Mô Hình**
+   - Lưu mô hình tốt nhất dạng `.joblib`
+   - Lưu scaler để tiền xử lý
+   - Lưu metadata dạng JSON
 
-### 📁 ML Files Structure
+### 📁 Cấu Trúc Thư Mục ML
 ```
 ml-service/
 ├── models/
-│   ├── diabetes_ml_pipeline.py              # Training pipeline
-│   ├── model_config.py                      # Models configuration
-│   ├── diabetes_model_*.joblib              # Trained model
-│   ├── scaler_*.joblib                      # Feature scaler
-│   ├── diabetes_predictor_*.py              # Production code
-│   └── model_metadata_*.json                # Model info & metrics
+│   ├── diabetes_ml_pipeline.py              # Pipeline huấn luyện
+│   ├── model_config.py                      # Cấu hình các mô hình
+│   ├── diabetes_model_*.joblib              # Mô hình đã huấn luyện
+│   ├── scaler_*.joblib                      # Scaler chuẩn hóa
+│   ├── diabetes_predictor_*.py              # Mã nguồn production
+│   └── model_metadata_*.json                # Thông tin & metrics mô hình
 ├── data/
-│   └── pima_clean.csv                       # Cleaned dataset
+│   └── pima_clean.csv                       # Dữ liệu đã làm sạch
 ├── notebooks/
-│   └── diabetes_model_training.ipynb        # Training notebook
-├── MODELS_DOCUMENTATION.md                  # Detailed ML docs
-└── app.py                                   # Flask API
+│   └── diabetes_model_training.ipynb        # Notebook huấn luyện
+├── MODELS_DOCUMENTATION.md                  # Tài liệu ML chi tiết
+└── app.py                                   # API Flask
 ```
 
 ---
 
-## 📁 Cấu trúc thư mục
+## 📁 Cấu Trúc Thư Mục
 
 ```
 Website-MyHealthMate/
 │
-├── Backend/                    # Node.js Backend
+├── Backend/                    # Backend Node.js
 │   ├── src/
 │   │   ├── configs/           # Cấu hình (DB, CORS, Session)
-│   │   ├── controllers/       # Business logic
-│   │   ├── middlewares/       # Auth, Upload, Error handling
-│   │   ├── models/            # Database models
-│   │   ├── routes/            # API routes
-│   │   ├── services/          # Service layer
-│   │   ├── validations/       # Input validation
-│   │   ├── providers/         # External services (Cloudinary, Brevo)
-│   │   └── utils/             # Helpers, constants
-│   ├── .env                   # Environment variables
+│   │   ├── controllers/       # Xử lý logic nghiệp vụ
+│   │   ├── middlewares/       # Xác thực, Upload, Xử lý lỗi
+│   │   ├── models/            # Mô hình dữ liệu
+│   │   ├── routes/            # Định tuyến API
+│   │   ├── services/          # Lớp dịch vụ
+│   │   ├── validations/       # Xác thực dữ liệu đầu vào
+│   │   ├── providers/         # Dịch vụ bên ngoài (Cloudinary, Brevo)
+│   │   └── utils/             # Hàm hỗ trợ, hằng số
+│   ├── .env                   # Biến môi trường
 │   ├── package.json
 │   └── server.js
 │
-├── Frontend/                   # React Frontend
+├── Frontend/                   # Giao diện React
 │   ├── src/
-│   │   ├── components/        # React components
-│   │   │   ├── ui/           # Shadcn UI components
-│   │   │   └── admin/        # Admin dashboard components
-│   │   ├── pages/            # Page components
-│   │   ├── lib/              # Context, API client, utilities
-│   │   └── styles/           # CSS files
+│   │   ├── components/        # Các component React
+│   │   │   ├── ui/           # Component UI Shadcn
+│   │   │   └── admin/        # Component dashboard Admin
+│   │   ├── pages/            # Các trang
+│   │   ├── lib/              # Context, API client, tiện ích
+│   │   └── styles/           # File CSS
 │   ├── public/
 │   ├── .env
 │   ├── package.json
 │   └── vite.config.js
 │
-├── ml-service/                # Python ML Service
-│   ├── models/               # Trained ML models
-│   ├── data/                 # Training datasets
+├── ml-service/                # Dịch vụ ML Python
+│   ├── models/               # Mô hình ML đã huấn luyện
+│   ├── data/                 # Dữ liệu huấn luyện
 │   ├── notebooks/            # Jupyter notebooks
-│   ├── app.py               # Flask application
+│   ├── app.py               # Ứng dụng Flask
 │   ├── requirements.txt
 │   └── .env
 │
-└── README.md                 # This file
+└── README.md                 # File này
 ```
 
 ---
 
-## 🔑 Tính năng chính
+## 🔑 Tính Năng Chính
 
-### User Features
-- 📝 Đăng ký/Đăng nhập
-- 👤 Quản lý profile (avatar, thông tin cá nhân)
-- 🔮 Thực hiện test dự đoán tiểu đường
-- 📊 Xem lịch sử dự đoán
-- 📚 Đọc bài viết sức khỏe
-- 💬 Bình luận bài viết
+### Tính Năng Người Dùng
+- 📝 **Đăng ký/Đăng nhập** - Xác thực tài khoản an toàn
+- 👤 **Quản lý hồ sơ** - Cập nhật avatar, thông tin cá nhân
+- 🔮 **Dự đoán tiểu đường** - Thực hiện test với 8 chỉ số sức khỏe
+- 📊 **Lịch sử dự đoán** - Xem và theo dõi các kết quả trước đó
+- 📚 **Đọc bài viết** - Truy cập kho bài viết y khoa chuyên sâu
+- 💬 **Tương tác** - Bình luận và thảo luận về bài viết
 
-### Admin Features
-- 👥 Quản lý người dùng
-- 📄 Quản lý bài viết
-- ❓ Quản lý câu hỏi khảo sát
-- 📈 Dashboard thống kê
-- 🔐 Xác thực email admin
+### Tính Năng Quản Trị Viên
+- 👥 **Quản lý người dùng** - Xem, sửa, xóa tài khoản người dùng
+- 📄 **Quản lý bài viết** - Tạo, chỉnh sửa, xóa bài viết y tế
+- ❓ **Quản lý câu hỏi** - Cập nhật bộ câu hỏi khảo sát
+- 📈 **Dashboard thống kê** - Theo dõi số liệu hệ thống
+- 🔐 **Xác thực nâng cao** - Đăng nhập qua email xác thực
 
 ---
 
-## 🛠️ Scripts hữu ích
+## 🛠️ Lệnh Hữu Ích
 
-### Backend
+### Chạy Backend (Phát triển)
 ```bash
+cd Backend
 npm run dev
 ```
 
-### Frontend
+### Chạy Frontend (Phát triển)
 ```bash
+cd Frontend
 npm run dev
 ```
 
-### ML Service
+### Chạy ML Service
 ```bash
-python app.py                              # Chạy Flask server
-python models/diabetes_ml_pipeline.py      # Train model mới
-python models/model_config.py              # Xem cấu hình models
+cd ml-service
+python app.py                              # Khởi động Flask server
+python models/diabetes_ml_pipeline.py      # Huấn luyện mô hình mới
+python models/model_config.py              # Xem cấu hình mô hình
 ```
 
-**Training Models:**
+**Huấn Luyện Mô Hình:**
 ```python
-# Sử dụng pipeline để train models
+# Sử dụng pipeline để huấn luyện mô hình
 from models.diabetes_ml_pipeline import DiabetesPredictionPipeline
 
+# Khởi tạo pipeline
 pipeline = DiabetesPredictionPipeline()
-pipeline.load_data('data/pima_clean.csv')
-pipeline.preprocess_data()
-pipeline.define_models()
-pipeline.train_and_evaluate_models()
-pipeline.optimize_best_model()
-pipeline.save_best_model()
+
+# Các bước huấn luyện
+pipeline.load_data('data/pima_clean.csv')     # Tải dữ liệu
+pipeline.preprocess_data()                     # Tiền xử lý
+pipeline.define_models()                       # Định nghĩa mô hình
+pipeline.train_and_evaluate_models()           # Huấn luyện & đánh giá
+pipeline.optimize_best_model()                 # Tối ưu hóa
+pipeline.save_best_model()                     # Lưu mô hình tốt nhất
 ```
 
 ---
 
 ## 📝 API Endpoints
 
-### Authentication
-- `POST /api/v1/users/register` - Đăng ký user
-- `POST /api/v1/users/login` - Đăng nhập user
-- `POST /api/v1/users/logout` - Đăng xuất
-- `POST /api/v1/admin/login` - Đăng nhập admin
+### Xác Thực (Authentication)
+- `POST /api/v1/users/register` - Đăng ký tài khoản người dùng mới
+- `POST /api/v1/users/login` - Đăng nhập người dùng
+- `POST /api/v1/users/logout` - Đăng xuất khỏi hệ thống
+- `POST /api/v1/admin/login` - Đăng nhập quản trị viên
 
-### Users
-- `GET /api/v1/users/me` - Lấy thông tin user hiện tại
-- `PUT /api/v1/users/me` - Cập nhật profile
-- `POST /api/v1/users/me/avatar` - Upload avatar
-- `PUT /api/v1/users/me/change-password` - Đổi mật khẩu
+### Người Dùng (Users)
+- `GET /api/v1/users/me` - Lấy thông tin người dùng hiện tại
+- `PUT /api/v1/users/me` - Cập nhật thông tin cá nhân
+- `POST /api/v1/users/me/avatar` - Tải lên ảnh đại diện
+- `PUT /api/v1/users/me/change-password` - Thay đổi mật khẩu
 
-### Predictions
-- `POST /api/v1/predictions` - Tạo dự đoán mới
-- `GET /api/v1/predictions/user/:userId` - Lấy lịch sử dự đoán
-- `GET /api/v1/predictions/:id` - Lấy chi tiết dự đoán
+### Dự Đoán (Predictions)
+- `POST /api/v1/predictions` - Tạo dự đoán tiểu đường mới
+- `GET /api/v1/predictions/user/:userId` - Xem lịch sử dự đoán của người dùng
+- `GET /api/v1/predictions/:id` - Lấy thông tin chi tiết một dự đoán
 
-### Articles
-- `GET /api/v1/articles` - Lấy danh sách bài viết
-- `GET /api/v1/articles/:id` - Lấy chi tiết bài viết
-- `POST /api/v1/articles` - Tạo bài viết (Admin)
-- `PUT /api/v1/articles/:id` - Cập nhật bài viết (Admin)
-- `DELETE /api/v1/articles/:id` - Xóa bài viết (Admin)
+### Bài Viết (Articles)
+- `GET /api/v1/articles` - Lấy danh sách tất cả bài viết
+- `GET /api/v1/articles/:id` - Xem chi tiết một bài viết
+- `POST /api/v1/articles` - Tạo bài viết mới (Chỉ Admin)
+- `PUT /api/v1/articles/:id` - Chỉnh sửa bài viết (Chỉ Admin)
+- `DELETE /api/v1/articles/:id` - Xóa bài viết (Chỉ Admin)
 
-### Questions
-- `GET /api/v1/questions` - Lấy danh sách câu hỏi
-- `POST /api/v1/questions` - Tạo câu hỏi (Admin)
-- `PUT /api/v1/questions/:id` - Cập nhật câu hỏi (Admin)
-- `DELETE /api/v1/questions/:id` - Xóa câu hỏi (Admin)
+### Câu Hỏi (Questions)
+- `GET /api/v1/questions` - Lấy danh sách câu hỏi khảo sát
+- `POST /api/v1/questions` - Tạo câu hỏi mới (Chỉ Admin)
+- `PUT /api/v1/questions/:id` - Cập nhật câu hỏi (Chỉ Admin)
+- `DELETE /api/v1/questions/:id` - Xóa câu hỏi (Chỉ Admin)
 
 ---
 
