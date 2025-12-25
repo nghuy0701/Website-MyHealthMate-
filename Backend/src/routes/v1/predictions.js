@@ -1,7 +1,7 @@
 import express from 'express'
 import { predictionController } from '~/controllers'
 import { predictionValidation } from '~/validations'
-import { isAuthenticated, isAdmin } from '~/middlewares'
+import { isAuthenticated, isAdmin, predictionLimiter, cacheMiddleware, invalidateCacheMiddleware, cacheKeys } from '~/middlewares'
 
 const Router = express.Router()
 
@@ -10,12 +10,12 @@ Router.use(isAuthenticated)
 
 // Create new prediction and get all (admin)
 Router.route('/')
-  .post(predictionValidation.createNew, predictionController.createNew)
+  .post(predictionLimiter, predictionValidation.createNew, invalidateCacheMiddleware(cacheKeys.predictions.all), predictionController.createNew)
   .get(isAdmin, predictionController.getAllPredictions)
 
 // Get my predictions
 Router.route('/my-predictions')
-  .get(predictionController.getMyPredictions)
+  .get(cacheMiddleware(300, cacheKeys.predictions.user), predictionController.getMyPredictions)
 
 // Get statistics
 Router.route('/statistics')
@@ -27,8 +27,8 @@ Router.route('/patient/:patientId')
 
 // Prediction operations by ID
 Router.route('/:id')
-  .get(predictionController.getPredictionById)
-  .put(predictionValidation.update, predictionController.updatePrediction)
-  .delete(isAdmin, predictionController.deletePrediction)
+  .get(cacheMiddleware(300, cacheKeys.predictions.detail), predictionController.getPredictionById)
+  .put(predictionValidation.update, invalidateCacheMiddleware(cacheKeys.predictions.all), predictionController.updatePrediction)
+  .delete(isAdmin, invalidateCacheMiddleware(cacheKeys.predictions.all), predictionController.deletePrediction)
 
 export const predictionRoute = Router

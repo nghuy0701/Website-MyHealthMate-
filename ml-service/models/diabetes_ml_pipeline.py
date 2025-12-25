@@ -38,7 +38,7 @@ try:
 except ImportError:
     XGBOOST_AVAILABLE = False
     xgb = None
-    print("⚠️ XGBoost not available. Install: pip install xgboost")
+    logging.warning("⚠️ XGBoost not available. Install: pip install xgboost")
 
 try:
     import lightgbm as lgb
@@ -46,7 +46,7 @@ try:
 except ImportError:
     LIGHTGBM_AVAILABLE = False
     lgb = None
-    print("⚠️ LightGBM not available. Install: pip install lightgbm")
+    logging.warning("⚠️ LightGBM not available. Install: pip install lightgbm")
 
 try:
     from catboost import CatBoostClassifier
@@ -54,7 +54,7 @@ try:
 except ImportError:
     CATBOOST_AVAILABLE = False
     CatBoostClassifier = None
-    print("⚠️ CatBoost not available. Install: pip install catboost")
+    logging.warning("⚠️ CatBoost not available. Install: pip install catboost")
 
 # Imbalanced learning (optional)
 try:
@@ -65,7 +65,7 @@ try:
 except ImportError:
     IMBLEARN_AVAILABLE = False
     SMOTE = ADASYN = RandomUnderSampler = SMOTEENN = None
-    print("⚠️ Imbalanced-learn not available. Install: pip install imbalanced-learn")
+    logging.warning("⚠️ Imbalanced-learn not available. Install: pip install imbalanced-learn")
 
 # Hyperparameter optimization
 from sklearn.model_selection import RandomizedSearchCV
@@ -75,7 +75,7 @@ try:
 except ImportError:
     OPTUNA_AVAILABLE = False
     optuna = None
-    print("⚠️ Optuna not available. Install: pip install optuna")
+    logging.warning("⚠️ Optuna not available. Install: pip install optuna")
 
 warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8')

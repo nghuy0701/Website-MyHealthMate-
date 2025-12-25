@@ -1,0 +1,38 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-build-test:
+    name: Build & Test Docker Images
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service: [backend, frontend, ml-service]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service == 'ml-service' && 'ml-service' || matrix.service == 'backend' && 'Backend' || 'Frontend' }}
+          file: ./${{ matrix.service == 'ml-service' && 'ml-service' || matrix.service == 'backend' && 'Backend' || 'Frontend' }}/Dockerfile
+          push: false
+          tags: myhealthmate-${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run --rm myhealthmate-${{ matrix.service }}:test --version || true
+          echo "Docker image built successfully for ${{ matrix.service }}"

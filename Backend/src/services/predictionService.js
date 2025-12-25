@@ -11,7 +11,6 @@ const createNew = async (req) => {
     const userId = req.session.user.userId
 
     // Get prediction from ML Service
-    console.log('📊 Creating new prediction for user:', userId)
     const mlResult = await mlService.predictDiabetes(req.body)
 
     // Tạo patient record nếu có thông tin bệnh nhân
@@ -35,7 +34,6 @@ const createNew = async (req) => {
       
       const createdPatient = await patientModel.createNew(newPatient)
       patientId = createdPatient.insertedId.toString()
-      console.log('✅ Created new patient:', patientId)
     }
 
     const newPrediction = {
@@ -73,14 +71,9 @@ const createNew = async (req) => {
     // Send prediction result email to patient (async, don't wait)
     if (patientEmail) {
       emailService.sendPredictionResultEmail(patientEmail, patientName, getPrediction)
-        .then(result => {
-          if (result.success) {
-            console.log(`📧 Prediction result email sent to ${patientEmail}`)
-          } else {
-            console.log(`⚠️  Failed to send email: ${result.error}`)
-          }
+        .catch(err => {
+          // Silent fail - email is not critical
         })
-        .catch(err => console.error('Email error:', err))
     }
 
     return formatPrediction(getPrediction)

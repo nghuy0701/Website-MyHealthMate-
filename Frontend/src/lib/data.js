@@ -1,5 +1,4 @@
 export const questions = [
-  // ========== PHẦN 1: 9 CÂU HỎI VỀ CHỈ SỐ Y TẾ (BẮT BUỘC) ==========
   {
     id: 'gender',
     text: 'Giới tính của bạn?',
@@ -640,7 +639,7 @@ export const articles = [
     title: 'Stress và tiểu đường: Mối liên hệ bạn cần biết',
     excerpt: 'Căng thẳng kéo dài có thể ảnh hưởng trực tiếp đến mức đường huyết của bạn.',
     category: 'lifestyle',
-    imageUrl: 'https://images.unsplash.com/photo-1758691462123-8a17ae95d203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBwYXRpZW50JTIwbWVkaWNhbHxlbnwxfHx8fDE3NjEzOTA3ODV8MA&ixlibrb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    imageUrl: 'https://images.unsplash.com/photo-1758691462123-8a17ae95d203?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBwYXRpZW50JTIwbWVkaWNhbHxlbnwxfHx8fDE3NjEzOTA3ODV8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     readTime: '4 phút đọc',
   },
 ];

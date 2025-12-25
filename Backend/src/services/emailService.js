@@ -75,15 +75,12 @@ const sendWelcomeEmail = async (userEmail, userName) => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error('❌ Brevo API error:', errorData)
       return { success: false, error: errorData.message || 'Failed to send email' }
     }
 
     const data = await response.json()
-    console.log('✅ Welcome email sent via Brevo:', data.messageId)
     return { success: true, messageId: data.messageId }
   } catch (error) {
-    console.error('❌ Error sending welcome email:', error)
     // Don't throw error - registration should succeed even if email fails
     return { success: false, error: error.message }
   }
@@ -93,12 +90,10 @@ const sendWelcomeEmail = async (userEmail, userName) => {
 const sendPredictionResultEmail = async (patientEmail, patientName, predictionResult) => {
   try {
     if (!env.BREVO_API_KEY) {
-      console.log('⚠️  Brevo API key not configured, skipping email')
       return { success: false, error: 'Email service not configured' }
     }
 
     if (!patientEmail) {
-      console.log('⚠️  No patient email provided, skipping email')
       return { success: false, error: 'No email provided' }
     }
 
@@ -237,15 +232,12 @@ const sendPredictionResultEmail = async (patientEmail, patientName, predictionRe
 
     if (!response.ok) {
       const errorData = await response.json()
-      console.error('❌ Brevo API error:', errorData)
       return { success: false, error: errorData.message || 'Failed to send email' }
     }
 
     const data = await response.json()
-    console.log(`✅ Prediction result email sent to ${patientEmail}:`, data.messageId)
     return { success: true, messageId: data.messageId }
   } catch (error) {
-    console.error('❌ Error sending prediction email:', error)
     return { success: false, error: error.message }
   }
 }
@@ -349,10 +341,8 @@ const sendAdminVerificationEmail = async (adminEmail, adminName, verificationTok
     }
 
     const data = await response.json()
-    console.log('✅ Admin verification email sent via Brevo:', data.messageId)
     return { success: true, messageId: data.messageId }
   } catch (error) {
-    console.error('❌ Error sending admin verification email:', error)
     return { success: false, error: error.message }
   }
 }

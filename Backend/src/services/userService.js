@@ -46,12 +46,9 @@ const createNew = async (req) => {
 
     // Send welcome email (async, don't wait)
     emailService.sendWelcomeEmail(getNewUser.email, getNewUser.displayName || getNewUser.userName)
-      .then(result => {
-        if (result.success) {
-          console.log(`📧 Welcome email sent to ${getNewUser.email}`)
-        }
+      .catch(err => {
+        // Silent fail - email is not critical
       })
-      .catch(err => console.error('Email error:', err))
 
     return pickUser(getNewUser)
   } catch (error) {

@@ -91,7 +91,7 @@ export function KnowledgePage() {
           <Card className="overflow-hidden rounded-2xl shadow-lg">
             <div className="relative h-96">
               <img
-                src={currentFeatured.image}
+                src={currentFeatured.imageUrl}
                 alt={currentFeatured.title}
                 className="w-full h-full object-cover"
               />
@@ -199,7 +199,7 @@ function ArticleCard({ article }) {
       <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group rounded-2xl">
         <div className="aspect-video overflow-hidden">
           <img
-            src={article.image}
+            src={article.imageUrl}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

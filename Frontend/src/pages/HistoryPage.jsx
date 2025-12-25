@@ -286,7 +286,7 @@ export function HistoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-lg">{probability}%</span>
+                        <span className="text-lg">{probability.toFixed(2)}%</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
@@ -342,7 +342,7 @@ export function HistoryPage() {
             <Card className="p-6 rounded-2xl shadow-lg">
               <div className="text-gray-600 mb-2">Xác suất trung bình</div>
               <div className="text-3xl text-gray-800">
-                {Math.round(history.reduce((sum, h) => sum + (h.probability || 0), 0) / history.length)}%
+                {(history.reduce((sum, h) => sum + (h.probability || 0), 0) / history.length).toFixed(2)}%
               </div>
             </Card>
           </div>

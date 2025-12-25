@@ -6,7 +6,7 @@ const createNew = async (req, res, next) => {
   const correctCondition = Joi.object({
     patientId: Joi.string().optional().allow(null),
     patientName: Joi.string().optional().allow(null, '').max(200),
-    patientEmail: Joi.string().email().optional().allow(null, ''),
+    patientEmail: Joi.string().optional().allow(null, '').max(200),
     gender: Joi.string().optional().allow(null).valid('male', 'female', 'other'),
     pregnancies: Joi.number().integer().min(0).max(20).required(),
     glucose: Joi.number().min(0).max(300).required(),

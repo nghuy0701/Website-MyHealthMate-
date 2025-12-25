@@ -2,14 +2,17 @@ import express from 'express'
 import cors from 'cors'
 import session from 'express-session'
 import { CONNECT_DB, GET_DB } from '~/configs/mongodb'
+import { CONNECT_REDIS } from '~/providers/redisProvider'
 import { env } from '~/configs/environment'
 import { corsOptions } from '~/configs/cors'
 import { sessionConfig } from '~/configs/session'
 import { APIs_V1 } from '~/routes/v1'
-import { errorHandlingMiddleware } from '~/middlewares'
+import { errorHandlingMiddleware, generalLimiter } from '~/middlewares'
+import { createLogger } from '~/utils/logger'
 
 const START_SERVER = () => {
   const app = express()
+  const logger = createLogger('Server')
 
   const hostname = env.APP_HOST || 'localhost'
   const port = env.APP_PORT || 8017
@@ -29,14 +32,14 @@ const START_SERVER = () => {
   // Enable session
   app.use(session(sessionConfig))
 
+  // Apply general rate limiting to all routes
+  app.use('/api/', generalLimiter)
+
   // Import All Routes
   app.use('/api/v1', APIs_V1)
 
   // Welcome route
   app.get('/', async (req, res) => {
-    // Log all collections for debugging
-    console.log(await GET_DB().listCollections().toArray())
-
     res.json({
       message: 'Welcome to MyHealthMate - Diabetes Prediction API',
       version: '1.0.0',
@@ -57,15 +60,23 @@ const START_SERVER = () => {
 
   // Start server
   app.listen(port, hostname, () => {
-    console.log(`Hello ${env.AUTHOR}, I am running at http://${hostname}:${port}/`)
+    logger.success(`Server running at http://${hostname}:${port}/`, {
+      author: env.AUTHOR,
+      environment: env.NODE_ENV
+    })
   })
 }
 
-// Chỉ khi Kết nối tới Database thành công thì mới Start Server Back-end lên.
-CONNECT_DB()
-  .then(() => console.log('Connected to MongoDB Cloud Atlas!'))
+// Kết nối Redis (optional - không bắt buộc để chạy app)
+const logger = createLogger('Bootstrap')
+
+Promise.all([
+  CONNECT_DB().then(() => logger.connection('MongoDB Cloud Atlas', 'connected')),
+  CONNECT_REDIS().then(() => logger.connection('Redis', 'connected'))
+    .catch(() => logger.warn('Redis not available - Running without cache'))
+])
   .then(() => START_SERVER())
   .catch(error => {
-    console.error(error)
+    logger.error('Failed to start application', { error: error.message })
     process.exit(0)
   })

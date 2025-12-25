@@ -124,14 +124,11 @@ export function PredictionPage() {
         patientEmail: patientEmail.trim() || undefined
       };
 
-      console.log('📊 Sending prediction data:', predictionData);
-
       const savedPrediction = await createPrediction(predictionData);
 
       setResult(savedPrediction);
       toast.success('Dự đoán hoàn tất!');
     } catch (error) {
-      console.error('Prediction error:', error);
       toast.error(error.message || 'Không thể thực hiện dự đoán. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
@@ -482,8 +479,8 @@ function ResultView({
   onReset,
   onViewHistory,
 }) {
-  // Calculate risk level from probability and round to integer
-  const probability = Math.round(result.probability || 0);
+  // Calculate risk level from probability
+  const probability = result.probability || 0;
   let riskLevel = 'low';
   if (probability >= 70) riskLevel = 'high';
   else if (probability >= 30) riskLevel = 'medium';
@@ -535,7 +532,7 @@ function ResultView({
         <Card className="p-8 rounded-2xl shadow-lg mb-6">
           <div className="text-center mb-8">
             <div className="mb-6">
-              <div className="text-6xl mb-2">{probability}%</div>
+              <div className="text-6xl mb-2">{probability.toFixed(2)}%</div>
               <div className={`text-xl ${config.color}`}>{config.label}</div>
             </div>
 
@@ -564,7 +561,7 @@ function ResultView({
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-3xl">{probability}%</div>
+                  <div className="text-3xl">{probability.toFixed(2)}%</div>
                   <div className="text-sm text-gray-600">Nguy cơ</div>
                 </div>
               </div>

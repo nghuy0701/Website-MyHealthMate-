@@ -327,34 +327,39 @@ def get_available_models():
     return available
 
 def print_config_summary():
-    """In ra tóm tắt configuration"""
-    print("="*60)
-    print("🔧 ML MODELS CONFIGURATION SUMMARY")
-    print("="*60)
+    """Print configuration summary"""
+    import logging
+    logger = logging.getLogger(__name__)
     
-    print(f"\n📊 Model Categories: {len(MODEL_CATEGORIES)}")
+    logger.info("="*60)
+    logger.info("🔧 ML MODELS CONFIGURATION SUMMARY")
+    logger.info("="*60)
+    
+    logger.info(f"\n📊 Model Categories: {len(MODEL_CATEGORIES)}")
     for category, info in MODEL_CATEGORIES.items():
-        print(f"  • {category}: {len(info['models'])} models")
+        logger.info(f"  • {category}: {len(info['models'])} models")
     
-    print(f"\n🎯 Primary Metric: {PRIMARY_METRIC}")
-    print(f"📈 Scoring Metrics: {', '.join(SCORING_METRICS)}")
+    logger.info(f"\n🎯 Primary Metric: {PRIMARY_METRIC}")
+    logger.info(f"📈 Scoring Metrics: {', '.join(SCORING_METRICS)}")
     
-    print(f"\n⚖️ Scaling Methods: {len(SCALING_METHODS)}")
+    logger.info(f"\n⚖️ Scaling Methods: {len(SCALING_METHODS)}")
     for method in SCALING_METHODS.keys():
-        print(f"  • {method}")
+        logger.info(f"  • {method}")
     
-    print(f"\n🔄 Balancing Methods: {len(BALANCING_METHODS)}")
+    logger.info(f"\n🔄 Balancing Methods: {len(BALANCING_METHODS)}")
     for method in BALANCING_METHODS.keys():
-        print(f"  • {method}")
+        logger.info(f"  • {method}")
     
-    print(f"\n🎲 Default Training Config:")
+    logger.info(f"\n🎲 Default Training Config:")
     for key, value in TRAINING_CONFIG.items():
-        print(f"  • {key}: {value}")
+        logger.info(f"  • {key}: {value}")
     
-    print("="*60)
+    logger.info("="*60)
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     print_config_summary()
-    print(f"\n📋 Available Models:")
+    logger = logging.getLogger(__name__)
+    logger.info(f"\n📋 Available Models:")
     for i, model in enumerate(get_available_models(), 1):
-        print(f"{i:2d}. {model}")
+        logger.info(f"{i:2d}. {model}")

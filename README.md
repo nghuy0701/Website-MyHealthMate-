@@ -1,5 +1,9 @@
 # 🏥 MyHealthMate - Diabetes Prediction Website
 
+[![CI/CD Pipeline](https://github.com/your-username/Website-MyHealthMate/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
+[![Docker Build](https://github.com/your-username/Website-MyHealthMate/workflows/Docker%20Build%20and%20Test/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
+[![Code Quality](https://github.com/your-username/Website-MyHealthMate/workflows/Code%20Quality%20Check/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
+
 Website dự đoán tiểu đường sử dụng Machine Learning, giúp người dùng đánh giá nguy cơ mắc bệnh tiểu đường dựa trên các chỉ số sức khỏe.
 
 ## 📋 Mục lục
@@ -7,6 +11,7 @@ Website dự đoán tiểu đường sử dụng Machine Learning, giúp ngườ
 - [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
 - [Công nghệ sử dụng](#công-nghệ-sử-dụng)
 - [Machine Learning Models](#machine-learning-models)
+- [🐳 Docker & CI/CD](#-docker--cicd) ⭐ NEW
 - [Cài đặt](#cài-đặt)
 - [Chạy ứng dụng](#chạy-ứng-dụng)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
@@ -37,6 +42,98 @@ Website dự đoán tiểu đường sử dụng Machine Learning, giúp ngườ
 - ✅ Lưu trữ lịch sử dự đoán
 - ✅ Quản trị hệ thống (Admin Dashboard)
 - ✅ Cung cấp bài viết sức khỏe
+- 🐳 **Full Dockerized** - One-command deployment
+- 🔄 **CI/CD Pipeline** - Automated testing & deployment
+
+---
+
+## 🐳 Docker & CI/CD
+
+### 🚀 Quick Start với Docker
+
+```bash
+# 1. Clone repository
+git clone https://github.com/your-username/Website-MyHealthMate.git
+cd Website-MyHealthMate
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env với values thực tế của bạn
+
+# 3. Build và run tất cả services
+docker-compose up -d --build
+
+# 4. Xem logs
+docker-compose logs -f
+
+# 5. Kiểm tra trạng thái
+docker-compose ps
+```
+
+**Truy cập ứng dụng:**
+- 🌐 Frontend: http://localhost
+- 🔧 Backend API: http://localhost:8017
+- 🤖 ML Service: http://localhost:5001
+
+**Dừng ứng dụng:**
+```bash
+docker-compose down
+
+# Xóa cả volumes (database, cache)
+docker-compose down -v
+```
+
+### 📚 Tài liệu triển khai
+
+- **🚀 Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md) - Hướng dẫn đầy đủ về CI/CD và production deployment
+- **📝 Environment Template**: [.env.example](.env.example) - Template cho environment variables
+
+### ✨ Docker Features
+
+- ✅ **Full Containerization**: Tất cả services đều được dockerized
+- ✅ **Docker Compose**: One-command orchestration với 5 services
+- ✅ **Multi-stage Builds**: Image sizes được tối ưu hóa
+- ✅ **Health Checks**: Auto-recovery cho tất cả services
+- ✅ **Named Volumes**: Persistent data cho MongoDB & Redis
+- ✅ **Network Isolation**: Bridge network riêng biệt
+- ✅ **Security**: Non-root users, read-only volumes
+- ✅ **Resource Limits**: CPU & memory constraints
+
+### 🔄 CI/CD Pipeline
+
+**3 GitHub Actions Workflows tự động**:
+
+1. **CI/CD Pipeline** ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml))
+   - ✅ Lint & test tất cả services (Backend, Frontend, ML)
+   - ✅ Build & push Docker images to GitHub Container Registry
+   - ✅ Deploy to production server via SSH
+   - ✅ Create .env from GitHub Secrets
+   - ✅ Health check verification
+   - ✅ Rollback support
+
+2. **Docker Build** ([.github/workflows/docker-build.yml](.github/workflows/docker-build.yml))
+   - ✅ Test Docker builds cho 3 services
+   - ✅ Matrix strategy cho parallel builds
+   - ✅ Cache optimization
+
+3. **Code Quality** ([.github/workflows/code-quality.yml](.github/workflows/code-quality.yml))
+   - ✅ Lint Backend (ESLint), Frontend (ESLint), ML (flake8)
+   - ✅ Check for console.log statements
+   - ✅ Code standards enforcement
+
+**Trigger conditions:**
+- Push to `main` → Full deployment
+- Push to `develop` → Build & test only
+- Pull request to `main` → Build & test only
+
+**Setup Guide:**
+1. Configure GitHub Secrets (see [DEPLOYMENT.md](DEPLOYMENT.md))
+2. Push to `main` branch
+3. CI/CD pipeline runs automatically
+4. Production deployment completes in ~5 minutes
+   - Run linters
+   - Check for console.logs
+   - Validate syntax
 
 ---
 
@@ -297,7 +394,7 @@ npm install
 
 ### 4. Cài đặt ML Service
 ```bash
-cd ../ml-service
+cd ml-service
 
 # Tạo virtual environment (khuyến nghị)
 python -m venv venv

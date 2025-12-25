@@ -63,12 +63,9 @@ export function UserManagement() {
       });
       const data = await response.json();
       
-      console.log('Raw users data from API:', data.data);
-      
       if (data.data) {
         // Format users data - hiển thị trống thay vì N/A cho UX tốt hơn
         const formattedUsers = data.data.map((user) => {
-          console.log('User object:', user);
           return {
             id: user._id,
             userName: user.userName || '',
@@ -80,7 +77,6 @@ export function UserManagement() {
             createdAt: user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '',
           };
         });
-        console.log('Formatted users:', formattedUsers);
         setUsers(formattedUsers);
       }
     } catch (error) {
@@ -120,13 +116,10 @@ export function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      console.log('Deleting user:', selectedUser.id);
       const response = await fetch(`${API_BASE_URL}/users/${selectedUser.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      
-      console.log('Delete response status:', response.status);
       
       if (response.ok) {
         toast.success('Đã xóa người dùng thành công!');

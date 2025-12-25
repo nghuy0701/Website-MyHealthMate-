@@ -122,25 +122,20 @@ export function PredictionManagement() {
   };
 
   const handleDelete = (prediction) => {
-    console.log('Opening delete dialog for:', prediction);
     setSelectedPrediction(prediction);
     setShowDeleteDialog(true);
   };
 
   const confirmDelete = async () => {
     if (!selectedPrediction) {
-      console.log('No prediction selected');
       return;
     }
 
     try {
-      console.log('Deleting prediction:', selectedPrediction.id);
       const response = await fetch(`${API_BASE_URL}/predictions/${selectedPrediction.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      
-      console.log('Delete response status:', response.status);
       
       if (response.ok) {
         toast.success('Đã xóa dự đoán thành công!');
@@ -163,7 +158,6 @@ export function PredictionManagement() {
   };
 
   const handleCancelDelete = () => {
-    console.log('Delete cancelled');
     setShowDeleteDialog(false);
     setSelectedPrediction(null);
   };

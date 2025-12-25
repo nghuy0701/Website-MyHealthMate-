@@ -13,60 +13,81 @@ import json
 from datetime import datetime
 import logging
 
+# Import custom modules
+from config import Config
+from utils import (
+    create_response, create_error_response, 
+    validate_request_data, format_prediction_result,
+    log_prediction_request
+)
+
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, Config.LOG_LEVEL),
+    format=Config.LOG_FORMAT
 )
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+app.config.from_object(Config)
 
-# Configuration
-MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
-MODEL_VERSION = '20251023_210956'  # Update này theo model mới nhất
+# Configure CORS with advanced settings
+CORS(app, resources={
+    r"/*": {
+        "origins": Config.get_allowed_origins(),
+        "methods": Config.ALLOWED_METHODS,
+        "allow_headers": Config.ALLOWED_HEADERS,
+        "expose_headers": Config.EXPOSED_HEADERS,
+        "supports_credentials": Config.SUPPORTS_CREDENTIALS,
+        "max_age": Config.MAX_AGE
+    }
+})
+allowed_origins = Config.get_allowed_origins()
+logger.info(f"✅ CORS configured - Origins: {allowed_origins[:3]}{'...' if len(allowed_origins) > 3 else ''}")
 
-# Feature names (must match training data)
-FEATURE_NAMES = [
-    'Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness',
-    'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age'
-]
 
-# Load model and scaler
-try:
-    model_path = os.path.join(MODEL_DIR, f'diabetes_model_logistic_regression_{MODEL_VERSION}.joblib')
-    scaler_path = os.path.join(MODEL_DIR, f'scaler_{MODEL_VERSION}.joblib')
-    metadata_path = os.path.join(MODEL_DIR, f'model_metadata_{MODEL_VERSION}.json')
-    
-    logger.info(f"Loading model from: {model_path}")
-    model = joblib.load(model_path)
-    
-    logger.info(f"Loading scaler from: {scaler_path}")
-    scaler = joblib.load(scaler_path)
-    
-    # Load metadata if available
-    if os.path.exists(metadata_path):
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
-        logger.info("Model metadata loaded successfully")
-    else:
-        metadata = {
-            "model_name": "Logistic Regression",
-            "model_version": MODEL_VERSION,
-            "training_date": "2025-10-23"
-        }
-        logger.warning("Metadata file not found, using default metadata")
-    
-    logger.info("✅ Model and scaler loaded successfully!")
-    
-except Exception as e:
-    logger.error(f"❌ Error loading model: {e}")
-    model = None
-    scaler = None
-    metadata = {}
+# ==================== Model Loading ====================
 
+def load_ml_artifacts():
+    """Load ML model, scaler, and metadata"""
+    try:
+        model_path = Config.get_model_path()
+        scaler_path = Config.get_scaler_path()
+        metadata_path = Config.get_metadata_path()
+        
+        logger.info(f"Loading model from: {model_path}")
+        model = joblib.load(model_path)
+        
+        logger.info(f"Loading scaler from: {scaler_path}")
+        scaler = joblib.load(scaler_path)
+        
+        # Load metadata if available
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+            logger.info("✅ Model metadata loaded")
+        else:
+            metadata = {
+                "model_name": "Logistic Regression",
+                "model_version": Config.MODEL_VERSION,
+                "training_date": "2025-10-23"
+            }
+            logger.warning("⚠️  Metadata file not found, using defaults")
+        
+        logger.info("✅ ML artifacts loaded successfully!")
+        return model, scaler, metadata
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading ML artifacts: {e}")
+        return None, None, {}
+
+
+# Initialize ML components
+model, scaler, metadata = load_ml_artifacts()
+
+
+# ==================== Helper Functions ====================
 
 def preprocess_input(data):
     """
@@ -78,7 +99,7 @@ def preprocess_input(data):
     Returns:
         numpy array ready for prediction
     """
-    # Map backend field names to model field names (handle both formats)
+    # Map backend field names to model field names
     field_mapping = {
         'pregnancies': 'Pregnancies',
         'glucose': 'Glucose',
@@ -93,27 +114,22 @@ def preprocess_input(data):
         'age': 'Age'
     }
     
-    # Create standardized data dict
+    # Standardize field names
     standardized_data = {}
     for key, value in data.items():
         standard_key = field_mapping.get(key, key)
         standardized_data[standard_key] = value
     
+    # Validate using Config
+    is_valid, errors = Config.validate_all_features(standardized_data)
+    if not is_valid:
+        raise ValueError(f"Validation failed: {'; '.join(errors)}")
+    
     # Create DataFrame with correct feature order
-    df = pd.DataFrame([standardized_data])
+    df = pd.DataFrame([standardized_data])[Config.FEATURE_NAMES]
     
-    # Ensure all required features are present
-    missing_features = [f for f in FEATURE_NAMES if f not in df.columns]
-    if missing_features:
-        raise ValueError(f"Missing required features: {missing_features}")
-    
-    # Select features in correct order
-    df = df[FEATURE_NAMES]
-    
-    # Convert to float
+    # Convert to float and scale
     df = df.astype(float)
-    
-    # Scale the features
     scaled_data = scaler.transform(df)
     
     return scaled_data
@@ -129,22 +145,27 @@ def determine_risk_level(probability):
         return 'High'
 
 
+# ==================== API Routes ====================
+
 @app.route('/', methods=['GET'])
 def home():
     """Home endpoint - API information"""
-    return jsonify({
-        'name': 'Diabetes Prediction ML API',
-        'version': '1.0.0',
-        'status': 'running',
-        'model': metadata.get('model_name', 'Unknown'),
-        'model_version': MODEL_VERSION,
-        'endpoints': {
-            'predict': '/predict [POST]',
-            'health': '/health [GET]',
-            'info': '/info [GET]'
-        },
-        'description': 'Machine Learning API for diabetes risk prediction'
-    })
+    return create_response(
+        success=True,
+        data={
+            'name': 'Diabetes Prediction ML API',
+            'version': '1.0.0',
+            'status': 'running',
+            'model': metadata.get('model_name', 'Unknown'),
+            'model_version': Config.MODEL_VERSION,
+            'endpoints': {
+                'predict': '/predict [POST]',
+                'health': '/health [GET]',
+                'info': '/info [GET]'
+            },
+            'description': 'ML API for diabetes risk prediction'
+        }
+    )
 
 
 @app.route('/health', methods=['GET'])
@@ -152,39 +173,47 @@ def health_check():
     """Health check endpoint"""
     is_healthy = model is not None and scaler is not None
     
-    return jsonify({
-        'status': 'healthy' if is_healthy else 'unhealthy',
-        'service': 'Diabetes Prediction ML Service',
-        'model_loaded': model is not None,
-        'scaler_loaded': scaler is not None,
-        'timestamp': datetime.now().isoformat(),
-        'version': '1.0.0'
-    }), 200 if is_healthy else 503
+    return create_response(
+        success=is_healthy,
+        data={
+            'status': 'healthy' if is_healthy else 'unhealthy',
+            'service': 'Diabetes Prediction ML Service',
+            'model_loaded': model is not None,
+            'scaler_loaded': scaler is not None,
+            'timestamp': datetime.now().isoformat(),
+            'version': '1.0.0'
+        },
+        status_code=200 if is_healthy else 503
+    )
 
 
 @app.route('/info', methods=['GET'])
 def get_info():
     """Get detailed model information"""
-    return jsonify({
-        'model_info': {
-            'name': metadata.get('model_name', 'Unknown'),
-            'type': metadata.get('model_type', 'Unknown'),
-            'version': MODEL_VERSION,
-            'training_date': metadata.get('training_date', 'Unknown')
-        },
-        'performance_metrics': metadata.get('performance_metrics', {}),
-        'features': FEATURE_NAMES,
-        'input_format': {
-            'pregnancies': 'Number of pregnancies',
-            'glucose': 'Plasma glucose concentration',
-            'blood_pressure': 'Diastolic blood pressure (mm Hg)',
-            'skin_thickness': 'Triceps skin fold thickness (mm)',
-            'insulin': '2-Hour serum insulin (mu U/ml)',
-            'bmi': 'Body mass index (weight in kg/(height in m)^2)',
-            'diabetes_pedigree_function': 'Diabetes pedigree function',
-            'age': 'Age (years)'
+    return create_response(
+        success=True,
+        data={
+            'model_info': {
+                'name': metadata.get('model_name', 'Unknown'),
+                'type': metadata.get('model_type', 'Unknown'),
+                'version': Config.MODEL_VERSION,
+                'training_date': metadata.get('training_date', 'Unknown')
+            },
+            'performance_metrics': metadata.get('performance_metrics', {}),
+            'features': Config.FEATURE_NAMES,
+            'feature_ranges': Config.FEATURE_RANGES,
+            'input_format': {
+                'pregnancies': 'Number of pregnancies (0-20)',
+                'glucose': 'Plasma glucose concentration (0-300 mg/dL)',
+                'blood_pressure': 'Diastolic blood pressure (0-200 mm Hg)',
+                'skin_thickness': 'Triceps skin fold thickness (0-100 mm)',
+                'insulin': '2-Hour serum insulin (0-900 mu U/ml)',
+                'bmi': 'Body mass index (0-70 kg/m²)',
+                'diabetes_pedigree_function': 'Diabetes pedigree function (0-3)',
+                'age': 'Age (18-120 years)'
+            }
         }
-    })
+    )
 
 
 @app.route('/predict', methods=['POST'])
@@ -203,48 +232,30 @@ def predict():
         "diabetes_pedigree_function": 0.5,
         "age": 30
     }
-    
-    Returns:
-    {
-        "success": true,
-        "data": {
-            "prediction": 0,
-            "probability": 0.25,
-            "probability_no_diabetes": 0.75,
-            "probability_diabetes": 0.25,
-            "risk_level": "Low",
-            "model_used": "Logistic Regression",
-            "model_version": "20251023_210956"
-        }
-    }
     """
     try:
         # Check if model is loaded
         if model is None or scaler is None:
-            return jsonify({
-                'success': False,
-                'error': 'Model not loaded properly'
-            }), 503
+            return create_error_response(
+                error='Model not loaded properly',
+                status_code=503
+            )
         
-        # Get JSON data
+        # Get and validate JSON data
         data = request.get_json()
+        is_valid, error_msg = validate_request_data(data, Config.FEATURE_NAMES)
         
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No input data provided'
-            }), 400
+        if not is_valid:
+            return create_error_response(error=error_msg, status_code=400)
         
-        logger.info(f"Received prediction request: {data}")
+        # Log request
+        log_prediction_request(data, request.remote_addr)
         
         # Preprocess input
         try:
             processed_data = preprocess_input(data)
         except ValueError as e:
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 400
+            return create_error_response(error=str(e), status_code=400)
         
         # Make prediction
         prediction = int(model.predict(processed_data)[0])
@@ -258,85 +269,108 @@ def predict():
         
         # Prepare response
         result = {
-            'success': True,
-            'data': {
-                'prediction': prediction,
-                'probability': prob_diabetes,
-                'probability_no_diabetes': prob_no_diabetes,
-                'probability_diabetes': prob_diabetes,
-                'probabilities': {
-                    'no_diabetes': prob_no_diabetes,
-                    'diabetes': prob_diabetes
-                },
-                'risk_level': risk_level,
-                'model_used': metadata.get('model_name', 'Logistic Regression'),
-                'model_version': MODEL_VERSION,
-                'timestamp': datetime.now().isoformat()
-            }
+            'prediction': prediction,
+            'prediction_label': 'Diabetic' if prediction == 1 else 'Non-Diabetic',
+            'probability': prob_diabetes,
+            'probability_no_diabetes': prob_no_diabetes,
+            'probability_diabetes': prob_diabetes,
+            'probabilities': {
+                'no_diabetes': prob_no_diabetes,
+                'diabetes': prob_diabetes
+            },
+            'confidence': round(max(prob_no_diabetes, prob_diabetes) * 100, 2),
+            'risk_level': risk_level,
+            'model_used': metadata.get('model_name', 'Logistic Regression'),
+            'model_version': Config.MODEL_VERSION,
+            'timestamp': datetime.now().isoformat()
         }
         
-        logger.info(f"Prediction result: {prediction} (probability: {prob_diabetes:.3f})")
+        logger.info(f"✅ Prediction: {prediction} | Probability: {prob_diabetes:.3f} | Risk: {risk_level}")
         
-        return jsonify(result), 200
+        return create_response(success=True, data=result)
         
     except Exception as e:
-        logger.error(f"Error during prediction: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': f'Internal server error: {str(e)}'
-        }), 500
+        logger.error(f"❌ Prediction error: {str(e)}", exc_info=True)
+        return create_error_response(
+            error='Internal server error',
+            details=str(e) if Config.DEBUG else None,
+            status_code=500
+        )
 
+
+# ==================== Error Handlers ====================
 
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
-    return jsonify({
-        'success': False,
-        'error': 'Endpoint not found',
-        'available_endpoints': {
-            'home': '/',
-            'health': '/health',
-            'info': '/info',
-            'predict': '/predict'
-        }
-    }), 404
+    return create_error_response(
+        error='Endpoint not found',
+        details={
+            'available_endpoints': {
+                'home': '/',
+                'health': '/health',
+                'info': '/info',
+                'predict': '/predict'
+            }
+        },
+        status_code=404
+    )
 
 
 @app.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
-    return jsonify({
-        'success': False,
-        'error': 'Internal server error'
-    }), 500
+    return create_error_response(
+        error='Internal server error',
+        status_code=500
+    )
 
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handle 405 errors"""
+    return create_error_response(
+        error='Method not allowed',
+        details={'allowed_methods': ['GET', 'POST', 'OPTIONS']},
+        status_code=405
+    )
+
+
+# ==================== Application Entry Point ====================
 
 if __name__ == '__main__':
-    # Get port from environment or use default
-    port = int(os.environ.get('ML_PORT', 5001))
+    allowed_origins = Config.get_allowed_origins()
+    origins_display = ', '.join(allowed_origins)
     
     print(f"""
-╔════════════════════════════════════════════════════════════╗
-║                                                            ║
-║   🤖 DIABETES PREDICTION ML SERVICE 🤖                    ║
-║                                                            ║
-║   Status: ✅ Running                                       ║
-║   Port: {port}                                           ║
-║   Model: {metadata.get('model_name', 'Unknown'):<44} ║
-║   Version: {MODEL_VERSION}                             ║
-║                                                            ║
-║   Endpoints:                                               ║
-║   • GET  /           - API Info                            ║
-║   • GET  /health     - Health Check                        ║
-║   • GET  /info       - Model Info                          ║
-║   • POST /predict    - Make Prediction                     ║
-║                                                            ║
-╚════════════════════════════════════════════════════════════╝
+                                                              
+         🤖  DIABETES PREDICTION ML SERVICE  🤖              
+                                                              
+Status          : ✅ Running                                
+Host            : {Config.HOST:<44}                           
+Port            : {str(Config.PORT):<44}                     
+Debug           : {str(Config.DEBUG):<44}                   
+                                                               
+Model           : {metadata.get('model_name', 'Unknown'):<44} 
+Version         : {Config.MODEL_VERSION:<44}                  
+Trained         : {metadata.get('training_date', 'N/A'):<44}
+                                                               
+📡 Endpoints:                                                 
+GET    /              →  API Information                  
+GET    /health        →  Health Check                     
+GET    /info          →  Model Details                    
+POST   /predict       →  Make Prediction                  
+                                                                
+🔒 CORS Origins : {origins_display:<44}
+                                                                
+
+
+🚀 Server    : http://{Config.HOST}:{Config.PORT}
     """)
     
-    # Run the app
+    # Run the Flask app
     app.run(
-        host='0.0.0.0',
-        port=port,
-        debug=os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+        host=Config.HOST,
+        port=Config.PORT,
+        debug=Config.DEBUG
     )

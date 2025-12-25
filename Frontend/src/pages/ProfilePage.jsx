@@ -71,13 +71,10 @@ export const ProfilePage = () => {
 
   const handleSaveProfile = async () => {
     try {
-      console.log('Updating profile with:', { name, age, gender });
       const response = await updateProfile({ name, age, gender });
-      console.log('Update response:', response);
       setIsEditing(false);
       toast.success('Cập nhật hồ sơ thành công!');
     } catch (error) {
-      console.error('Update profile error:', error);
       toast.error(error.message || 'Có lỗi xảy ra khi cập nhật hồ sơ!');
     }
   };
@@ -128,7 +125,6 @@ export const ProfilePage = () => {
       }
 
       const result = await response.json();
-      console.log('Avatar upload result:', result);
       
       // Update local state with new avatar URL
       setAvatarUrl(result.data.avatar);
@@ -139,7 +135,6 @@ export const ProfilePage = () => {
       
       toast.success('Cập nhật ảnh đại diện thành công!');
     } catch (error) {
-      console.error('Avatar upload error:', error);
       toast.error(error.message || 'Có lỗi xảy ra khi tải ảnh lên. Vui lòng kiểm tra Backend đã chạy chưa!');
     } finally {
       setIsUploadingAvatar(false);

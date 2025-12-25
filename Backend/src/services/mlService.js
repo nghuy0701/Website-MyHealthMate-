@@ -71,17 +71,11 @@ const predictDiabetes = async (data) => {
       age: Number(age)
     }
 
-    console.log('🔮 Calling ML Service with 8 medical indices:', payload)
-    console.log('👤 Gender:', gender)
-    console.log('📋 Symptoms (12 questions):', symptoms)
-
     // Call ML API
     const response = await mlClient.post('/predict', payload)
 
     if (response.data && response.data.success) {
       const result = response.data.data
-      
-      console.log('✅ ML Service response:', result)
 
       // Convert probability from 0-1 to 0-100 for consistency
       const probabilityPercent = (result.probability || result.probability_diabetes) * 100;

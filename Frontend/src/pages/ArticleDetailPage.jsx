@@ -188,7 +188,7 @@ export function ArticleDetailPage() {
             {/* Hero Section */}
             <div className="relative h-96 md:h-[500px] overflow-hidden">
                 <img
-                    src={article.image}
+                    src={article.imageUrl}
                     alt={article.title}
                     className="w-full h-full object-cover"
                 />
@@ -420,7 +420,7 @@ export function ArticleDetailPage() {
                                             <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer rounded-2xl">
                                                 <div className="aspect-video overflow-hidden">
                                                     <img
-                                                        src={relatedArticle.image}
+                                                        src={relatedArticle.imageUrl}
                                                         alt={relatedArticle.title}
                                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                                                     />

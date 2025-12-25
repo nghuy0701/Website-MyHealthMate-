@@ -38,12 +38,9 @@ const createNew = async (req, res, next) => {
   })
 
   try {
-    console.log('🔍 Validating user registration:', req.body)
     await correctCondition.validateAsync(req.body, { abortEarly: false })
-    console.log('✅ Validation passed')
     next()
   } catch (error) {
-    console.log('❌ Validation failed:', error.message)
     next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message))
   }
 }

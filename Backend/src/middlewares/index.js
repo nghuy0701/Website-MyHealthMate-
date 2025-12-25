@@ -1,3 +1,5 @@
 export * from './errorHandlingMiddleware'
 export * from './authMiddleware'
 export * from './uploadMiddleware'
+export * from './rateLimitMiddleware'
+export * from './cacheMiddleware'

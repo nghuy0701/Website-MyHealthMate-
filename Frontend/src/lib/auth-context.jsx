@@ -84,7 +84,6 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user_data', JSON.stringify(updatedUser));
       return response;
     } catch (error) {
-      console.error('Update profile error:', error);
       throw error;
     }
   };
@@ -97,7 +96,6 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user_data', JSON.stringify(userData));
       return userData;
     } catch (error) {
-      console.error('Refresh user error:', error);
       throw error;
     }
   };

@@ -260,7 +260,7 @@ export function PredictionDetailPage() {
             <Icon className="w-12 h-12" />
             <div>
               <h2 className="text-2xl font-bold mb-1">Mức nguy cơ: {config.label}</h2>
-              <p className="text-lg">Xác suất: {prediction.probability || 0}%</p>
+              <p className="text-lg">Xác suất: {(prediction.probability || 0).toFixed(2)}%</p>
             </div>
           </div>
           <div className="bg-white/50 p-4 rounded-lg">
@@ -334,7 +334,7 @@ export function PredictionDetailPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Xác suất:</span>
-              <span className="font-medium">{prediction.probability}%</span>
+              <span className="font-medium">{(prediction.probability || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Mức nguy cơ:</span>
