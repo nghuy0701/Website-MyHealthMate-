@@ -4,10 +4,12 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
+COPY package*.json ./
+COPY yarn.lock* ./
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+# Install dependencies (use npm if yarn.lock doesn't exist)
+RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
+    else npm ci; fi
 
 # Copy source code
 COPY . .
@@ -21,10 +23,12 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
+COPY package*.json ./
+COPY yarn.lock* ./
 
 # Install production dependencies only
-RUN yarn install --production --frozen-lockfile
+RUN if [ -f yarn.lock ]; then yarn install --production --frozen-lockfile; \
+    else npm ci --only=production; fi
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
