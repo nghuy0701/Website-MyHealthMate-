@@ -26,11 +26,11 @@ jobs:
 
       - name: Install Backend dependencies
         working-directory: ./Backend
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run Backend linter
         working-directory: ./Backend
-        run: yarn lint
+        run: npm run lint
 
       - name: Check for console.logs in Backend
         run: |

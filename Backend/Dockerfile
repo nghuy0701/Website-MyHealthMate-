@@ -5,17 +5,15 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock* ./
 
-# Install dependencies (use npm if yarn.lock doesn't exist)
-RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-    else npm ci; fi
+# Install dependencies with npm
+RUN npm ci
 
 # Copy source code
 COPY . .
 
 # Build application
-RUN yarn build
+RUN npm run build
 
 # Production stage
 FROM node:18-alpine
@@ -24,11 +22,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY yarn.lock* ./
 
 # Install production dependencies only
-RUN if [ -f yarn.lock ]; then yarn install --production --frozen-lockfile; \
-    else npm ci --only=production; fi
+RUN npm ci --only=production
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist

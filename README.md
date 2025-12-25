@@ -536,7 +536,7 @@ ml-service/
 ### Yêu cầu hệ thống
 - **Node.js**: >= 18.0.0
 - **Python**: >= 3.9.0
-- **npm** hoặc **yarn**
+- **npm** (Node Package Manager)
 - **MongoDB Atlas Account** (hoặc MongoDB local)
 - **Cloudinary Account** (cho upload ảnh)
 
@@ -612,7 +612,7 @@ pip install -r requirements.txt
 cd Backend
 
 # Development mode (auto-reload)
-yarn dev
+npm run dev
 ```
 ✅ Backend sẽ chạy tại: **http://localhost:8017**
 
@@ -705,7 +705,7 @@ Website-MyHealthMate/
 
 ### Backend
 ```bash
-yarn dev
+npm run dev
 ```
 
 ### Frontend

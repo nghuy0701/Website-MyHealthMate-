@@ -26,20 +26,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'yarn'
-          cache-dependency-path: Backend/yarn.lock
+          cache: 'npm'
+          cache-dependency-path: Backend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./Backend
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run linter
         working-directory: ./Backend
-        run: yarn lint
+        run: npm run lint
 
       - name: Build backend
         working-directory: ./Backend
-        run: yarn build
+        run: npm run build
 
   # Lint and Build Frontend
   frontend-lint-build:

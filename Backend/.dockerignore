@@ -1,6 +1,5 @@
 node_modules
 npm-debug.log
-yarn-error.log
 dist
 .env
 .env.*
@@ -15,4 +14,3 @@ coverage
 .DS_Store
 *.md
 !package.json
-!yarn.lock
