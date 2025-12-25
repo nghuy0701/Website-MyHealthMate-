@@ -27,7 +27,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
-      MONGO_INITDB_DATABASE: ${DATABASE_NAME:-diabetes_prediction}
+      MONGO_INITDB_DATABASE: ${DATABASE_NAME:-MyhealthMate_db}
     
     # Port Mapping
     ports:
@@ -160,7 +160,7 @@ services:
       
       # Database (Critical Infrastructure)
       MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017
-      DATABASE_NAME: ${DATABASE_NAME:-diabetes_prediction}
+      DATABASE_NAME: ${DATABASE_NAME:-MyhealthMate_db}
       
       # Cache & Session
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379

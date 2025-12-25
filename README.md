@@ -36,10 +36,6 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 
 - [🎯 Tổng Quan](#-tổng-quan)
 - [🚀 Quick Start](#-quick-start)
-- [🐳 Docker Deployment](#-docker-deployment)
-- [⚙️ Cài Đặt Thủ Công](#️-cài-đặt-thủ-công)
-- [🏗️ Kiến Trúc Hệ Thống](#️-kiến-trúc-hệ-thống)
-- [💻 Công Nghệ](#-công-nghệ)
 - [🤖 Machine Learning Models](#-machine-learning-models)
 - [🔑 Tính Năng](#-tính-năng)
 - [📁 Cấu Trúc Project](#-cấu-trúc-project)
@@ -74,385 +70,63 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Yêu Cầu Hệ Thống
 
-Đảm bảo bạn đã cài đặt:
+- **Docker Desktop** 20.10+ ([Download](https://docker.com/))
+- **MongoDB Atlas** account ([Đăng ký miễn phí](https://mongodb.com/cloud/atlas))
+- **Cloudinary** account ([Đăng ký miễn phí](https://cloudinary.com/))
 
-- **Docker Desktop** 20.10+ ([Hướng dẫn cài đặt](#cài-đặt-docker))
-- **Git** 2.30+
-- **MongoDB Atlas Account** (free tier)
-- **Cloudinary Account** (free tier)
+### 🐳 Chạy Ứng Dụng với Docker
 
-### One-Command Deployment
+#### 1. Clone Repository
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/nghuy0701/Website-MyHealthMate-.git
 cd Website-MyHealthMate-
+```
 
-# 2. Create environment file
-cp .env.example .env
+#### 2. Cấu Hình Environment
 
-# 3. Update .env với credentials thực tế
-# (Xem phần Environment Configuration bên dưới)
+Tạo file `.env` ở thư mục root với các biến môi trường cần thiết
 
-# 4. Start all services
+#### 3. Khởi động Docker Services
+
+```bash
+# Build và start tất cả services
 docker-compose up -d --build
 
-# 5. Verify deployment
+# Xem logs real-time
+docker-compose logs -f
+
+# Kiểm tra status
 docker-compose ps
 ```
 
-**🎉 Done! Truy cập ứng dụng tại:**
+#### 4. Truy cập Ứng dụng
 
-- 🌐 **Frontend**: http://localhost:3000
-- 🔧 **Backend API**: http://localhost:8017
+- 🌐 **Frontend**: http://localhost:80
+- 🔧 **Backend API**: http://localhost:8017  
 - 🤖 **ML Service**: http://localhost:5001
 - 💾 **Redis**: localhost:6379
 
-### Environment Configuration
-
-Tạo file `.env` ở root directory với nội dung sau:
+#### 5. Dừng Services
 
 ```bash
-# ============================================
-# 🌍 ENVIRONMENT & DATABASE
-# ============================================
-NODE_ENV=development
-
-# MongoDB Cloud Atlas
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-DATABASE_NAME=diabetes_prediction
-
-# ============================================
-# 🔥 CACHE & SESSION
-# ============================================
-REDIS_URL=redis://:redis123@redis:6379
-SESSION_SECRET=MyHealthMate_S3ss10n_S3cr3t_K3y_2024!
-
-# ============================================
-# 🔐 SECURITY
-# ============================================
-ADMIN_SECRET_KEY=MyHealthMate_@dmin_S3cr3t!
-
-# ============================================
-# 🖥️ APP SERVER
-# ============================================
-PORT=8017
-FRONTEND_URL=http://localhost:3000
-
-# ============================================
-# 🔗 INTERNAL SERVICES
-# ============================================
-ML_SERVICE_URL=http://ml-service:5001
-
-# ============================================
-# 🌐 EXTERNAL SERVICES
-# ============================================
-# Cloudinary (Image hosting)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
-
-# Brevo (Email service)
-BREVO_API_KEY=your_brevo_api_key
-BREVO_SENDER_EMAIL=noreply@yourdomain.com
-
-# ============================================
-# 🎨 FRONTEND
-# ============================================
-VITE_API_URL=http://localhost:8017
-
-# ============================================
-# 📝 METADATA
-# ============================================
-APP_NAME=MyHealthMate
-APP_VERSION=1.0.0
-```
-
-### Quick Commands
-
-```bash
-# View logs
-docker-compose logs -f
-
-# Restart a service
-docker-compose restart backend
-
-# Stop all services
+# Dừng tất cả services
 docker-compose down
 
-# Stop & remove volumes
+# Dừng và xóa volumes
 docker-compose down -v
-
-# Rebuild specific service
-docker-compose up -d --build backend
 ```
 
----
+### ✨ Docker Features
 
-## 🐳 Docker Deployment
-
-### Cài Đặt Docker
-
-#### Windows
-
-1. **Download Docker Desktop**
-   - Truy cập: https://www.docker.com/products/docker-desktop/
-   - Download phiên bản Windows
-
-2. **Cài đặt**
-   ```powershell
-   # Chạy file installer
-   # Enable WSL 2 nếu được yêu cầu
-   
-   # Verify installation
-   docker --version
-   docker-compose --version
-   ```
-
-3. **Khởi động Docker Desktop**
-   - Mở Docker Desktop từ Start Menu
-   - Đợi Docker engine khởi động (icon chuyển xanh)
-
-#### macOS
-
-```bash
-# Install via Homebrew
-brew install --cask docker
-
-# Or download from:
-# https://www.docker.com/products/docker-desktop/
-
-# Verify
-docker --version
-docker-compose --version
-```
-
-#### Linux (Ubuntu/Debian)
-
-```bash
-# Update package index
-sudo apt-get update
-
-# Install dependencies
-sudo apt-get install \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
-
-# Add Docker's official GPG key
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-# Set up repository
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Verify installation
-docker --version
-docker compose version
-
-# Add user to docker group (optional - no sudo required)
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-### Docker Architecture
-
-```yaml
-services:
-  # 1. Frontend (React + Nginx)
-  frontend:
-    build: ./Frontend
-    ports: ["3000:80"]
-    depends_on: [backend]
-    
-  # 2. Backend (Node.js + Express)
-  backend:
-    build: ./Backend
-    ports: ["8017:8017"]
-    depends_on: [mongodb, redis, ml-service]
-    environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=redis://:redis123@redis:6379
-      - ML_SERVICE_URL=http://ml-service:5001
-    
-  # 3. ML Service (Python + Flask)
-  ml-service:
-    build: ./ml-service
-    ports: ["5001:5001"]
-    
-  # 4. Redis Cache
-  redis:
-    image: redis:7-alpine
-    command: redis-server --requirepass redis123
-    ports: ["6379:6379"]
-    volumes: [redis-data:/data]
-```
-
-### Docker Features
-
-✅ **Multi-stage builds** - Optimized image sizes  
-✅ **Health checks** - Auto-recovery for all services  
-✅ **Named volumes** - Persistent data for Redis  
-✅ **Bridge network** - Isolated service communication  
-✅ **Resource limits** - CPU & memory constraints  
-✅ **Security** - Non-root users, read-only filesystems  
-
-### Production Deployment
-
-```bash
-# Build for production
-docker-compose -f docker-compose.prod.yml up -d --build
-
-# Scale backend instances
-docker-compose -f docker-compose.prod.yml up -d --scale backend=3
-
-# Monitor resource usage
-docker stats
-
-# View service health
-docker-compose ps
-```
-
----
-
-## ⚙️ Cài Đặt Thủ Công
-
-Nếu không sử dụng Docker, follow các bước sau:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                      FRONTEND                           │
-│              (React + Vite + TailwindCSS)              │
-│                    Port: 3000                           │
-└────────────────────┬────────────────────────────────────┘
-                     │ HTTP Requests
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│                      BACKEND                            │
-│           (Node.js + Express + MongoDB)                │
-│                    Port: 8017                           │
-└────────────┬───────────────────────┬────────────────────┘
-             │                       │
-             │ Store Data            │ ML Prediction API
-             ▼                       ▼
-   ┌──────────────────┐    ┌─────────────────────┐
-   │    MongoDB       │    │   ML SERVICE        │
-   │  Cloud Atlas     │    │  (Flask + Sklearn)  │
-   │                  │    │    Port: 5001       │
-   └──────────────────┘    └─────────────────────┘
-```
-
-### 1️⃣ **Frontend** (React Application)
-- **Framework**: React 18.3 với Vite
-- **UI Library**: Radix UI + TailwindCSS + Shadcn/ui
-- **Routing**: React Router DOM
-- **State Management**: Context API
-- **Charts**: Recharts
-- **Notifications**: Sonner
-
-### 2️⃣ **Backend** (REST API Server)
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB Atlas (Cloud)
-- **Authentication**: Express Session + bcrypt
-- **Validation**: Joi
-- **File Upload**: Multer + Cloudinary
-- **Email**: Brevo (SendInBlue)
-
-### 3️⃣ **ML Service** (Machine Learning API)
-- **Framework**: Flask (Python)
-- **ML Library**: Scikit-learn
-- **Model**: Logistic Regression
-- **Data Processing**: Pandas, NumPy
-
----
-
-## 💻 Công nghệ sử dụng
-
-### Backend Dependencies
-```json
-{
-  "dependencies": {
-    "express": "^4.18.2",           // Web framework
-    "mongodb": "^6.9.0",             // Database driver
-    "bcryptjs": "^2.4.3",            // Password hashing
-    "express-session": "^1.17.3",    // Session management
-    "connect-mongo": "^5.0.0",       // Session store
-    "joi": "^17.11.0",               // Validation
-    "cloudinary": "^2.8.0",          // Image upload
-    "multer": "^2.0.2",              // File handling
-    "axios": "^1.13.1",              // HTTP client
-    "cors": "^2.8.5",                // CORS handling
-    "dotenv": "^16.3.1",             // Environment variables
-    "http-status-codes": "^2.3.0",   // Status codes
-    "uuid": "^9.0.1"                 // Unique ID generator
-  },
-  "devDependencies": {
-    "@babel/core": "^7.22.10",       // ES6+ transpiler
-    "nodemon": "^3.0.1",             // Auto-restart
-    "eslint": "^9.36.0"              // Code linting
-  }
-}
-```
-
-### Frontend Dependencies
-```json
-{
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "*",
-    "@radix-ui/*": "...",            // 20+ UI components
-    "lucide-react": "^0.487.0",      // Icons
-    "recharts": "^2.15.2",           // Charts
-    "sonner": "^2.0.3",              // Toast notifications
-    "tailwind-merge": "*",           // TailwindCSS utilities
-    "class-variance-authority": "^0.7.1"
-  }
-}
-```
-
-### ML Service Dependencies
-```
-# Core ML Libraries
-Flask>=3.0.0
-flask-cors>=4.0.0
-numpy>=1.26.0
-pandas>=2.1.0
-scikit-learn>=1.3.0
-joblib>=1.3.0
-python-dotenv>=1.0.0
-requests>=2.31.0
-
-# Advanced ML Models (Optional)
-xgboost>=2.0.0
-lightgbm>=4.0.0
-catboost>=1.2.0
-
-# Imbalanced Learning
-imbalanced-learn>=0.11.0
-
-# Hyperparameter Optimization
-optuna>=3.4.0
-
-# Data Visualization
-matplotlib>=3.8.0
-seaborn>=0.13.0
-plotly>=5.18.0
-
-# Additional utilities
-scipy>=1.11.0
-```
+✅ **Multi-stage builds** - Tối ưu kích thước image  
+✅ **Health checks** - Tự động khôi phục khi lỗi  
+✅ **Named volumes** - Dữ liệu persistent cho Redis  
+✅ **Bridge network** - Giao tiếp services an toàn  
+✅ **Resource limits** - Giới hạn CPU & memory  
+✅ **Security** - Non-root users, read-only filesystems
 
 ---
 
@@ -525,114 +199,7 @@ ml-service/
 │   └── diabetes_model_training.ipynb        # Training notebook
 ├── MODELS_DOCUMENTATION.md                  # Detailed ML docs
 └── app.py                                   # Flask API
-
 ```
-
-
----
-
-## 🚀 Cài đặt
-
-### Yêu cầu hệ thống
-- **Node.js**: >= 18.0.0
-- **Python**: >= 3.9.0
-- **npm** (Node Package Manager)
-- **MongoDB Atlas Account** (hoặc MongoDB local)
-- **Cloudinary Account** (cho upload ảnh)
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/nghuy0701/Website-MyHealthMate-.git
-cd Website-MyHealthMate-
-```
-
-### 2. Cài đặt Backend
-```bash
-cd Backend
-
-yarn install
-yarn add --dev cross-env nodemon @babel/node
-yarn add dotenv
-```
-
-**Backend sẽ tự động cài đặt:**
-- Express và các middleware (cors, session, etc.)
-- MongoDB driver
-- Babel transpiler cho ES6+
-- Validation library (Joi)
-- Authentication (bcryptjs)
-- File upload (Multer, Cloudinary)
-- Development tools (Nodemon, ESLint)
-
-### 3. Cài đặt Frontend
-```bash
-cd ../Frontend
-
-# Cài đặt dependencies
-npm install
-
-```
-
-**Frontend sẽ tự động cài đặt:**
-- React 18 và React Router
-- Vite build tool
-- TailwindCSS và Radix UI components
-- Chart libraries (Recharts)
-- Icons và utilities
-
-### 4. Cài đặt ML Service
-```bash
-cd ml-service
-
-# Tạo virtual environment (khuyến nghị)
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Cài đặt dependencies
-pip install -r requirements.txt
-```
-
-**ML Service sẽ cài đặt:**
-- Flask web framework
-- NumPy, Pandas (data processing)
-- Scikit-learn (ML models)
-- Joblib (model serialization)
-
----
-
-## ▶️ Chạy ứng dụng
-
-### 1. Khởi động Backend
-```bash
-cd Backend
-
-# Development mode (auto-reload)
-npm run dev
-```
-✅ Backend sẽ chạy tại: **http://localhost:8017**
-
-### 2. Khởi động Frontend
-```bash
-cd Frontend
-
-# Development mode
-npm run dev
-```
-✅ Frontend sẽ chạy tại: **http://localhost:3000**
-
-### 3. Khởi động ML Service
-```bash
-cd ml-service
-
-# Chạy Flask server
-python app.py
-```
-✅ ML Service sẽ chạy tại: **http://localhost:5001**
 
 ---
 
