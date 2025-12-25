@@ -18,8 +18,8 @@ RUN npm run build
 # Production stage - Nginx
 FROM nginx:alpine
 
-# Copy built files from builder (output is 'build' not 'dist')
-COPY --from=builder /app/build /usr/share/nginx/html
+# Copy built files from builder - Vite builds to 'dist' not 'build'
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -31,8 +31,8 @@ RUN addgroup -g 1001 -S nginx-user && \
 # Expose port
 EXPOSE 80
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+# Health check - Tăng timeout và start period
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
 
 # Start nginx
