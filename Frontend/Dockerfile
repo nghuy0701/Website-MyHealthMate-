@@ -35,9 +35,9 @@ RUN addgroup -g 1001 -S nginx-user && \
 # Expose port
 EXPOSE 80
 
-# Health check - Tăng timeout và start period
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+# Health check - check if nginx can serve index.html
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=5 \
+    CMD wget --spider -q http://localhost/ || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
