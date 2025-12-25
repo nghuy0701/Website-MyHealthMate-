@@ -1,145 +1,333 @@
-# 🏥 MyHealthMate - Diabetes Prediction Website
+# 🏥 MyHealthMate - AI-Powered Diabetes Risk Prediction Platform
 
-[![CI/CD Pipeline](https://github.com/your-username/Website-MyHealthMate/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
-[![Docker Build](https://github.com/your-username/Website-MyHealthMate/workflows/Docker%20Build%20and%20Test/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
-[![Code Quality](https://github.com/your-username/Website-MyHealthMate/workflows/Code%20Quality%20Check/badge.svg)](https://github.com/your-username/Website-MyHealthMate/actions)
+<div align="center">
 
-Website dự đoán tiểu đường sử dụng Machine Learning, giúp người dùng đánh giá nguy cơ mắc bệnh tiểu đường dựa trên các chỉ số sức khỏe.
+[![CI/CD Pipeline](https://img.shields.io/badge/CI%2FCD-Automated-success?style=for-the-badge&logo=github-actions)](https://github.com/nghuy0701/Website-MyHealthMate-/actions)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Cloud-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
+**Hệ thống dự đoán nguy cơ tiểu đường thông minh sử dụng Machine Learning & AI**
+
+[🚀 Quick Start](#-quick-start) • [📖 Documentation](#-tài-liệu) • [🐳 Docker Setup](#-docker-deployment) • [🤖 ML Models](#-machine-learning-models) • [🔧 API Docs](#-api-endpoints)
+
+</div>
+
+---
+
+## 🌟 Highlights
+
+MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Learning để:
+
+- ✅ **Dự đoán nguy cơ tiểu đường** với độ chính xác 70.1% (ROC-AUC: 0.810)
+- ✅ **15+ ML algorithms** - Từ Logistic Regression đến Neural Networks
+- ✅ **Production-ready** - Docker containerization & CI/CD pipeline
+- ✅ **Professional architecture** - Microservices với Redis caching
+- ✅ **Real-time monitoring** - Lịch sử dự đoán & health tracking dashboard
+- ✅ **Healthcare content** - Bài viết y khoa chuyên sâu
+- ✅ **Admin dashboard** - Quản lý người dùng & nội dung toàn diện
+
+---
 
 ## 📋 Mục lục
-- [Tổng quan](#tổng-quan)
-- [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
-- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-- [Machine Learning Models](#machine-learning-models)
-- [🐳 Docker & CI/CD](#-docker--cicd) ⭐ NEW
-- [Cài đặt](#cài-đặt)
-- [Chạy ứng dụng](#chạy-ứng-dụng)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Tính năng chính](#tính-năng-chính)
-- [Scripts hữu ích](#scripts-hữu-ích)
-- [API Endpoints](#api-endpoints)
-- [Phần Chi Tiết về Machine Learning](#phần-chi-tiết-về-machine-learning)
-  - [0. Giới thiệu](#0-giới-thiệu)
-  - [1. Dữ liệu](#1-dữ-liệu)
-  - [2. Mục tiêu dự án](#2-mục-tiêu-dự-án)
-  - [3. Công cụ và thư viện sử dụng](#3-công-cụ-và-thư-viện-sử-dụng)
-  - [4. Kết quả đạt được](#4-kết-quả-đạt-được)
-  - [5. Ý nghĩa thực tiễn](#5-ý-nghĩa-thực-tiễn)
-  - [6. Mở rộng trong tương lai](#6-mở-rộng-trong-tương-lai)
-- [Tài liệu tham khảo](#tài-liệu-tham-khảo)
-- [Team](#team)
-- [License](#license)
-- [Contributing](#contributing)
-- [Liên hệ](#liên-hệ)
+
+- [🎯 Tổng Quan](#-tổng-quan)
+- [🚀 Quick Start](#-quick-start)
+- [🐳 Docker Deployment](#-docker-deployment)
+- [⚙️ Cài Đặt Thủ Công](#️-cài-đặt-thủ-công)
+- [🏗️ Kiến Trúc Hệ Thống](#️-kiến-trúc-hệ-thống)
+- [💻 Công Nghệ](#-công-nghệ)
+- [🤖 Machine Learning Models](#-machine-learning-models)
+- [🔑 Tính Năng](#-tính-năng)
+- [📁 Cấu Trúc Project](#-cấu-trúc-project)
+- [🔧 API Endpoints](#-api-endpoints)
+- [📚 Tài Liệu ML Chi Tiết](#-tài-liệu-ml-chi-tiết)
+- [🛠️ Troubleshooting](#️-troubleshooting)
+- [👥 Team & License](#-team--license)
 
 ---
 
-## 🎯 Tổng quan
+## 🎯 Tổng Quan
 
-**MyHealthMate** là một hệ thống web full-stack giúp:
-- ✅ Dự đoán nguy cơ tiểu đường dựa trên Machine Learning
-- ✅ Quản lý hồ sơ sức khỏe người dùng
-- ✅ Lưu trữ lịch sử dự đoán
-- ✅ Quản trị hệ thống (Admin Dashboard)
-- ✅ Cung cấp bài viết sức khỏe
-- 🐳 **Full Dockerized** - One-command deployment
-- 🔄 **CI/CD Pipeline** - Automated testing & deployment
+### Giới Thiệu
+
+**MyHealthMate** là nền tảng chăm sóc sức khỏe số hóa với công nghệ AI/ML tiên tiến, giúp:
+
+🏥 **Sàng lọc sớm** - Phát hiện nguy cơ tiểu đường trước khi xuất hiện triệu chứng  
+📊 **Đánh giá chính xác** - Sử dụng 15+ thuật toán ML với độ chính xác 70.1%  
+📈 **Theo dõi liên tục** - Lưu trữ & phân tích lịch sử dự đoán theo thời gian  
+💡 **Tư vấn cá nhân hóa** - Cung cấp nội dung y khoa dựa trên kết quả dự đoán  
+🔐 **Bảo mật cao** - Mã hóa dữ liệu & tuân thủ chuẩn bảo mật y tế  
+
+### Thống Kê
+
+- **768** mẫu dữ liệu huấn luyện từ Pima Indians Diabetes Database
+- **15+** thuật toán ML được so sánh và tối ưu hóa
+- **70.1%** độ chính xác trên test set (ROC-AUC: 0.810)
+- **<1s** thời gian response cho mỗi dự đoán
+- **100%** containerized với Docker & CI/CD automation
 
 ---
 
-## 🐳 Docker & CI/CD
+## 🚀 Quick Start
 
-### 🚀 Quick Start với Docker
+### Prerequisites
+
+Đảm bảo bạn đã cài đặt:
+
+- **Docker Desktop** 20.10+ ([Hướng dẫn cài đặt](#cài-đặt-docker))
+- **Git** 2.30+
+- **MongoDB Atlas Account** (free tier)
+- **Cloudinary Account** (free tier)
+
+### One-Command Deployment
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/Website-MyHealthMate.git
-cd Website-MyHealthMate
+git clone https://github.com/nghuy0701/Website-MyHealthMate-.git
+cd Website-MyHealthMate-
 
-# 2. Configure environment
+# 2. Create environment file
 cp .env.example .env
-# Edit .env với values thực tế của bạn
 
-# 3. Build và run tất cả services
+# 3. Update .env với credentials thực tế
+# (Xem phần Environment Configuration bên dưới)
+
+# 4. Start all services
 docker-compose up -d --build
 
-# 4. Xem logs
-docker-compose logs -f
-
-# 5. Kiểm tra trạng thái
+# 5. Verify deployment
 docker-compose ps
 ```
 
-**Truy cập ứng dụng:**
-- 🌐 Frontend: http://localhost
-- 🔧 Backend API: http://localhost:8017
-- 🤖 ML Service: http://localhost:5001
+**🎉 Done! Truy cập ứng dụng tại:**
 
-**Dừng ứng dụng:**
+- 🌐 **Frontend**: http://localhost:3000
+- 🔧 **Backend API**: http://localhost:8017
+- 🤖 **ML Service**: http://localhost:5001
+- 💾 **Redis**: localhost:6379
+
+### Environment Configuration
+
+Tạo file `.env` ở root directory với nội dung sau:
+
 ```bash
-docker-compose down
+# ============================================
+# 🌍 ENVIRONMENT & DATABASE
+# ============================================
+NODE_ENV=development
 
-# Xóa cả volumes (database, cache)
-docker-compose down -v
+# MongoDB Cloud Atlas
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+DATABASE_NAME=diabetes_prediction
+
+# ============================================
+# 🔥 CACHE & SESSION
+# ============================================
+REDIS_URL=redis://:redis123@redis:6379
+SESSION_SECRET=MyHealthMate_S3ss10n_S3cr3t_K3y_2024!
+
+# ============================================
+# 🔐 SECURITY
+# ============================================
+ADMIN_SECRET_KEY=MyHealthMate_@dmin_S3cr3t!
+
+# ============================================
+# 🖥️ APP SERVER
+# ============================================
+PORT=8017
+FRONTEND_URL=http://localhost:3000
+
+# ============================================
+# 🔗 INTERNAL SERVICES
+# ============================================
+ML_SERVICE_URL=http://ml-service:5001
+
+# ============================================
+# 🌐 EXTERNAL SERVICES
+# ============================================
+# Cloudinary (Image hosting)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+
+# Brevo (Email service)
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=noreply@yourdomain.com
+
+# ============================================
+# 🎨 FRONTEND
+# ============================================
+VITE_API_URL=http://localhost:8017
+
+# ============================================
+# 📝 METADATA
+# ============================================
+APP_NAME=MyHealthMate
+APP_VERSION=1.0.0
 ```
 
-### 📚 Tài liệu triển khai
+### Quick Commands
 
-- **🚀 Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md) - Hướng dẫn đầy đủ về CI/CD và production deployment
-- **📝 Environment Template**: [.env.example](.env.example) - Template cho environment variables
+```bash
+# View logs
+docker-compose logs -f
 
-### ✨ Docker Features
+# Restart a service
+docker-compose restart backend
 
-- ✅ **Full Containerization**: Tất cả services đều được dockerized
-- ✅ **Docker Compose**: One-command orchestration với 5 services
-- ✅ **Multi-stage Builds**: Image sizes được tối ưu hóa
-- ✅ **Health Checks**: Auto-recovery cho tất cả services
-- ✅ **Named Volumes**: Persistent data cho MongoDB & Redis
-- ✅ **Network Isolation**: Bridge network riêng biệt
-- ✅ **Security**: Non-root users, read-only volumes
-- ✅ **Resource Limits**: CPU & memory constraints
+# Stop all services
+docker-compose down
 
-### 🔄 CI/CD Pipeline
+# Stop & remove volumes
+docker-compose down -v
 
-**3 GitHub Actions Workflows tự động**:
-
-1. **CI/CD Pipeline** ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml))
-   - ✅ Lint & test tất cả services (Backend, Frontend, ML)
-   - ✅ Build & push Docker images to GitHub Container Registry
-   - ✅ Deploy to production server via SSH
-   - ✅ Create .env from GitHub Secrets
-   - ✅ Health check verification
-   - ✅ Rollback support
-
-2. **Docker Build** ([.github/workflows/docker-build.yml](.github/workflows/docker-build.yml))
-   - ✅ Test Docker builds cho 3 services
-   - ✅ Matrix strategy cho parallel builds
-   - ✅ Cache optimization
-
-3. **Code Quality** ([.github/workflows/code-quality.yml](.github/workflows/code-quality.yml))
-   - ✅ Lint Backend (ESLint), Frontend (ESLint), ML (flake8)
-   - ✅ Check for console.log statements
-   - ✅ Code standards enforcement
-
-**Trigger conditions:**
-- Push to `main` → Full deployment
-- Push to `develop` → Build & test only
-- Pull request to `main` → Build & test only
-
-**Setup Guide:**
-1. Configure GitHub Secrets (see [DEPLOYMENT.md](DEPLOYMENT.md))
-2. Push to `main` branch
-3. CI/CD pipeline runs automatically
-4. Production deployment completes in ~5 minutes
-   - Run linters
-   - Check for console.logs
-   - Validate syntax
+# Rebuild specific service
+docker-compose up -d --build backend
+```
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## 🐳 Docker Deployment
 
-Hệ thống được chia thành **3 phần chính**:
+### Cài Đặt Docker
+
+#### Windows
+
+1. **Download Docker Desktop**
+   - Truy cập: https://www.docker.com/products/docker-desktop/
+   - Download phiên bản Windows
+
+2. **Cài đặt**
+   ```powershell
+   # Chạy file installer
+   # Enable WSL 2 nếu được yêu cầu
+   
+   # Verify installation
+   docker --version
+   docker-compose --version
+   ```
+
+3. **Khởi động Docker Desktop**
+   - Mở Docker Desktop từ Start Menu
+   - Đợi Docker engine khởi động (icon chuyển xanh)
+
+#### macOS
+
+```bash
+# Install via Homebrew
+brew install --cask docker
+
+# Or download from:
+# https://www.docker.com/products/docker-desktop/
+
+# Verify
+docker --version
+docker-compose --version
+```
+
+#### Linux (Ubuntu/Debian)
+
+```bash
+# Update package index
+sudo apt-get update
+
+# Install dependencies
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Add Docker's official GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Set up repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Verify installation
+docker --version
+docker compose version
+
+# Add user to docker group (optional - no sudo required)
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### Docker Architecture
+
+```yaml
+services:
+  # 1. Frontend (React + Nginx)
+  frontend:
+    build: ./Frontend
+    ports: ["3000:80"]
+    depends_on: [backend]
+    
+  # 2. Backend (Node.js + Express)
+  backend:
+    build: ./Backend
+    ports: ["8017:8017"]
+    depends_on: [mongodb, redis, ml-service]
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=redis://:redis123@redis:6379
+      - ML_SERVICE_URL=http://ml-service:5001
+    
+  # 3. ML Service (Python + Flask)
+  ml-service:
+    build: ./ml-service
+    ports: ["5001:5001"]
+    
+  # 4. Redis Cache
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass redis123
+    ports: ["6379:6379"]
+    volumes: [redis-data:/data]
+```
+
+### Docker Features
+
+✅ **Multi-stage builds** - Optimized image sizes  
+✅ **Health checks** - Auto-recovery for all services  
+✅ **Named volumes** - Persistent data for Redis  
+✅ **Bridge network** - Isolated service communication  
+✅ **Resource limits** - CPU & memory constraints  
+✅ **Security** - Non-root users, read-only filesystems  
+
+### Production Deployment
+
+```bash
+# Build for production
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Scale backend instances
+docker-compose -f docker-compose.prod.yml up -d --scale backend=3
+
+# Monitor resource usage
+docker stats
+
+# View service health
+docker-compose ps
+```
+
+---
+
+## ⚙️ Cài Đặt Thủ Công
+
+Nếu không sử dụng Docker, follow các bước sau:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
