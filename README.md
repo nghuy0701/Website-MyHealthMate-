@@ -366,7 +366,7 @@ Dự án này tập trung vào việc ứng dụng **Machine Learning**[^3] tậ
 **Behavioral Risk Factor Surveillance System (BRFSS)** là một cuộc khảo sát qua điện thoại nhằm thu thập dữ liệu về các hành vi rủi ro liên quan đến sức khỏe, tình trạng sức khỏe mãn tính và việc sử dụng các dịch vụ phòng ngừa ở người lớn từ 18 tuổi trở lên cư trú tại Hoa Kỳ. Được thực hiện hàng năm bởi CDC, BRFSS đã cung cấp những hiểu biết sâu sắc có giá trị về tình trạng sức khỏe và hành vi của người trưởng thành ở Hoa Kỳ kể từ khi thành lập vào năm 1984.
 
 <div align="center">
-  <img src="https://www.cdc.gov/brfss/images/brfss-logo.png" alt="BRFSS" width="400"/>
+  <img src="https://lh3.googleusercontent.com/gg-dl/ABS2GSmQ88aHQjRZ9zgz6cWntNDuigrzr5VQZ3pQpD6QIAKew2QIF31-h5gae4l71PAtnDgmj_x1F3BbOKN5dlowzaYpYHJnqttHFFPb_EPuy4SAtnth8rOdEElAgyxUhPcroEC6Aa-1lncHlF-P5bx9WUYkwIOjY4fbUDGD4_FQ-aGlEm_QEw=s1024-rj?authuser=3" alt="BRFSS" width="400"/>
   <p><em>Behavioral Risk Factor Surveillance System (BRFSS)</em></p>
 </div>
 
