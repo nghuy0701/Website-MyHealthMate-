@@ -95,6 +95,7 @@ services:
   # ML SERVICE - Flask Python
   # ==========================================================================
   ml-service:
+    image: myhealthmate-ml-service:latest
     build:
       context: ./ml-service
       dockerfile: Dockerfile
@@ -144,6 +145,7 @@ services:
   # BACKEND SERVICE - Node.js Express API
   # ==========================================================================
   backend:
+    image: myhealthmate-backend:latest
     build:
       context: ./Backend
       dockerfile: Dockerfile
@@ -222,6 +224,7 @@ services:
   # FRONTEND SERVICE - React + Nginx
   # ==========================================================================
   frontend:
+    image: myhealthmate-frontend:latest
     build:
       context: ./Frontend
       dockerfile: Dockerfile
