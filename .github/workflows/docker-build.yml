@@ -1,10 +1,12 @@
 name: Docker Build and Test
 
+# Temporarily disabled - Enable when ready for production
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main ]
 
 jobs:
   docker-build-test:

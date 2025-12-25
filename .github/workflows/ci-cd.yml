@@ -1,10 +1,12 @@
 name: CI/CD Pipeline
 
+# Temporarily disabled - Enable when ready for production deployment
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  workflow_dispatch:
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
 
 env:
   REGISTRY: ghcr.io
