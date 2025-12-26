@@ -159,7 +159,7 @@ services:
       NODE_ENV: production
       
       # Database (Critical Infrastructure)
-      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017
+      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${DATABASE_NAME:-MyhealthMate_db}?authSource=admin
       DATABASE_NAME: ${DATABASE_NAME:-MyhealthMate_db}
       
       # Cache & Session

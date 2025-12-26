@@ -188,7 +188,7 @@ jobs:
 
             # Database (Critical Infrastructure)
             MONGODB_URI=${{ secrets.MONGODB_URI }}
-            DATABASE_NAME=${{ secrets.DATABASE_NAME || 'myhealthmate' }}
+            DATABASE_NAME=${{ secrets.DATABASE_NAME || 'MyhealthMate_db' }}
 
             # Cache & Session
             REDIS_URL=${{ secrets.REDIS_URL || 'redis://redis:6379' }}
@@ -225,7 +225,7 @@ jobs:
             # Docker MongoDB Configuration
             MONGO_INITDB_ROOT_USERNAME=${{ secrets.MONGO_ROOT_USER || 'admin' }}
             MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
-            MONGO_INITDB_DATABASE=${{ secrets.DATABASE_NAME || 'myhealthmate' }}
+            MONGO_INITDB_DATABASE=${{ secrets.DATABASE_NAME || 'MyhealthMate_db' }}
 
             # Metadata
             AUTHOR=${{ secrets.AUTHOR || 'MyHealthMate Team' }}

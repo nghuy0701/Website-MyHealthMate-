@@ -51,3 +51,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
 
 # Start application
 CMD ["node", "dist/server.js"]
+
+# Start application
+CMD ["node", "dist/server.js"]
