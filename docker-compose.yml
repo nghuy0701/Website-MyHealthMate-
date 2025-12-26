@@ -106,11 +106,11 @@ services:
     
     # Environment Configuration
     environment:
-      FLASK_ENV: production
-      FLASK_DEBUG: "False"
+      FLASK_ENV: ${FLASK_ENV:-development}
+      FLASK_DEBUG: "True"
       ML_HOST: 0.0.0.0
       ML_PORT: 5001
-      LOG_LEVEL: INFO
+      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
       MODEL_VERSION: ${MODEL_VERSION:-20251023_210956}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8017}
     
@@ -130,10 +130,10 @@ services:
     # Health Check
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5001/health')"]
-      interval: 30s
-      timeout: 10s
+      interval: 15s
+      timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     
     # Labels
     labels:
@@ -156,7 +156,7 @@ services:
     # Environment Configuration
     environment:
       # Environment
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-development}
       
       # Database (MongoDB Atlas Cloud - Do NOT use local mongodb)
       MONGODB_URI: ${MONGODB_URI}
@@ -208,10 +208,10 @@ services:
     # Health Check
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8017/api/v1/health"]
-      interval: 30s
-      timeout: 10s
+      interval: 15s
+      timeout: 5s
       retries: 5
-      start_period: 90s
+      start_period: 45s
     
     # Labels
     labels:
