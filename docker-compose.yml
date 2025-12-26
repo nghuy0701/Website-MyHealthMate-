@@ -95,12 +95,12 @@ services:
   # ML SERVICE - Flask Python
   # ==========================================================================
   ml-service:
-    image: myhealthmate-ml-service:latest
-    build:
-      context: ./ml-service
-      dockerfile: Dockerfile
-      args:
-        - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
+    image: nghuy0701/myhealthmate-ml-service:latest
+    # build:
+    #   context: ./ml-service
+    #   dockerfile: Dockerfile
+    #   args:
+    #     - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
     
     container_name: myhealthmate-ml-service
     restart: unless-stopped
@@ -145,10 +145,10 @@ services:
   # BACKEND SERVICE - Node.js Express API
   # ==========================================================================
   backend:
-    image: myhealthmate-backend:latest
-    build:
-      context: ./Backend
-      dockerfile: Dockerfile
+    image: nghuy0701/myhealthmate-backend:latest
+    # build:
+    #   context: ./Backend
+    #   dockerfile: Dockerfile
     
     container_name: myhealthmate-backend
     restart: unless-stopped
@@ -224,12 +224,12 @@ services:
   # FRONTEND SERVICE - React + Nginx
   # ==========================================================================
   frontend:
-    image: myhealthmate-frontend:latest
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
+    image: nghuy0701/myhealthmate-frontend:latest
+    # build:
+    #   context: ./Frontend
+    #   dockerfile: Dockerfile
+    #   args:
+    #     - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
     
     container_name: myhealthmate-frontend
     restart: unless-stopped
