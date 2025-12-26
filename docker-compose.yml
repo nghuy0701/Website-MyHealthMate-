@@ -16,44 +16,44 @@ version: '3.8'
 
 services:
   # ==========================================================================
-  # DATABASE SERVICE - MongoDB 6.0
+  # DATABASE SERVICE - MongoDB 6.0 (COMMENTED - Using MongoDB Atlas)
   # ==========================================================================
-  mongodb:
-    image: mongo:6.0
-    container_name: myhealthmate-mongodb
-    restart: unless-stopped
-    
-    # Environment Configuration
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
-      MONGO_INITDB_DATABASE: ${DATABASE_NAME:-MyhealthMate_db}
-    
-    # Port Mapping
-    ports:
-      - "27017:27017"
-    
-    # Persistent Volumes
-    volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
-    
-    # Network Configuration
-    networks:
-      - myhealthmate-network
-    
-    # Health Check
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    
-    # Labels
-    labels:
-      com.myhealthmate.description: "MongoDB Database"
-      com.myhealthmate.service: "database"
+  # mongodb:
+  #   image: mongo:6.0
+  #   container_name: myhealthmate-mongodb
+  #   restart: unless-stopped
+  #   
+  #   # Environment Configuration
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
+  #     MONGO_INITDB_DATABASE: ${DATABASE_NAME:-MyhealthMate_db}
+  #   
+  #   # Port Mapping
+  #   ports:
+  #     - "27017:27017"
+  #   
+  #   # Persistent Volumes
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #     - mongodb_config:/data/configdb
+  #   
+  #   # Network Configuration
+  #   networks:
+  #     - myhealthmate-network
+  #   
+  #   # Health Check
+  #   healthcheck:
+  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   
+  #   # Labels
+  #   labels:
+  #     com.myhealthmate.description: "MongoDB Database"
+  #     com.myhealthmate.service: "database"
 
   # ==========================================================================
   # CACHE SERVICE - Redis 7
@@ -158,8 +158,8 @@ services:
       # Environment
       NODE_ENV: production
       
-      # Database (Critical Infrastructure)
-      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-password123}@mongodb:27017/${DATABASE_NAME:-MyhealthMate_db}?authSource=admin
+      # Database (MongoDB Atlas Cloud - Do NOT use local mongodb)
+      MONGODB_URI: ${MONGODB_URI}
       DATABASE_NAME: ${DATABASE_NAME:-MyhealthMate_db}
       
       # Cache & Session
@@ -196,8 +196,6 @@ services:
     
     # Dependencies
     depends_on:
-      mongodb:
-        condition: service_healthy
       redis:
         condition: service_healthy
       ml-service:
@@ -283,18 +281,18 @@ networks:
 # ============================================================================
 
 volumes:
-  # MongoDB Volumes
-  mongodb_data:
-    driver: local
-    name: myhealthmate-mongodb-data
-    labels:
-      com.myhealthmate.description: "MongoDB database storage"
+  # MongoDB Volumes (COMMENTED - Using MongoDB Atlas)
+  # mongodb_data:
+  #   driver: local
+  #   name: myhealthmate-mongodb-data
+  #   labels:
+  #     com.myhealthmate.description: "MongoDB database storage"
   
-  mongodb_config:
-    driver: local
-    name: myhealthmate-mongodb-config
-    labels:
-      com.myhealthmate.description: "MongoDB configuration storage"
+  # mongodb_config:
+  #   driver: local
+  #   name: myhealthmate-mongodb-config
+  #   labels:
+  #     com.myhealthmate.description: "MongoDB configuration storage"
   
   # Redis Volume
   redis_data:
