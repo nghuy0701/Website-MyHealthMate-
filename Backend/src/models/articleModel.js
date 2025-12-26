@@ -26,7 +26,12 @@ const findAll = async () => {
   try {
     const results = await GET_DB()
       .collection(COLLECTION_NAME)
-      .find({ _destroy: false })
+      .find({
+        $or: [
+          { _destroy: false },
+          { _destroy: { $exists: false } }
+        ]
+      })
       .sort({ createdAt: -1 })
       .toArray()
     return results
