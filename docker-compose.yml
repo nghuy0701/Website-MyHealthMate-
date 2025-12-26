@@ -95,7 +95,7 @@ services:
   # ML SERVICE - Flask Python
   # ==========================================================================
   ml-service:
-    image: nghuy0701/myhealthmate-ml-service:latest
+    image: bright07/myhealthmate-ml-service:latest
     # build:
     #   context: ./ml-service
     #   dockerfile: Dockerfile
@@ -145,7 +145,7 @@ services:
   # BACKEND SERVICE - Node.js Express API
   # ==========================================================================
   backend:
-    image: nghuy0701/myhealthmate-backend:latest
+    image: bright07/myhealthmate-backend:latest
     # build:
     #   context: ./Backend
     #   dockerfile: Dockerfile
@@ -224,7 +224,7 @@ services:
   # FRONTEND SERVICE - React + Nginx
   # ==========================================================================
   frontend:
-    image: nghuy0701/myhealthmate-frontend:latest
+    image: bright07/myhealthmate-frontend:latest
     # build:
     #   context: ./Frontend
     #   dockerfile: Dockerfile
