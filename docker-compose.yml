@@ -93,12 +93,13 @@ services:
   # ML SERVICE - Flask Python
   # ==========================================================================
   ml-service:
-    image: bright07/myhealthmate-ml-service:latest
-    # build:
-    #   context: ./ml-service
-    #   dockerfile: Dockerfile
-    #   args:
-    #     - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+      args:
+        - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
+    # For production: use pre-built image from Docker Hub
+    # image: bright07/myhealthmate-ml-service:latest
     
     container_name: myhealthmate-ml-service
     restart: unless-stopped
@@ -143,10 +144,11 @@ services:
   # BACKEND SERVICE - Node.js Express API
   # ==========================================================================
   backend:
-    image: bright07/myhealthmate-backend:latest
-    # build:
-    #   context: ./Backend
-    #   dockerfile: Dockerfile
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    # For production: use pre-built image from Docker Hub
+    # image: bright07/myhealthmate-backend:latest
     
     container_name: myhealthmate-backend
     restart: unless-stopped
@@ -220,12 +222,13 @@ services:
   # FRONTEND SERVICE - React + Nginx
   # ==========================================================================
   frontend:
-    image: bright07/myhealthmate-frontend:latest
-    # build:
-    #   context: ./Frontend
-    #   dockerfile: Dockerfile
-    #   args:
-    #     - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
+    # For production: use pre-built image from Docker Hub
+    # image: bright07/myhealthmate-frontend:latest
     
     container_name: myhealthmate-frontend
     restart: unless-stopped
