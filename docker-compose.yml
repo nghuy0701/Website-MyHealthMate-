@@ -2,13 +2,11 @@
 # MyHealthMate - Docker Compose Configuration
 # Diabetes Prediction Web Application
 # ============================================================================
-# Services: Frontend (Nginx), Backend (Node.js), ML Service (Flask),
-#           MongoDB, Redis
+# Services: Frontend (Nginx), Backend (Node.js), ML Service (Flask), Redis
+# Database: MongoDB Atlas (Cloud)
 # Network: Bridge network for inter-container communication
-# Volumes: Persistent storage for database and cache
+# Volumes: Persistent storage for Redis cache
 # ============================================================================
-
-version: '3.8'
 
 # ============================================================================
 # SERVICES DEFINITION
