@@ -98,6 +98,7 @@ services:
       dockerfile: Dockerfile
       args:
         - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
+    image: myhealthmate-ml-service:local
     # For production: use pre-built image from Docker Hub
     # image: bright07/myhealthmate-ml-service:latest
     
@@ -147,6 +148,7 @@ services:
     build:
       context: ./Backend
       dockerfile: Dockerfile
+    image: myhealthmate-backend:local
     # For production: use pre-built image from Docker Hub
     # image: bright07/myhealthmate-backend:latest
     
@@ -227,6 +229,7 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
+    image: myhealthmate-frontend:local
     # For production: use pre-built image from Docker Hub
     # image: bright07/myhealthmate-frontend:latest
     
