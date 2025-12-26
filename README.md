@@ -68,65 +68,69 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Chạy Local
 
 ### Yêu Cầu Hệ Thống
 
-- **Docker Desktop** 20.10+ ([Download](https://docker.com/))
-- **MongoDB Atlas** account ([Đăng ký miễn phí](https://mongodb.com/cloud/atlas))
-- **Cloudinary** account ([Đăng ký miễn phí](https://cloudinary.com/))
+- **Docker Desktop** 20.10+ ([Download](https://docker.com/)) - **BẮT BUỘC**
+- **Git** ([Download](https://git-scm.com/))
 
-### 🐳 Chạy Ứng Dụng với Docker
+### 🐳 3 Bước Chạy Ứng Dụng
 
-#### 1. Clone Repository
+#### **Bước 1: Clone Repository**
 
 ```bash
 git clone https://github.com/nghuy0701/Website-MyHealthMate-.git
 cd Website-MyHealthMate-
 ```
 
-#### 2. Cấu Hình Environment
+#### **Bước 2: Tạo File .env**
 
-Tạo file `.env` ở thư mục root với các biến môi trường cần thiết
+Tạo file `.env` ở thư mục root
 
-#### 3. Khởi động Docker Services
+#### **Bước 3: Chạy Docker**
 
 ```bash
-# Build và start tất cả services
+# Khởi động tất cả services
 docker-compose up -d --build
 
-# Xem logs real-time
+# Xem logs
 docker-compose logs -f
 
-# Kiểm tra status
+# Kiểm tra trạng thái
 docker-compose ps
 ```
 
-#### 4. Truy cập Ứng dụng
+### 🌐 Truy Cập Ứng Dụng
 
-- 🌐 **Frontend**: http://localhost:80
-- 🔧 **Backend API**: http://localhost:8017  
-- 🤖 **ML Service**: http://localhost:5001
-- 💾 **Redis**: localhost:6379
+- **Frontend**: http://localhost
+- **Backend API**: http://localhost:8017/api/v1/health
+- **ML Service**: http://localhost:5001/health
 
-#### 5. Dừng Services
+### 🛑 Dừng Ứng Dụng
 
 ```bash
 # Dừng tất cả services
 docker-compose down
 
-# Dừng và xóa volumes
+# Xóa cả dữ liệu (reset toàn bộ)
 docker-compose down -v
 ```
 
-### ✨ Docker Features
+### 🔧 Các Lệnh Hữu Ích
 
-✅ **Multi-stage builds** - Tối ưu kích thước image  
-✅ **Health checks** - Tự động khôi phục khi lỗi  
-✅ **Named volumes** - Dữ liệu persistent cho Redis  
-✅ **Bridge network** - Giao tiếp services an toàn  
-✅ **Resource limits** - Giới hạn CPU & memory  
-✅ **Security** - Non-root users, read-only filesystems
+```bash
+# Xem logs của 1 service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f ml-service
+
+# Restart 1 service
+docker-compose restart backend
+
+# Rebuild khi sửa code
+docker-compose up -d --build
+```
 
 ---
 
