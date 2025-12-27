@@ -19,30 +19,8 @@ export const cacheMiddleware = (ttl = 3600, keyGenerator = null) => {
  */
 export const invalidateCacheMiddleware = (pattern) => {
   return async (req, res, next) => {
-    try {
-      // Lưu original res.json
-      const originalJson = res.json.bind(res)
-      
-      res.json = async function(data) {
-        // Invalidate cache sau khi response thành công
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          const cachePattern = typeof pattern === 'function' 
-            ? pattern(req)
-            : pattern
-
-          await redisCache.delByPattern(cachePattern).catch(err => {
-            console.error('Error invalidating cache:', err)
-          })
-        }
-        
-        return originalJson(data)
-      }
-
-      next()
-    } catch (error) {
-      console.error('Cache invalidation middleware error:', error)
-      next()
-    }
+    // Cache disabled - just pass through
+    next()
   }
 }
 

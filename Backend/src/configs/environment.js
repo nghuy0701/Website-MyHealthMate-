@@ -13,8 +13,7 @@ export const env = {
   MONGODB_URI: process.env.MONGODB_URI,
   DATABASE_NAME: process.env.DATABASE_NAME,
   
-  // Cache & Session
-  REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
+  // Security & Authentication
   SESSION_SECRET: process.env.SESSION_SECRET,
   
   // Security & Authentication

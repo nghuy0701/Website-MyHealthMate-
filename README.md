@@ -25,7 +25,7 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 - ✅ **Dự đoán nguy cơ tiểu đường** với độ chính xác 70.1% (ROC-AUC: 0.810)
 - ✅ **15+ ML algorithms** - Từ Logistic Regression đến Neural Networks
 - ✅ **Production-ready** - Docker containerization & CI/CD pipeline
-- ✅ **Professional architecture** - Microservices với Redis caching
+- ✅ **Professional architecture** - Microservices với MongoDB Atlas cloud database
 - ✅ **Real-time monitoring** - Lịch sử dự đoán & health tracking dashboard
 - ✅ **Healthcare content** - Bài viết y khoa chuyên sâu
 - ✅ **Admin dashboard** - Quản lý người dùng & nội dung toàn diện
@@ -68,7 +68,7 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 
 ---
 
-## 🚀 Quick Start - Chạy Local
+## 🚀 Quick Start
 
 ### Yêu Cầu Hệ Thống
 
@@ -271,28 +271,6 @@ Website-MyHealthMate/
 - 🔐 **Xác thực nâng cao** - Đăng nhập qua email xác thực
 
 ---
-
-## 🛠️ Lệnh Hữu Ích
-
-### Chạy Backend (Phát triển)
-```bash
-cd Backend
-npm run dev
-```
-
-### Chạy Frontend (Phát triển)
-```bash
-cd Frontend
-npm run dev
-```
-
-### Chạy ML Service
-```bash
-cd ml-service
-python app.py                              # Khởi động Flask server
-python models/diabetes_ml_pipeline.py      # Huấn luyện mô hình mới
-python models/model_config.py              # Xem cấu hình mô hình
-```
 
 **Huấn Luyện Mô Hình:**
 ```python

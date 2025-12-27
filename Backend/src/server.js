@@ -66,16 +66,15 @@ const START_SERVER = () => {
   })
 }
 
-// Kết nối Redis (optional - không bắt buộc để chạy app)
+// Khởi động ứng dụng
 const logger = createLogger('Bootstrap')
 
-Promise.all([
-  CONNECT_DB().then(() => logger.connection('MongoDB Cloud Atlas', 'connected')),
-  CONNECT_REDIS().then(() => logger.connection('Redis', 'connected'))
-    .catch(() => logger.warn('Redis not available - Running without cache'))
-])
-  .then(() => START_SERVER())
+CONNECT_DB()
+  .then(() => {
+    logger.connection('MongoDB Cloud Atlas', 'connected')
+    START_SERVER()
+  })
   .catch(error => {
     logger.error('Failed to start application', { error: error.message })
-    process.exit(0)
+    process.exit(1)
   })
