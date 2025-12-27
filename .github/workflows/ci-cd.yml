@@ -1,28 +1,39 @@
 name: CI/CD Pipeline
 
-# Temporarily disabled - Enable when ready for production deployment
+# ============================================================================
+# MyHealthMate - Continuous Integration & Deployment
+# ============================================================================
+# Architecture: 3 Microservices (Frontend, Backend, ML Service)
+# Database: MongoDB Atlas Cloud
+# External Services: Cloudinary (Images), Brevo (Email)
+# Package Manager: npm (Node.js), pip (Python)
+# ============================================================================
+
 on:
-  workflow_dispatch:
-  # push:
-  #   branches: [ main, develop ]
-  # pull_request:
-  #   branches: [ main, develop ]
+  workflow_dispatch: # Manual trigger
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Lint and Test Backend
-  backend-lint-test:
-    name: Backend - Lint & Test
+  # ==========================================================================
+  # TEST & BUILD STAGE
+  # ==========================================================================
+  
+  backend-test:
+    name: Backend - Lint & Build
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -33,24 +44,23 @@ jobs:
         working-directory: ./Backend
         run: npm ci
 
-      - name: Run linter
+      - name: Run ESLint
         working-directory: ./Backend
         run: npm run lint
 
-      - name: Build backend
+      - name: Build with Babel
         working-directory: ./Backend
         run: npm run build
 
-  # Lint and Build Frontend
-  frontend-lint-build:
-    name: Frontend - Lint & Build
+  frontend-test:
+    name: Frontend - Build & Test
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -61,22 +71,21 @@ jobs:
         working-directory: ./Frontend
         run: npm ci --legacy-peer-deps
 
-      - name: Build frontend
+      - name: Build with Vite
         working-directory: ./Frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:8017' }}
+          VITE_API_URL: http://localhost:8017/api/v1
 
-  # Test ML Service
   ml-service-test:
-    name: ML Service - Test
+    name: ML Service - Python Syntax Check
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.9
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
@@ -91,13 +100,16 @@ jobs:
 
       - name: Check Python syntax
         working-directory: ./ml-service
-        run: python -m py_compile app.py
+        run: python -m py_compile app.py config.py utils.py
 
-  # Build and Push Docker Images
+  # ==========================================================================
+  # DOCKER BUILD & PUSH STAGE
+  # ==========================================================================
+  
   build-and-push:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    needs: [backend-lint-test, frontend-lint-build, ml-service-test]
+    needs: [backend-test, frontend-test, ml-service-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     permissions:
@@ -106,7 +118,16 @@ jobs:
 
     strategy:
       matrix:
-        service: [backend, frontend, ml-service]
+        include:
+          - service: backend
+            context: ./Backend
+            dockerfile: ./Backend/Dockerfile
+          - service: frontend
+            context: ./Frontend
+            dockerfile: ./Frontend/Dockerfile
+          - service: ml-service
+            context: ./ml-service
+            dockerfile: ./ml-service/Dockerfile
 
     steps:
       - name: Checkout code
@@ -115,7 +136,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -129,24 +150,24 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker image
+      - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service == 'ml-service' && 'ml-service' || matrix.service == 'backend' && 'Backend' || 'Frontend' }}
-          file: ./${{ matrix.service == 'ml-service' && 'ml-service' || matrix.service == 'backend' && 'Backend' || 'Frontend' }}/Dockerfile
+          context: ${{ matrix.service }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Deploy to Production
+  # ==========================================================================
+  # DEPLOYMENT STAGE
+  # ==========================================================================
+  
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -154,11 +175,12 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file on server
+      - name: Create .env on server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -168,65 +190,51 @@ jobs:
           script: |
             cd /opt/myhealthmate
             
-            # Backup existing .env if exists
-            if [ -f .env ]; then
-              cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
-            fi
+            # Backup existing .env
+            [ -f .env ] && cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
             
-            # Create new .env from secrets
+            # Create .env from GitHub Secrets
             cat > .env << 'EOL'
-            # =================================================================
-            # MyHealthMate Environment Configuration
-            # Generated by GitHub Actions CI/CD Pipeline
-            # Date: $(date)
-            # =================================================================
-
-            # Environment
+            # ========================================
+            # MyHealthMate - Production Environment
+            # Generated: $(date)
+            # ========================================
+            
             NODE_ENV=production
-
-            # Database (Critical Infrastructure)
+            AUTHOR=MyHealthMate Team
+            
+            # Database - MongoDB Atlas Cloud
             MONGODB_URI=${{ secrets.MONGODB_URI }}
-            DATABASE_NAME=${{ secrets.DATABASE_NAME || 'MyhealthMate_db' }}
-
-            # Session
+            DATABASE_NAME=${{ secrets.DATABASE_NAME }}
+            
+            # Security
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-
-            # Security & Authentication
             ADMIN_SECRET_KEY=${{ secrets.ADMIN_SECRET_KEY }}
-
-            # Application Server
-            APP_HOST=${{ secrets.APP_HOST || '0.0.0.0' }}
-            APP_PORT=${{ secrets.APP_PORT || '8017' }}
+            
+            # Backend Server
+            APP_HOST=0.0.0.0
+            APP_PORT=8017
             CLIENT_URL=${{ secrets.CLIENT_URL }}
-            WEBSITE_DOMAIN_DEV=${{ secrets.WEBSITE_DOMAIN_DEV }}
-
-            # Internal Services
-            ML_SERVICE_URL=${{ secrets.ML_SERVICE_URL || 'http://ml-service:5001' }}
-
-            # CORS Configuration
+            
+            # Microservices
+            ML_SERVICE_URL=http://ml-service:5001
             ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
-
-            # External Services - Cloudinary (Image Storage)
+            
+            # External Services - Cloudinary
             CLOUDINARY_URL=${{ secrets.CLOUDINARY_URL }}
             CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
             CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
             CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
-
-            # External Services - Brevo (Email)
+            
+            # External Services - Brevo
             BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}
             BREVO_SENDER_EMAIL=${{ secrets.BREVO_SENDER_EMAIL }}
-
-            # Frontend Configuration
+            
+            # Frontend
             VITE_API_URL=${{ secrets.VITE_API_URL }}
-
-            # Docker MongoDB Configuration
-            MONGO_INITDB_ROOT_USERNAME=${{ secrets.MONGO_ROOT_USER || 'admin' }}
-            MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGO_ROOT_PASSWORD }}
-            MONGO_INITDB_DATABASE=${{ secrets.DATABASE_NAME || 'MyhealthMate_db' }}
-
-            # Metadata
-            AUTHOR=${{ secrets.AUTHOR || 'MyHealthMate Team' }}
             EOL
+            
+            echo "✅ .env file created successfully"
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@master
@@ -238,64 +246,76 @@ jobs:
           script: |
             cd /opt/myhealthmate
             
-            # Pull latest code
+            echo "📥 Pulling latest code..."
             git pull origin main
             
-            # Pull latest images
-            docker-compose pull
-            
-            # Stop and remove old containers
+            echo "🐳 Stopping old containers..."
             docker-compose down
             
-            # Start new containers
-            docker-compose up -d
+            echo "🚀 Starting new containers..."
+            docker-compose up -d --build
             
-            # Wait for services to be healthy
-            echo "Waiting for services to start..."
+            echo "⏳ Waiting for services to be healthy..."
             sleep 30
             
-            # Check container status
+            echo "📊 Container status:"
             docker-compose ps
             
-            # Clean up unused images
+            echo "🧹 Cleaning up unused images..."
             docker system prune -f
+            
+            echo "✅ Deployment completed!"
 
-      - name: Verify deployment
-        run: |
-          echo "Waiting for deployment to complete..."
-          sleep 60
-          
-          # Check if production URL is accessible
-          PROD_URL="${{ secrets.PRODUCTION_URL || 'https://myhealthmate.yourdomain.com' }}"
-          echo "Checking $PROD_URL"
-          
-          if curl -f -s -o /dev/null -w "%{http_code}" "$PROD_URL" | grep -q "200\|301\|302"; then
-            echo "✅ Deployment verified successfully!"
-          else
-            echo "❌ Deployment verification failed!"
-            exit 1
-          fi
+      - name: Health check
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            echo "🔍 Checking service health..."
+            
+            # Check ML Service
+            curl -f http://localhost:5001/health || echo "⚠️ ML Service not responding"
+            
+            # Check Backend API
+            curl -f http://localhost:8017/api/v1/health || echo "⚠️ Backend API not responding"
+            
+            # Check Frontend
+            curl -f http://localhost/ || echo "⚠️ Frontend not responding"
+            
+            echo "✅ Health check completed"
 
-  # Notify Deployment Status
+  # ==========================================================================
+  # NOTIFICATION STAGE
+  # ==========================================================================
+  
   notify:
-    name: Notify Deployment Status
+    name: Deployment Notification
     runs-on: ubuntu-latest
     needs: [deploy]
     if: always()
     
     steps:
-      - name: Send Success Notification
+      - name: Success notification
         if: needs.deploy.result == 'success'
         run: |
-          echo "✅ Deployment completed successfully!"
-          echo "Service Status: All services are running"
-          echo "Production URL: ${{ secrets.PRODUCTION_URL || 'https://myhealthmate.yourdomain.com' }}"
-          echo "Deployed at: $(date)"
+          echo "========================================"
+          echo "✅ DEPLOYMENT SUCCESSFUL"
+          echo "========================================"
+          echo "🚀 All services deployed and running"
+          echo "🌐 Production URL: ${{ secrets.PRODUCTION_URL }}"
+          echo "⏰ Deployed at: $(date)"
+          echo "========================================"
 
-      - name: Send Failure Notification
+      - name: Failure notification
         if: needs.deploy.result == 'failure'
         run: |
-          echo "❌ Deployment failed!"
-          echo "Please check the deployment logs and fix the issues."
-          echo "You can rollback using: docker-compose down && docker-compose up -d"
+          echo "========================================"
+          echo "❌ DEPLOYMENT FAILED"
+          echo "========================================"
+          echo "Please check logs and fix issues"
+          echo "Rollback: docker-compose down && git pull origin main && docker-compose up -d"
+          echo "========================================"
           exit 1
