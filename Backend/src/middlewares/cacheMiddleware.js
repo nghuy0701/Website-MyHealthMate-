@@ -1,48 +1,14 @@
-import { redisCache } from '~/providers/redisProvider'
-
+// Redis removed - Cache middleware disabled
 /**
- * Cache middleware factory
+ * Cache middleware factory (DISABLED - No Redis)
  * @param {number} ttl - Time to live in seconds (default: 1 hour)
  * @param {function} keyGenerator - Function to generate cache key from req
  * @returns {function} Express middleware
  */
 export const cacheMiddleware = (ttl = 3600, keyGenerator = null) => {
   return async (req, res, next) => {
-    try {
-      // Generate cache key
-      const cacheKey = keyGenerator 
-        ? keyGenerator(req)
-        : `cache:${req.method}:${req.originalUrl}`
-
-      // Try to get from cache
-      const cachedData = await redisCache.get(cacheKey)
-
-      if (cachedData) {
-        // Cache hit - return cached data
-        return res.json({
-          ...cachedData,
-          _fromCache: true
-        })
-      }
-
-      // Cache miss - modify res.json to cache the response
-      const originalJson = res.json.bind(res)
-      res.json = function(data) {
-        // Cache the response data (async, don't block)
-        redisCache.set(cacheKey, data, ttl).catch(err => {
-          console.error('Error caching response:', err)
-        })
-        
-        // Send response
-        return originalJson(data)
-      }
-
-      next()
-    } catch (error) {
-      // If cache fails, continue without caching
-      console.error('Cache middleware error:', error)
-      next()
-    }
+    // Cache disabled - just pass through
+    next()
   }
 }
 

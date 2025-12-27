@@ -1,110 +1,29 @@
 # ============================================================================
 # MyHealthMate - Docker Compose Configuration
-# Diabetes Prediction Web Application
 # ============================================================================
-# Services: Frontend (Nginx), Backend (Node.js), ML Service (Flask), Redis
+# Application: Diabetes Risk Prediction Platform
+# Architecture: Microservices (Frontend, Backend, ML Service)
 # Database: MongoDB Atlas (Cloud)
-# Network: Bridge network for inter-container communication
-# Volumes: Persistent storage for Redis cache
-# ============================================================================
-
-# ============================================================================
-# SERVICES DEFINITION
+# Package Manager: npm (Node.js), pip (Python)
 # ============================================================================
 
 services:
   # ==========================================================================
-  # DATABASE SERVICE - MongoDB 6.0 (COMMENTED - Using MongoDB Atlas)
+  # ML SERVICE - Python Flask API
   # ==========================================================================
-  # mongodb:
-  #   image: mongo:6.0
-  #   container_name: myhealthmate-mongodb
-  #   restart: unless-stopped
-  #   
-  #   # Environment Configuration
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password123}
-  #     MONGO_INITDB_DATABASE: ${DATABASE_NAME:-MyhealthMate_db}
-  #   
-  #   # Port Mapping
-  #   ports:
-  #     - "27017:27017"
-  #   
-  #   # Persistent Volumes
-  #   volumes:
-  #     - mongodb_data:/data/db
-  #     - mongodb_config:/data/configdb
-  #   
-  #   # Network Configuration
-  #   networks:
-  #     - myhealthmate-network
-  #   
-  #   # Health Check
-  #   healthcheck:
-  #     test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 40s
-  #   
-  #   # Labels
-  #   labels:
-  #     com.myhealthmate.description: "MongoDB Database"
-  #     com.myhealthmate.service: "database"
-
-  # ==========================================================================
-  # CACHE SERVICE - Redis 7
-  # ==========================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: myhealthmate-redis
-    restart: unless-stopped
-    
-    # Redis Configuration
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
-    
-    # Port Mapping
-    ports:
-      - "6379:6379"
-    
-    # Persistent Volume
-    volumes:
-      - redis_data:/data
-    
-    # Network Configuration
-    networks:
-      - myhealthmate-network
-    
-    # Health Check
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    
-    # Labels
-    labels:
-      com.myhealthmate.description: "Redis Cache Server"
-      com.myhealthmate.service: "cache"
-
-  # ==========================================================================
-  # ML SERVICE - Flask Python
+  # Purpose: Machine Learning predictions using 15+ trained models
+  # Tech: Python 3.9, Flask, Scikit-learn, Pandas
+  # Port: 5001
   # ==========================================================================
   ml-service:
     build:
       context: ./ml-service
       dockerfile: Dockerfile
       args:
-        - MODEL_VERSION=${MODEL_VERSION:-20251023_210956}
-    # For production: use pre-built image from Docker Hub
-    # image: bright07/myhealthmate-ml-service:latest
-    
+        MODEL_VERSION: ${MODEL_VERSION:-20251023_210956}
     container_name: myhealthmate-ml-service
     restart: unless-stopped
     
-    # Environment Configuration
     environment:
       FLASK_ENV: ${FLASK_ENV:-development}
       FLASK_DEBUG: "True"
@@ -114,157 +33,125 @@ services:
       MODEL_VERSION: ${MODEL_VERSION:-20251023_210956}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8017}
     
-    # Port Mapping
     ports:
       - "5001:5001"
     
-    # Volume Mounts (Read-Only)
     volumes:
       - ./ml-service/models:/app/models:ro
       - ./ml-service/data:/app/data:ro
     
-    # Network Configuration
     networks:
       - myhealthmate-network
     
-    # Health Check
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5001/health')"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 30s
-    
-    # Labels
-    labels:
-      com.myhealthmate.description: "Machine Learning Service"
-      com.myhealthmate.service: "ml-api"
 
   # ==========================================================================
   # BACKEND SERVICE - Node.js Express API
   # ==========================================================================
+  # Purpose: REST API, business logic, database operations
+  # Tech: Node.js 18, Express, Babel, MongoDB Driver
+  # Port: 8017
+  # Dependencies: MongoDB Atlas (cloud), ML Service
+  # ==========================================================================
+  
   backend:
     build:
       context: ./Backend
       dockerfile: Dockerfile
-    # For production: use pre-built image from Docker Hub
-    # image: bright07/myhealthmate-backend:latest
-    
     container_name: myhealthmate-backend
     restart: unless-stopped
     
-    # Environment Configuration
     environment:
-      # Environment
+      # Application
       NODE_ENV: ${NODE_ENV:-development}
-      
-      # Database (MongoDB Atlas Cloud - Do NOT use local mongodb)
-      MONGODB_URI: ${MONGODB_URI}
-      DATABASE_NAME: ${DATABASE_NAME:-MyhealthMate_db}
-      
-      # Cache & Session
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379
-      SESSION_SECRET: ${SESSION_SECRET}
-      
-      # Security & Authentication
-      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY}
-      
-      # Application Server
       APP_HOST: 0.0.0.0
       APP_PORT: 8017
       CLIENT_URL: ${CLIENT_URL:-http://localhost}
+      AUTHOR: ${AUTHOR:-MyHealthMate Team}
+      
+      # Database (MongoDB Atlas - Cloud)
+      MONGODB_URI: ${MONGODB_URI}
+      DATABASE_NAME: ${DATABASE_NAME:-MyhealthMate_db}
+      
+      # Security
+      SESSION_SECRET: ${SESSION_SECRET}
+      ADMIN_SECRET_KEY: ${ADMIN_SECRET_KEY}
       
       # Internal Services
       ML_SERVICE_URL: http://ml-service:5001
       
-      # External Services - Cloudinary
+      # External Services - Cloudinary (Image Storage)
       CLOUDINARY_URL: ${CLOUDINARY_URL}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       
-      # External Services - Brevo
+      # External Services - Brevo (Email)
       BREVO_API_KEY: ${BREVO_API_KEY}
       BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
-      
-      # Metadata
-      AUTHOR: ${AUTHOR:-MyHealthMate Team}
     
-    # Port Mapping
     ports:
       - "8017:8017"
     
-    # Dependencies
     depends_on:
-      redis:
-        condition: service_healthy
       ml-service:
         condition: service_healthy
     
-    # Network Configuration
     networks:
       - myhealthmate-network
     
-    # Health Check
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8017/api/v1/health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 45s
-    
-    # Labels
-    labels:
-      com.myhealthmate.description: "Backend API Service"
-      com.myhealthmate.service: "api"
 
   # ==========================================================================
-  # FRONTEND SERVICE - React + Nginx
+  # FRONTEND SERVICE - React SPA + Nginx
   # ==========================================================================
+  # Purpose: User interface, served as static files
+  # Tech: React 18, Vite, TailwindCSS, Nginx
+  # Port: 80
+  # Dependencies: Backend API
+  # ==========================================================================
+  
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:8017/api/v1}
-    # For production: use pre-built image from Docker Hub
-    # image: bright07/myhealthmate-frontend:latest
-    
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8017/api/v1}
     container_name: myhealthmate-frontend
     restart: unless-stopped
     
-    # Environment Configuration
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8017/api/v1}
       VITE_APP_NAME: ${VITE_APP_NAME:-MyHealthMate}
       VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
     
-    # Port Mapping
     ports:
       - "80:80"
-      - "443:443"  # For future HTTPS support
+      - "443:443"
     
-    # Dependencies
     depends_on:
       backend:
         condition: service_healthy
     
-    # Network Configuration
     networks:
       - myhealthmate-network
     
-    # Health Check
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    
-    # Labels
-    labels:
-      com.myhealthmate.description: "Frontend Web Application"
-      com.myhealthmate.service: "web"
 
 # ============================================================================
 # NETWORK CONFIGURATION
@@ -274,56 +161,14 @@ networks:
   myhealthmate-network:
     driver: bridge
     name: myhealthmate-network
-    labels:
-      com.myhealthmate.description: "Main application network"
 
 # ============================================================================
-# VOLUME CONFIGURATION
+# USAGE COMMANDS
 # ============================================================================
-
-volumes:
-  # MongoDB Volumes (COMMENTED - Using MongoDB Atlas)
-  # mongodb_data:
-  #   driver: local
-  #   name: myhealthmate-mongodb-data
-  #   labels:
-  #     com.myhealthmate.description: "MongoDB database storage"
-  
-  # mongodb_config:
-  #   driver: local
-  #   name: myhealthmate-mongodb-config
-  #   labels:
-  #     com.myhealthmate.description: "MongoDB configuration storage"
-  
-  # Redis Volume
-  redis_data:
-    driver: local
-    name: myhealthmate-redis-data
-    labels:
-      com.myhealthmate.description: "Redis cache storage"
-
-# ============================================================================
-# USAGE INSTRUCTIONS
-# ============================================================================
-# Start all services:
-#   docker-compose --env-file .env up -d
-#
-# Build and start:
-#   docker-compose --env-file .env up -d --build
-#
-# View logs:
-#   docker-compose logs -f
-#   docker-compose logs -f backend
-#
-# Stop all services:
-#   docker-compose down
-#
-# Stop and remove volumes:
-#   docker-compose down -v
-#
-# Check service status:
-#   docker-compose ps
-#
-# Restart specific service:
-#   docker-compose restart backend
+# Start all services:     docker-compose up -d --build
+# View logs:              docker-compose logs -f
+# Check status:           docker-compose ps
+# Stop all:               docker-compose down
+# Remove volumes:         docker-compose down -v
+# Restart service:        docker-compose restart backend
 # ============================================================================
