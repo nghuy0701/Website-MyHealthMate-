@@ -43,9 +43,28 @@ const findAll = async () => {
 // Find Article by ID
 const findOneById = async (id) => {
   try {
-    const result = await GET_DB()
+    // Support both ObjectId and string _id (for imported JSON data)
+    let query = {}
+    
+    // Try ObjectId first, fallback to string if invalid
+    if (ObjectId.isValid(id) && String(new ObjectId(id)) === id) {
+      query._id = new ObjectId(id)
+    } else {
+      query._id = id // Use as string
+    }
+    
+    // First try with _destroy filter
+    let result = await GET_DB()
       .collection(COLLECTION_NAME)
-      .findOne({ _id: new ObjectId(id), _destroy: false })
+      .findOne({ ...query, _destroy: false })
+    
+    // If not found, try without _destroy filter (for imported data)
+    if (!result) {
+      result = await GET_DB()
+        .collection(COLLECTION_NAME)
+        .findOne(query)
+    }
+    
     return result
   } catch (error) {
     throw new Error(error)
