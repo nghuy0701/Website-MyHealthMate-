@@ -241,12 +241,41 @@ def predict():
                 status_code=503
             )
         
-        # Get and validate JSON data
+        # Get JSON data
         data = request.get_json()
-        is_valid, error_msg = validate_request_data(data, Config.FEATURE_NAMES)
+        
+        if not data:
+            return create_error_response(error="No data provided in request", status_code=400)
+        
+        # Map frontend field names (camelCase/snake_case) to model field names (PascalCase)
+        field_mapping = {
+            'pregnancies': 'Pregnancies',
+            'glucose': 'Glucose',
+            'blood_pressure': 'BloodPressure',
+            'bloodPressure': 'BloodPressure',
+            'skin_thickness': 'SkinThickness',
+            'skinThickness': 'SkinThickness',
+            'insulin': 'Insulin',
+            'bmi': 'BMI',
+            'diabetes_pedigree_function': 'DiabetesPedigreeFunction',
+            'diabetesPedigreeFunction': 'DiabetesPedigreeFunction',
+            'age': 'Age'
+        }
+        
+        # Convert to PascalCase (model format)
+        normalized_data = {}
+        for key, value in data.items():
+            normalized_key = field_mapping.get(key, key)
+            normalized_data[normalized_key] = value
+        
+        # Validate normalized data
+        is_valid, error_msg = validate_request_data(normalized_data, Config.FEATURE_NAMES)
         
         if not is_valid:
             return create_error_response(error=error_msg, status_code=400)
+        
+        # Use normalized data for preprocessing
+        data = normalized_data
         
         # Log request
         log_prediction_request(data, request.remote_addr)
