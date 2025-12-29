@@ -103,7 +103,7 @@ docker-compose ps
 
 ### 🌐 Truy Cập Ứng Dụng
 
-- **Frontend**: http://localhost
+- **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8017/api/v1/health
 - **ML Service**: http://localhost:5001/health
 
@@ -200,53 +200,145 @@ ml-service/
 ├── data/
 │   └── pima_clean.csv                       # Dữ liệu đã làm sạch
 ├── notebooks/
-│   └── diabetes_model_training.ipynb        # Notebook huấn luyện
-├── MODELS_DOCUMENTATION.md                  # Tài liệu ML chi tiết
-└── app.py                                   # API Flask
+│   ├── diabetes_model_training.ipynb        # Notebook huấn luyện
+│   └── catboost_info/                       # CatBoost training info
+├── readme_images/                           # Hình ảnh cho documentation
+├── app.py                                   # API Flask
+├── config.py                                # Cấu hình ML Service
+├── utils.py                                 # Utility functions
+└── requirements.txt                         # Python dependencies
 ```
 
 ---
 
-## 📁 Cấu Trúc Thư Mục
+## 📁 Cấu Trúc Project
 
 ```
 Website-MyHealthMate/
 │
-├── Backend/                    # Backend Node.js
-│   ├── src/
-│   │   ├── configs/           # Cấu hình (DB, CORS, Session)
-│   │   ├── controllers/       # Xử lý logic nghiệp vụ
-│   │   ├── middlewares/       # Xác thực, Upload, Xử lý lỗi
-│   │   ├── models/            # Mô hình dữ liệu
-│   │   ├── routes/            # Định tuyến API
-│   │   ├── services/          # Lớp dịch vụ
-│   │   ├── validations/       # Xác thực dữ liệu đầu vào
-│   │   ├── providers/         # Dịch vụ bên ngoài (Cloudinary, Brevo)
-│   │   └── utils/             # Hàm hỗ trợ, hằng số
-│   ├── .env                   # Biến môi trường
-│   ├── package.json
-│   └── server.js
+├── .github/                    # GitHub Actions CI/CD
+│   └── workflows/
+│       └── ci-cd.yml          # CI pipeline configuration
 │
-├── Frontend/                   # Giao diện React
+├── Backend/                    # Backend Node.js (Express)
 │   ├── src/
-│   │   ├── components/        # Các component React
-│   │   │   ├── ui/           # Component UI Shadcn
-│   │   │   └── admin/        # Component dashboard Admin
-│   │   ├── pages/            # Các trang
-│   │   ├── lib/              # Context, API client, tiện ích
-│   │   └── styles/           # File CSS
-│   ├── public/
-│   ├── .env
-│   ├── package.json
-│   └── vite.config.js
+│   │   ├── configs/           # Cấu hình (DB, CORS, Session, Environment)
+│   │   ├── controllers/       # Controllers - Xử lý logic nghiệp vụ
+│   │   │   ├── adminController.js
+│   │   │   ├── articleController.js
+│   │   │   ├── mlController.js
+│   │   │   ├── patientController.js
+│   │   │   ├── predictionController.js
+│   │   │   ├── questionController.js
+│   │   │   ├── userController.js
+│   │   │   └── index.js
+│   │   ├── middlewares/       # Middlewares
+│   │   │   ├── authMiddleware.js          # JWT authentication
+│   │   │   ├── cacheMiddleware.js         # Caching logic
+│   │   │   ├── errorHandlingMiddleware.js # Error handler
+│   │   │   ├── rateLimitMiddleware.js     # Rate limiting
+│   │   │   ├── uploadMiddleware.js        # File upload (Multer)
+│   │   │   └── index.js
+│   │   ├── models/            # Database Models (MongoDB)
+│   │   │   ├── adminModel.js
+│   │   │   ├── articleModel.js
+│   │   │   ├── patientModel.js
+│   │   │   ├── predictionModel.js
+│   │   │   ├── questionModel.js
+│   │   │   ├── userModel.js
+│   │   │   └── index.js
+│   │   ├── routes/            # API Routes
+│   │   │   └── v1/            # API version 1
+│   │   ├── services/          # Business Logic Services
+│   │   │   ├── adminService.js
+│   │   │   ├── articleService.js
+│   │   │   ├── emailService.js
+│   │   │   ├── mlService.js
+│   │   │   ├── patientService.js
+│   │   │   ├── predictionService.js
+│   │   │   ├── questionService.js
+│   │   │   ├── userService.js
+│   │   │   └── index.js
+│   │   ├── validations/       # Input validation schemas
+│   │   │   ├── adminValidation.js
+│   │   │   ├── patientValidation.js
+│   │   │   └── index.js
+│   │   ├── providers/         # External Service Providers
+│   │   │   ├── brevoProvider.js        # Email service (Brevo)
+│   │   │   ├── cloudinaryProvider.js   # Image storage (Cloudinary)
+│   │   │   ├── mongodbProvider.js      # MongoDB connection
+│   │   │   └── index.js
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── ApiError.js
+│   │   │   ├── constants.js
+│   │   │   ├── formatter.js
+│   │   │   └── logger.js
+│   │   └── server.js          # Entry point
+│   ├── dist/                  # Compiled code (Babel output)
+│   ├── postman/               # Postman collections & environments
+│   ├── .babelrc               # Babel configuration
+│   ├── .dockerignore
+│   ├── .eslintrc.cjs          # ESLint configuration
+│   ├── .gitignore
+│   ├── .prettierrc.json       # Prettier configuration
+│   ├── Dockerfile             # Backend Docker image
+│   ├── package.json           # npm dependencies
+│   └── package-lock.json
 │
-├── ml-service/                # Dịch vụ ML Python
-│   ├── models/               # Mô hình ML đã huấn luyện
-│   ├── data/                 # Dữ liệu huấn luyện
-│   ├── notebooks/            # Jupyter notebooks
-│   ├── app.py               # Ứng dụng Flask
-│   ├── requirements.txt
-│   └── .env
+├── Frontend/                   # Frontend React + Vite
+│   ├── src/
+│   │   ├── components/        # React Components
+│   │   │   ├── ui/           # Shadcn UI components
+│   │   │   ├── admin/        # Admin dashboard components
+│   │   │   └── ...           # Other components
+│   │   ├── pages/            # Page components
+│   │   ├── lib/              # Libraries & utilities
+│   │   │   ├── AuthContext.jsx    # Authentication context
+│   │   │   ├── api.js             # API client
+│   │   │   └── utils.js
+│   │   └── styles/           # CSS files
+│   │       └── index.css
+│   ├── public/               # Static assets
+│   ├── .dockerignore
+│   ├── .gitignore
+│   ├── Dockerfile            # Frontend Docker image (Multi-stage)
+│   ├── index.html            # HTML template
+│   ├── nginx.conf            # Nginx configuration for production
+│   ├── package.json          # npm dependencies
+│   ├── package-lock.json
+│   └── vite.config.js        # Vite configuration
+│
+├── ml-service/                # ML Service Python (Flask)
+│   ├── models/               # Machine Learning Models
+│   │   ├── diabetes_ml_pipeline.py         # Training pipeline
+│   │   ├── model_config.py                 # Model configurations
+│   │   ├── diabetes_model_*.joblib         # Trained models
+│   │   ├── scaler_*.joblib                 # Feature scalers
+│   │   ├── diabetes_predictor_*.py         # Predictor class
+│   │   └── model_metadata_*.json           # Model metadata
+│   ├── data/
+│   │   └── pima_clean.csv                  # Training dataset
+│   ├── notebooks/
+│   │   ├── diabetes_model_training.ipynb   # Training notebook
+│   │   └── catboost_info/                  # CatBoost logs
+│   ├── readme_images/                      # Documentation images
+│   ├── venv/                 # Python virtual environment
+│   ├── __pycache__/          # Python cache
+│   ├── .dockerignore
+│   ├── .gitignore
+│   ├── app.py                # Flask API application
+│   ├── config.py             # ML Service configuration
+│   ├── utils.py              # Utility functions
+│   ├── create_placeholder_images.py
+│   ├── generate_readme_images.py
+│   ├── Dockerfile            # ML Service Docker image
+│   └── requirements.txt      # Python dependencies
+│
+├── .venv/                    # Python virtual environment (root)
+├── .env                      # Environment variables (root)
+├── .gitignore                # Git ignore rules (root)
+├── docker-compose.yml        # Docker Compose orchestration
+└── README.md                 # Project documentation
 │
 └── README.md                 # File này
 ```
