@@ -103,9 +103,7 @@ docker-compose ps
 
 ### 🌐 Truy Cập Ứng Dụng
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8017/api/v1/health
-- **ML Service**: http://localhost:5001/health
+
 
 ### 🛑 Dừng Ứng Dụng
 
