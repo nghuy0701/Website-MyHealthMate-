@@ -1,4 +1,4 @@
-import { BarChart3, Users, FileText, HelpCircle } from 'lucide-react';
+import { BarChart3, Users, FileText, HelpCircle, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 
@@ -8,6 +8,7 @@ export function Sidebar({ activePage, onPageChange, adminProfile }) {
     { id: 'users', icon: Users, label: 'Quản lý Người dùng' },
     { id: 'articles', icon: FileText, label: 'Quản lý Bài viết' },
     { id: 'questions', icon: HelpCircle, label: 'Quản lý Bộ Câu hỏi' },
+    { id: 'chat', icon: MessageSquare, label: 'Tư vấn Bệnh nhân' },
   ];
 
   return (
@@ -41,7 +42,7 @@ export function Sidebar({ activePage, onPageChange, adminProfile }) {
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
               </button>
-              {item.id === 'questions' && (
+              {item.id === 'chat' && (
                 <div className="p-4 border-t border-gray-200">
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                     <Avatar className="w-10 h-10 border-2 border-green-200">

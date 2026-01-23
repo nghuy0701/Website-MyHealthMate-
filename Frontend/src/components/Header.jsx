@@ -53,6 +53,14 @@ export function Header() {
                   Lịch sử
                 </Link>
                 <Link
+                  to="/chat"
+                  className={`transition-colors ${
+                    isActive('/chat') || location.pathname.startsWith('/chat/') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                  }`}
+                >
+                  Tư vấn
+                </Link>
+                <Link
                   to="/profile"
                   className={`transition-colors ${
                     isActive('/profile') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'

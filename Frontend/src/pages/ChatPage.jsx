@@ -1,0 +1,673 @@
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../lib/auth-context';
+import { chatAPI } from '../lib/api';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { Search, Phone, Video, MoreVertical } from 'lucide-react';
+import { ChatListItem } from '../components/chat/ChatListItem';
+import { MessageBubble } from '../components/chat/MessageBubble';
+import { MessageComposer } from '../components/chat/MessageComposer';
+import { ChatInfoPanel } from '../components/chat/ChatInfoPanel';
+import { TypingIndicator } from '../components/chat/TypingIndicator';
+
+// Mock data for PATIENTS viewing DOCTORS
+const mockPatientConversations = [
+  {
+    id: 'conv-1',
+    doctor: {
+      id: 'doc-noi-tiet-001',
+      name: 'BS.CKI Nguyễn Thị Hương',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenThiHuong',
+      status: 'online',
+      specialty: 'Bác sĩ Nội tiết - Đái tháo đường'
+    },
+    lastMessage: 'Chỉ số HbA1c của bạn đã cải thiện rất tốt. Hãy duy trì chế độ này nhé.',
+    timestamp: '10 phút',
+    unread: 0
+  },
+  {
+    id: 'conv-2',
+    doctor: {
+      id: 'doc-dinh-duong-002',
+      name: 'CN. Lê Minh Tuấn',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LeMinhTuan',
+      status: 'online',
+      specialty: 'Chuyên gia Dinh dưỡng'
+    },
+    lastMessage: 'Thực đơn tuần này tôi đã gửi cho bạn. Hãy theo dõi và ghi chép lại cảm nhận nhé.',
+    timestamp: '2 giờ',
+    unread: 1
+  },
+  {
+    id: 'conv-3',
+    doctor: {
+      id: 'doc-noi-tiet-003',
+      name: 'TS.BS Phạm Đức Minh',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PhamDucMinh',
+      status: 'offline',
+      specialty: 'Tiến sĩ Nội tiết - Chuyên gia Đái tháo đường'
+    },
+    lastMessage: 'Kết quả xét nghiệm cho thấy cần điều chỉnh liều insulin. Tôi sẽ gọi cho bạn chiều nay.',
+    timestamp: '1 ngày',
+    unread: 0
+  },
+  {
+    id: 'conv-4',
+    doctor: {
+      id: 'group-support-001',
+      name: 'Nhóm Hỗ trợ Tiểu đường Type 2',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DiabetesGroup',
+      status: 'online',
+      specialty: 'Cộng đồng bệnh nhân',
+      isGroup: true
+    },
+    lastMessage: 'Chào mọi người! Hôm nay mình muốn chia sẻ kinh nghiệm kiểm soát đường huyết...',
+    timestamp: '5 giờ',
+    unread: 3,
+    isGroup: true
+  }
+];
+
+// Mock data for DOCTORS viewing PATIENTS
+const mockDoctorConversations = [
+  {
+    id: 'conv-p1',
+    doctor: {
+      id: 'patient-001',
+      name: 'Nguyễn Văn An',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenVanAn',
+      status: 'online',
+      specialty: 'Bệnh nhân Tiểu đường Type 2'
+    },
+    lastMessage: 'Cảm ơn bác sĩ! Em sẽ tuân thủ theo chỉ định của bác sĩ.',
+    timestamp: '5 phút',
+    unread: 2
+  },
+  {
+    id: 'conv-p2',
+    doctor: {
+      id: 'patient-002',
+      name: 'Trần Thị Bình',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=TranThiBinh',
+      status: 'online',
+      specialty: 'Bệnh nhân Tiểu đường Type 1'
+    },
+    lastMessage: 'Bác sĩ ơi, em đo đường huyết sáng nay là 135 mg/dL có cao không ạ?',
+    timestamp: '15 phút',
+    unread: 1
+  },
+  {
+    id: 'conv-p3',
+    doctor: {
+      id: 'patient-003',
+      name: 'Lê Minh Châu',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LeMinhChau',
+      status: 'offline',
+      specialty: 'Bệnh nhân Tiểu đường thai kỳ'
+    },
+    lastMessage: 'Em cảm ơn bác sĩ đã tư vấn. Em sẽ theo dõi và báo cáo lại.',
+    timestamp: '1 giờ',
+    unread: 0
+  },
+  {
+    id: 'conv-p4',
+    doctor: {
+      id: 'patient-004',
+      name: 'Phạm Hoàng Dũng',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=PhamHoangDung',
+      status: 'online',
+      specialty: 'Bệnh nhân Tiền tiểu đường'
+    },
+    lastMessage: 'Chào bác sĩ, kết quả xét nghiệm HbA1c của con là 6.2%. Xin bác sĩ tư vấn.',
+    timestamp: '3 giờ',
+    unread: 1
+  }
+];
+
+const mockMessages = {
+  'conv-1': [
+    {
+      id: 'msg-1',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Chào bác sĩ Hương, em vừa nhận được kết quả xét nghiệm HbA1c là 6.8%. Em muốn hỏi kết quả này có ổn không ạ?',
+      timestamp: '09:15',
+      isOwn: true
+    },
+    {
+      id: 'msg-2',
+      senderId: 'doc-noi-tiet-001',
+      senderName: 'BS.CKI Nguyễn Thị Hương',
+      content: 'Chào bạn! Kết quả HbA1c 6.8% là rất tốt, cho thấy đường huyết của bạn đã được kiểm soát tốt trong 3 tháng qua. Mục tiêu lý tưởng là dưới 7%, và bạn đã đạt được điều đó.',
+      timestamp: '09:18',
+      isOwn: false
+    },
+    {
+      id: 'msg-3',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Cảm ơn bác sĩ! Vậy em có cần điều chỉnh liều thuốc không ạ?',
+      timestamp: '09:20',
+      isOwn: true
+    },
+    {
+      id: 'msg-4',
+      senderId: 'doc-noi-tiet-001',
+      senderName: 'BS.CKI Nguyễn Thị Hương',
+      content: 'Hiện tại bạn vẫn duy trì liều Metformin 500mg x 2 lần/ngày. Với kết quả này, chúng ta chưa cần thay đổi. Hãy tiếp tục theo dõi đường huyết hàng ngày và ghi chép vào sổ nhé.',
+      timestamp: '09:23',
+      isOwn: false
+    },
+    {
+      id: 'msg-5',
+      senderId: 'doc-noi-tiet-001',
+      senderName: 'BS.CKI Nguyễn Thị Hương',
+      content: 'Ngoài ra, bạn nhớ khám lại sau 3 tháng để kiểm tra HbA1c và chức năng thận nhé. Tôi sẽ lên lịch hẹn cho bạn.',
+      timestamp: '09:24',
+      isOwn: false
+    },
+    {
+      id: 'msg-6',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Vâng ạ, em cảm ơn bác sĩ rất nhiều! 🙏',
+      timestamp: '09:26',
+      isOwn: true
+    },
+    {
+      id: 'msg-7',
+      senderId: 'doc-noi-tiet-001',
+      senderName: 'BS.CKI Nguyễn Thị Hương',
+      content: 'Chỉ số HbA1c của bạn đã cải thiện rất tốt. Hãy duy trì chế độ này nhé.',
+      timestamp: '09:28',
+      isOwn: false
+    }
+  ],
+  'conv-2': [
+    {
+      id: 'msg-conv2-1',
+      senderId: 'doc-dinh-duong-002',
+      senderName: 'CN. Lê Minh Tuấn',
+      content: 'Chào bạn! Dựa trên phân tích chế độ ăn tuần trước, tôi thấy bạn cần tăng lượng rau xanh và giảm carbohydrate tinh chế.',
+      timestamp: '14:30',
+      isOwn: false
+    },
+    {
+      id: 'msg-conv2-2',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Vâng ạ, em sẽ cố gắng. Nhưng em thấy khó kiểm soát khẩu phần ăn tối lắm ạ.',
+      timestamp: '14:35',
+      isOwn: true
+    },
+    {
+      id: 'msg-conv2-3',
+      senderId: 'doc-dinh-duong-002',
+      senderName: 'CN. Lê Minh Tuấn',
+      content: 'Tôi hiểu. Bữa tối nên ăn trước 19h và không nên quá no. Tôi sẽ gửi cho bạn 5 mẫu thực đơn bữa tối phù hợp, mỗi món đều có chi tiết về lượng calo và chỉ số đường.',
+      timestamp: '14:38',
+      isOwn: false
+    },
+    {
+      id: 'msg-conv2-4',
+      senderId: 'doc-dinh-duong-002',
+      senderName: 'CN. Lê Minh Tuấn',
+      content: 'Thực đơn tuần này tôi đã gửi cho bạn. Hãy theo dõi và ghi chép lại cảm nhận nhé.',
+      timestamp: '14:40',
+      isOwn: false
+    }
+  ],
+  'conv-3': [
+    {
+      id: 'msg-conv3-1',
+      senderId: 'doc-noi-tiet-003',
+      senderName: 'TS.BS Phạm Đức Minh',
+      content: 'Chào bạn, tôi đã xem kết quả xét nghiệm đường huyết lúc đói của bạn. Chỉ số 145 mg/dL hơi cao so với mục tiêu 80-130 mg/dL.',
+      timestamp: 'Hôm qua 16:20',
+      isOwn: false
+    },
+    {
+      id: 'msg-conv3-2',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Vâng ạ, em cũng thấy thế. Em có cần tăng liều insulin không ạ?',
+      timestamp: 'Hôm qua 16:25',
+      isOwn: true
+    },
+    {
+      id: 'msg-conv3-3',
+      senderId: 'doc-noi-tiet-003',
+      senderName: 'TS.BS Phạm Đức Minh',
+      content: 'Kết quả xét nghiệm cho thấy cần điều chỉnh liều insulin. Tôi sẽ gọi cho bạn chiều nay.',
+      timestamp: 'Hôm qua 16:30',
+      isOwn: false
+    }
+  ],
+  'conv-4': [
+    {
+      id: 'msg-group-1',
+      senderId: 'admin-group',
+      senderName: 'Quản trị viên',
+      content: 'Chào mừng các bạn đến với nhóm Hỗ trợ Tiểu đường Type 2! Đây là nơi chia sẻ kinh nghiệm và hỗ trợ lẫn nhau trong hành trình kiểm soát bệnh.',
+      timestamp: '08:00',
+      isOwn: false
+    },
+    {
+      id: 'msg-group-2',
+      senderId: 'patient-002',
+      senderName: 'Nguyễn Văn A',
+      content: 'Chào mọi người! Mình mới tham gia nhóm. Mình bị tiểu đường type 2 được 2 năm rồi.',
+      timestamp: '09:30',
+      isOwn: false
+    },
+    {
+      id: 'msg-group-3',
+      senderId: 'patient-001',
+      senderName: 'Bạn',
+      content: 'Chào bạn! Mình cũng vậy. Kiểm soát đường huyết đều đặn là quan trọng nhất nhé!',
+      timestamp: '10:15',
+      isOwn: true
+    },
+    {
+      id: 'msg-group-4',
+      senderId: 'patient-003',
+      senderName: 'Trần Thị B',
+      content: 'Mình thấy tập thể dục đều đặn giúp kiểm soát đường huyết tốt lắm. Ai cũng tập thì chia sẻ kinh nghiệm nhé!',
+      timestamp: '11:45',
+      isOwn: false
+    },
+    {
+      id: 'msg-group-5',
+      senderId: 'patient-004',
+      senderName: 'Lê Văn C',
+      content: 'Chào mọi người! Hôm nay mình muốn chia sẻ kinh nghiệm kiểm soát đường huyết...',
+      timestamp: '13:20',
+      isOwn: false
+    }
+  ]
+};
+
+const mockPatientHistory = [
+  { title: 'Dự đoán nguy cơ tiểu đường - Kết quả: Nguy cơ cao', date: '20/01/2026' },
+  { title: 'Xét nghiệm HbA1c: 6.8%', date: '15/01/2026' },
+  { title: 'Đo đường huyết lúc đói: 112 mg/dL', date: '10/01/2026' },
+  { title: 'Khám định kỳ - BS.CKI Nguyễn Thị Hương', date: '05/01/2026' },
+  { title: 'Xét nghiệm chức năng thận', date: '28/12/2025' }
+];
+
+export function ChatPage() {
+  const { user } = useAuth();
+  const messagesEndRef = useRef(null);
+  
+  // Branch logic by user role
+  const isDoctor = user?.role === 'doctor';
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load conversations based on role
+  useEffect(() => {
+    loadConversations();
+  }, [isDoctor]);
+
+  const loadConversations = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (isDoctor) {
+        // Load doctor's inbox
+        const response = await chatAPI.getDoctorInbox();
+        const inbox = response.data || [];
+        
+        // Transform to match UI structure
+        const transformedConversations = inbox.map(conv => ({
+          id: conv.conversationId.toString(),
+          doctor: {
+            id: conv.patientId.toString(),
+            name: conv.patientName,
+            avatar: conv.patientAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.patientName}`,
+            status: 'online', // Can be enhanced with real status later
+            specialty: 'Bệnh nhân'
+          },
+          lastMessage: conv.lastMessage,
+          timestamp: formatTimestamp(conv.lastMessageAt),
+          unread: conv.unreadCount || 0
+        }));
+        
+        setConversations(transformedConversations);
+      } else {
+        // Load patient's conversation
+        const response = await chatAPI.getPatientConversation();
+        const conv = response.data;
+        
+        if (conv && conv.hasConversation) {
+          const transformedConversation = {
+            id: conv.conversationId.toString(),
+            doctor: {
+              id: conv.doctorId.toString(),
+              name: conv.doctorName,
+              avatar: conv.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.doctorName}`,
+              status: 'online',
+              specialty: conv.doctorSpecialty || 'Bác sĩ'
+            },
+            lastMessage: conv.lastMessage,
+            timestamp: formatTimestamp(conv.lastMessageAt),
+            unread: conv.unreadCount || 0
+          };
+          setConversations([transformedConversation]);
+        } else if (conv && !conv.hasConversation) {
+          // Doctor assigned but no messages yet
+          const transformedConversation = {
+            id: 'new',
+            doctor: {
+              id: conv.doctorId.toString(),
+              name: conv.doctorName,
+              avatar: conv.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.doctorName}`,
+              status: 'online',
+              specialty: conv.doctorSpecialty || 'Bác sĩ'
+            },
+            lastMessage: 'Bắt đầu cuộc trò chuyện với bác sĩ',
+            timestamp: 'Mới',
+            unread: 0
+          };
+          setConversations([transformedConversation]);
+        } else {
+          // No assigned doctor
+          setConversations([]);
+          setError('Bạn chưa được phân công bác sĩ. Vui lòng liên hệ quản trị viên.');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading conversations:', err);
+      setError(err.message || 'Không thể tải danh sách cuộc trò chuyện');
+      setConversations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format timestamp helper
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Vừa xong';
+    if (minutes < 60) return `${minutes} phút`;
+    if (hours < 24) return `${hours} giờ`;
+    if (days === 1) return 'Hôm qua';
+    return `${days} ngày`;
+  };
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (selectedConversationId && selectedConversationId !== 'new') {
+      loadMessages(selectedConversationId);
+    } else {
+      setMessages([]);
+    }
+  }, [selectedConversationId]);
+
+  const loadMessages = async (conversationId) => {
+    try {
+      const response = await chatAPI.getMessages(conversationId);
+      const loadedMessages = response.data || [];
+      setMessages(loadedMessages);
+    } catch (err) {
+      console.error('Error loading messages:', err);
+      setMessages([]);
+    }
+  };
+
+  // Auto scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Filter conversations
+  const filteredConversations = conversations.filter(conv => {
+    const matchesSearch = conv.doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (selectedFilter === 'all') return matchesSearch;
+    if (selectedFilter === 'doctors') return matchesSearch && !conv.isGroup;
+    if (selectedFilter === 'groups') return matchesSearch && conv.isGroup;
+    return matchesSearch;
+  });
+
+  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+
+  const handleSendMessage = async (content) => {
+    if (!content.trim()) return;
+    
+    try {
+      // Prepare message data
+      const messageData = {
+        content: content.trim()
+      };
+
+      // Doctor needs to provide conversationId
+      if (isDoctor && selectedConversationId) {
+        messageData.conversationId = selectedConversationId;
+      }
+
+      // Send message via API
+      const response = await chatAPI.sendMessage(messageData);
+      
+      // Get the conversation ID (might be new for patient's first message)
+      const currentConversationId = response.data.conversationId.toString();
+      
+      // If this was a new conversation for patient, update the conversation ID
+      if (selectedConversationId === 'new') {
+        setSelectedConversationId(currentConversationId);
+      }
+
+      // Reload messages to show the new message
+      await loadMessages(currentConversationId);
+      
+      // Reload conversations list to update last message and timestamp
+      loadConversations();
+
+      // Simulate typing indicator (optional)
+      setIsTyping(true);
+      setTimeout(() => {
+        setIsTyping(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert(error.message || 'Không thể gửi tin nhắn. Vui lòng thử lại.');
+    }
+  };
+
+  const handleConversationClick = (convId) => {
+    setSelectedConversationId(convId);
+  };
+
+  return (
+    <div className="h-[calc(100vh-64px)] flex bg-gray-50">
+      {/* Left Sidebar - Conversation List */}
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+            {isDoctor ? 'Tư vấn bệnh nhân' : 'Tư vấn y tế'}
+          </h1>
+          
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm..."
+              className="pl-10 bg-gray-50 border-gray-200 rounded-xl"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedFilter('all')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'all'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              onClick={() => setSelectedFilter('doctors')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'doctors'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {isDoctor ? 'Bệnh nhân' : 'Bác sĩ'}
+            </button>
+            <button
+              onClick={() => setSelectedFilter('groups')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'groups'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Nhóm
+            </button>
+          </div>
+        </div>
+
+        {/* Conversation List */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="p-6 text-center text-gray-500">
+              <p className="text-sm">Đang tải...</p>
+            </div>
+          ) : error ? (
+            <div className="p-6 text-center text-red-500">
+              <p className="text-sm">{error}</p>
+            </div>
+          ) : filteredConversations.length > 0 ? (
+            filteredConversations.map((conv) => (
+              <ChatListItem
+                key={conv.id}
+                conversation={conv}
+                isActive={selectedConversationId === conv.id}
+                onClick={() => handleConversationClick(conv.id)}
+              />
+            ))
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              <p className="text-sm">
+                {isDoctor 
+                  ? 'Chưa có bệnh nhân nào gửi tin nhắn'
+                  : 'Không tìm thấy cuộc trò chuyện'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {selectedConversationId && selectedConversation ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={selectedConversation.doctor.avatar} />
+                  <AvatarFallback className="bg-green-100 text-green-700">
+                    {selectedConversation.doctor.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="font-semibold text-gray-800">{selectedConversation.doctor.name}</h2>
+                  <p className={`text-sm ${selectedConversation.doctor.status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
+                    {selectedConversation.doctor.status === 'online' ? '● Đang online' : '○ Offline'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Phone className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Video className="w-5 h-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              {messages.length > 0 ? (
+                <>
+                  {messages.map((message) => (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      isOwn={message.isOwn}
+                    />
+                  ))}
+                  {isTyping && (
+                    <TypingIndicator senderName={selectedConversation.doctor.name} />
+                  )}
+                  <div ref={messagesEndRef} />
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  <p className="text-sm">Chưa có tin nhắn nào</p>
+                </div>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <MessageComposer onSendMessage={handleSendMessage} />
+          </>
+        ) : (
+          /* Empty State */
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            <div className="text-center">
+              <div className="text-6xl mb-4">💬</div>
+              <p className="text-lg font-medium mb-2">Chọn một cuộc trò chuyện để bắt đầu</p>
+              <p className="text-sm">
+                {isDoctor 
+                  ? 'Kết nối với bệnh nhân để tư vấn và hỗ trợ'
+                  : 'Kết nối với bác sĩ để được tư vấn sức khỏe'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar - Info Panel (Desktop only) */}
+      {selectedConversationId && selectedConversation && !isDoctor && (
+        <div className="hidden lg:block">
+          <ChatInfoPanel
+            doctor={selectedConversation.doctor}
+            patientHistory={mockPatientHistory}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

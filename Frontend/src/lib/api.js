@@ -152,3 +152,22 @@ export const questionAPI = {
   delete: (id) => apiClient.delete(`/questions/${id}`), // Admin only
 }
 
+// ============================================================================
+// Chat APIs
+// ============================================================================
+export const chatAPI = {
+  // Send message (patient or doctor)
+  sendMessage: (data) => apiClient.post('/chat/messages', data),
+  
+  // Get doctor's inbox (conversations with patients)
+  getDoctorInbox: () => apiClient.get('/chat/conversations/doctor'),
+  
+  // Get patient's conversation info
+  getPatientConversation: () => apiClient.get('/chat/conversations/patient'),
+  
+  // Get messages in a conversation
+  getMessages: (conversationId) => apiClient.get(`/chat/messages/${conversationId}`),
+  
+  // Mark messages as read
+  markAsRead: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/read`),
+}

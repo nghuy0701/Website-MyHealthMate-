@@ -6,6 +6,7 @@ import { patientRoute } from './patients.js'
 import { mlRoute } from './ml.js'
 import { articleRoute } from './articles.js'
 import { questionRoute } from './questions.js'
+import { chatRoute } from './chat.js'
 
 const Router = express.Router()
 
@@ -17,6 +18,7 @@ Router.use('/patients', patientRoute)
 Router.use('/ml', mlRoute)
 Router.use('/articles', articleRoute)
 Router.use('/questions', questionRoute)
+Router.use('/chat', chatRoute)
 
 // Health check endpoint
 Router.get('/health', (req, res) => {
