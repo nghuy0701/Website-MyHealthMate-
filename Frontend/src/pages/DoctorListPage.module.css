@@ -1,0 +1,260 @@
+.doctorListContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1e40af;
+  margin: 0 0 10px 0;
+}
+
+.header p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+.specialtyFilter {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.specialtyBtn {
+  padding: 10px 20px;
+  border: 2px solid #d0d0d0;
+  background: white;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.specialtyBtn:hover {
+  border-color: #1e40af;
+  color: #1e40af;
+}
+
+.specialtyBtn.active {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%);
+  color: white;
+  border-color: #1e40af;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  font-size: 1.2rem;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.doctorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.doctorCard {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.doctorCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.doctorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.statusBadge {
+  display: flex;
+  gap: 8px;
+}
+
+.available {
+  background: #10b981;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.unavailable {
+  background: #ef4444;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.doctorCard h3 {
+  margin: 15px 0 5px 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.specialty {
+  margin: 0 0 10px 0;
+  font-size: 0.95rem;
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.bio {
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.stars {
+  font-weight: 600;
+  color: #f59e0b;
+  font-size: 0.95rem;
+}
+
+.count {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.hours {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f0f7ff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1e40af;
+}
+
+.hours small {
+  display: block;
+}
+
+.connectBtn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  margin-top: auto;
+}
+
+.connectBtn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+.connectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  text-align: center;
+  color: #999;
+}
+
+.emptyState p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .doctorListContainer {
+    padding: 15px;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .doctorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .specialtyFilter {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 10px 0;
+  }
+
+  .specialtyBtn {
+    white-space: nowrap;
+  }
+}
