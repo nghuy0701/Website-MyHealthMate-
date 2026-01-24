@@ -171,3 +171,23 @@ export const chatAPI = {
   // Mark messages as read
   markAsRead: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/read`),
 }
+
+// ============================================================================
+// Notification APIs
+// ============================================================================
+export const notificationAPI = {
+  // Get my notifications
+  getMyNotifications: () => apiClient.get('/notifications'),
+  
+  // Get unread count
+  getUnreadCount: () => apiClient.get('/notifications/unread-count'),
+  
+  // Mark notification as read
+  markAsRead: (id) => apiClient.put(`/notifications/${id}/read`),
+  
+  // Mark all notifications as read
+  markAllAsRead: () => apiClient.put('/notifications/read-all'),
+  
+  // Delete notification
+  deleteNotification: (id) => apiClient.delete(`/notifications/${id}`),
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth-context';
+import { useNotificationStore } from '../lib/useNotificationStore';
 import { chatAPI, predictionAPI } from '../lib/api';
 import { useSocket } from '../lib/useSocket';
 import { useTypingIndicator } from '../lib/useTypingIndicator';
@@ -300,6 +301,7 @@ const mockPatientHistory = [
 
 export function ChatPage() {
   const { user } = useAuth();
+  const setCurrentConversationId = useNotificationStore(state => state.setCurrentConversationId);
   const messagesContainerRef = useRef(null);
   const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
   
@@ -326,6 +328,11 @@ export function ChatPage() {
 
   // Get userId early - needed by callbacks below
   const userId = user?._id?.toString() || user?.id?.toString();
+  
+  // Update notification context with current conversation ID
+  useEffect(() => {
+    setCurrentConversationId(selectedConversationId);
+  }, [selectedConversationId, setCurrentConversationId]);
   
   console.log('[ChatPage] userId:', userId, 'conversations length:', conversations.length, 'selectedConversationId:', selectedConversationId);
 

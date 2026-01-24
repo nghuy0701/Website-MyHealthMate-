@@ -1,10 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
+import { useNotificationStore } from '../lib/useNotificationStore';
 import { Button } from './ui/button';
-import { Leaf } from 'lucide-react';
+import { Leaf, Bell } from 'lucide-react';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const unreadCount = useNotificationStore(state => state.unreadCount);
+  const openDrawer = useNotificationStore(state => state.openDrawer);
   const location = useLocation();
 
   const isActive = (path) => {
@@ -60,6 +63,21 @@ export function Header() {
                 >
                   Tư vấn
                 </Link>
+                
+                {/* Notification Bell */}
+                <button
+                  onClick={openDrawer}
+                  className="relative text-gray-600 hover:text-green-600 transition-colors"
+                  aria-label="Thông báo"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
                 <Link
                   to="/profile"
                   className={`transition-colors ${

@@ -1,6 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
 import { chatService } from '~/services'
+import { notificationService } from '~/services/notificationService'
 import ApiError from '~/utils/ApiError'
+import { createLogger } from '~/utils/logger'
+
+const logger = createLogger('ChatController')
 
 /**
  * Chat Controller - Handles HTTP requests for chat functionality
@@ -39,10 +43,12 @@ const sendMessage = async (req, res, next) => {
       throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid user role for chat')
     }
 
-    // Emit socket event (if socket is available)
+    // Emit socket events (if socket is available)
     if (req.app.get('io')) {
       const io = req.app.get('io')
       const receiverId = result.receiverId
+      
+      // Emit message event
       io.to(receiverId).emit('message:new', {
         messageId: result.messageId,
         conversationId: result.conversationId,
@@ -50,6 +56,11 @@ const sendMessage = async (req, res, next) => {
         senderRole: result.senderRole,
         content: result.content,
         createdAt: result.createdAt
+      })
+
+      // Create and emit notification (background task - don't wait)
+      createChatNotification(receiverId, result, isDoctor, io).catch(err => {
+        logger.error('Error creating chat notification:', err)
       })
     }
 
@@ -59,6 +70,60 @@ const sendMessage = async (req, res, next) => {
     })
   } catch (error) {
     next(error)
+  }
+}
+
+// Helper function to create chat notification
+const createChatNotification = async (receiverId, messageResult, senderIsDoctor, io) => {
+  try {
+    const senderName = senderIsDoctor ? messageResult.senderName : 'Bệnh nhân'
+    const truncatedContent = messageResult.content.length > 100 
+      ? messageResult.content.substring(0, 100) + '…'
+      : messageResult.content
+
+    const notificationData = {
+      userId: receiverId,
+      type: 'chat',
+      title: `Tin nhắn mới từ ${senderName}`,
+      description: truncatedContent,
+      role: senderIsDoctor ? 'patient' : 'doctor', // Only show to the recipient's role
+      deepLink: {
+        pathname: '/chat',
+        query: {
+          conversationId: messageResult.conversationId
+        }
+      },
+      meta: {
+        conversationId: messageResult.conversationId,
+        senderId: messageResult.senderId,
+        senderName: senderName
+      }
+    }
+
+    const notification = await notificationService.createNotification(notificationData)
+    
+    // Emit notification event to receiver
+    io.to(receiverId).emit('notification:new', {
+      notification: {
+        id: notification._id.toString(),
+        type: notification.type,
+        title: notification.title,
+        description: notification.description,
+        isRead: notification.isRead,
+        role: notification.role,
+        deepLink: notification.deepLink,
+        createdAt: notification.createdAt,
+        meta: {
+          conversationId: notification.meta?.conversationId?.toString(),
+          senderId: notification.meta?.senderId?.toString(),
+          senderName: notification.meta?.senderName
+        }
+      }
+    })
+    
+    logger.info(`[Notification] Created chat notification for user ${receiverId}`)
+  } catch (error) {
+    logger.error('[Notification] Error creating chat notification:', error)
   }
 }
 
