@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Paperclip, Send } from 'lucide-react';
 
-export function MessageComposer({ onSendMessage, disabled }) {
+export function MessageComposer({ onSendMessage, onTypingChange, disabled }) {
   const [messageInput, setMessageInput] = useState('');
+
+  // Notify parent when typing state changes
+  useEffect(() => {
+    if (onTypingChange) {
+      onTypingChange(messageInput.length > 0);
+    }
+  }, [messageInput, onTypingChange]);
 
   const handleSend = () => {
     if (!messageInput.trim() || disabled) return;

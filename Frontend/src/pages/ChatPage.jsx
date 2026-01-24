@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth-context';
 import { chatAPI } from '../lib/api';
+import { useSocket } from '../lib/useSocket';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -299,6 +300,7 @@ const mockPatientHistory = [
 export function ChatPage() {
   const { user } = useAuth();
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   
   // Branch logic by user role
   const isDoctor = user?.role === 'doctor';
@@ -311,6 +313,48 @@ export function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+
+  // Socket.io handlers
+  const handleNewMessage = useCallback((data) => {
+    // Only add message if it's for the current conversation
+    if (data.conversationId.toString() === selectedConversationId) {
+      const newMessage = {
+        id: data.messageId,
+        conversationId: data.conversationId,
+        senderId: data.senderId,
+        senderName: data.senderRole === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân',
+        senderRole: data.senderRole,
+        content: data.content,
+        createdAt: data.createdAt,
+        isOwn: false // Message from other user
+      };
+      setMessages(prev => [...prev, newMessage]);
+      setOtherUserTyping(false); // Hide typing indicator when message arrives
+    }
+    // Reload conversations to update last message
+    loadConversations();
+  }, [selectedConversationId]);
+
+  const handleTypingStart = useCallback((data) => {
+    if (data.conversationId === selectedConversationId) {
+      setOtherUserTyping(true);
+    }
+  }, [selectedConversationId]);
+
+  const handleTypingStop = useCallback((data) => {
+    if (data.conversationId === selectedConversationId) {
+      setOtherUserTyping(false);
+    }
+  }, [selectedConversationId]);
+
+  // Initialize Socket.io
+  const { isConnected, emitTypingStart, emitTypingStop } = useSocket(
+    user?.id || user?._id,
+    handleNewMessage,
+    handleTypingStart,
+    handleTypingStop
+  );
 
   // Load conversations based on role
   useEffect(() => {
@@ -454,6 +498,12 @@ export function ChatPage() {
     if (!content.trim()) return;
     
     try {
+      // Stop typing indicator
+      const receiverId = selectedConversation?.doctor?.id;
+      if (receiverId) {
+        emitTypingStop(selectedConversationId, receiverId);
+      }
+
       // Prepare message data
       const messageData = {
         content: content.trim()
@@ -480,15 +530,35 @@ export function ChatPage() {
       
       // Reload conversations list to update last message and timestamp
       loadConversations();
-
-      // Simulate typing indicator (optional)
-      setIsTyping(true);
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 1500);
     } catch (error) {
       console.error('Error sending message:', error);
       alert(error.message || 'Không thể gửi tin nhắn. Vui lòng thử lại.');
+    }
+  };
+
+  const handleTypingChange = (isTyping) => {
+    const receiverId = selectedConversation?.doctor?.id;
+    if (!receiverId || !selectedConversationId) return;
+
+    if (isTyping) {
+      // User started typing
+      emitTypingStart(selectedConversationId, receiverId);
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      // Set timeout to stop typing after 500ms of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        emitTypingStop(selectedConversationId, receiverId);
+      }, 500);
+    } else {
+      // User stopped typing
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      emitTypingStop(selectedConversationId, receiverId);
     }
   };
 
@@ -628,7 +698,7 @@ export function ChatPage() {
                       isOwn={message.isOwn}
                     />
                   ))}
-                  {isTyping && (
+                  {otherUserTyping && (
                     <TypingIndicator senderName={selectedConversation.doctor.name} />
                   )}
                   <div ref={messagesEndRef} />
@@ -641,7 +711,10 @@ export function ChatPage() {
             </div>
 
             {/* Message Input */}
-            <MessageComposer onSendMessage={handleSendMessage} />
+            <MessageComposer 
+              onSendMessage={handleSendMessage}
+              onTypingChange={handleTypingChange}
+            />
           </>
         ) : (
           /* Empty State */
