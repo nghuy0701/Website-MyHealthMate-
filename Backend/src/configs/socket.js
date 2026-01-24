@@ -27,31 +27,61 @@ export const initializeSocketIO = (httpServer, corsOptions) => {
   // Connection handler
   io.on('connection', (socket) => {
     const userId = socket.userId
-    logger.info(`User connected: ${userId}`)
+    logger.info(`[Socket.io] Connected: ${socket.id} (userId: ${userId})`)
 
     // Join user's personal room
     socket.join(userId)
 
-    // Handle typing indicator
+    /**
+     * Conversation room management
+     * Clients must join conversation rooms to receive typing indicators
+     */
+    socket.on('join:conversation', (conversationId) => {
+      if (conversationId) {
+        socket.join(conversationId)
+        logger.info(`[Socket.io] User ${userId} joined conversation ${conversationId}`)
+      }
+    })
+
+    socket.on('leave:conversation', (conversationId) => {
+      if (conversationId) {
+        socket.leave(conversationId)
+        logger.info(`[Socket.io] User ${userId} left conversation ${conversationId}`)
+      }
+    })
+
+    /**
+     * Typing indicator events
+     * Payload: { conversationId, senderId }
+     * 
+     * Server relays events to conversation room - NO debounce logic
+     * Debouncing is handled on the frontend
+     */
     socket.on('typing:start', (data) => {
-      const { receiverId, conversationId } = data
-      socket.to(receiverId).emit('typing:start', {
-        senderId: userId,
-        conversationId
+      const { conversationId, senderId } = data
+      logger.info(`[Socket.io] typing:start from ${senderId} in conversation ${conversationId}`)
+      
+      // Emit to conversation room (all members except sender)
+      socket.to(conversationId).emit('typing:start', {
+        conversationId,
+        senderId
       })
     })
 
     socket.on('typing:stop', (data) => {
-      const { receiverId, conversationId } = data
-      socket.to(receiverId).emit('typing:stop', {
-        senderId: userId,
-        conversationId
+      const { conversationId, senderId } = data
+      logger.info(`[Socket.io] typing:stop from ${senderId} in conversation ${conversationId}`)
+      
+      // Emit to conversation room (all members except sender)
+      socket.to(conversationId).emit('typing:stop', {
+        conversationId,
+        senderId
       })
     })
 
     // Disconnect handler
     socket.on('disconnect', () => {
-      logger.info(`User disconnected: ${userId}`)
+      logger.info(`[Socket.io] Disconnected: ${userId}`)
     })
   })
 

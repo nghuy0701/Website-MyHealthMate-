@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { usePrediction } from '../lib/hooks';
 import { Card } from '../components/ui/card';
@@ -109,6 +109,7 @@ function ConfirmDialog({ open, title, message, onConfirm, onCancel }) {
 export function HistoryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { getMyPredictions, deletePrediction, loading } = usePrediction();
   const [history, setHistory] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -117,10 +118,24 @@ export function HistoryPage() {
     message: '',
     onConfirm: null,
   });
+  const highlightedRef = useRef(null);
+  const highlightedId = location.state?.predictionId;
 
   useEffect(() => {
     loadHistory();
   }, []);
+
+  // Scroll to highlighted item after render
+  useEffect(() => {
+    if (highlightedId && highlightedRef.current) {
+      setTimeout(() => {
+        highlightedRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 100);
+    }
+  }, [highlightedId, history]);
 
   const loadHistory = async () => {
     try {
@@ -267,9 +282,14 @@ export function HistoryPage() {
                   const config = riskConfig[riskLevel];
                   const Icon = config.icon;
                   const date = new Date(record.createdAt);
+                  const isHighlighted = highlightedId && record._id === highlightedId;
 
                   return (
-                    <TableRow key={record._id}>
+                    <TableRow 
+                      key={record._id}
+                      ref={isHighlighted ? highlightedRef : null}
+                      className={isHighlighted ? 'bg-green-50 border-l-4 border-l-green-600' : ''}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-400" />

@@ -73,15 +73,33 @@ export function useSocket(userId, onNewMessage, onTypingStart, onTypingStop) {
   }, [userId, onNewMessage, onTypingStart, onTypingStop]);
 
   // Helper functions to emit events
-  const emitTypingStart = (conversationId, receiverId) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('typing:start', { conversationId, receiverId });
+  // Consistent payload: { conversationId, senderId }
+  const emitTypingStart = (conversationId, senderId) => {
+    if (socketRef.current?.connected && conversationId && senderId) {
+      socketRef.current.emit('typing:start', { conversationId, senderId });
+      console.log('[Socket] Emit typing:start', { conversationId, senderId });
     }
   };
 
-  const emitTypingStop = (conversationId, receiverId) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('typing:stop', { conversationId, receiverId });
+  const emitTypingStop = (conversationId, senderId) => {
+    if (socketRef.current?.connected && conversationId && senderId) {
+      socketRef.current.emit('typing:stop', { conversationId, senderId });
+      console.log('[Socket] Emit typing:stop', { conversationId, senderId });
+    }
+  };
+
+  // Helper functions to join/leave conversation rooms
+  const joinConversation = (conversationId) => {
+    if (socketRef.current?.connected && conversationId) {
+      socketRef.current.emit('join:conversation', conversationId);
+      console.log('[Socket] Joined conversation:', conversationId);
+    }
+  };
+
+  const leaveConversation = (conversationId) => {
+    if (socketRef.current?.connected && conversationId) {
+      socketRef.current.emit('leave:conversation', conversationId);
+      console.log('[Socket] Left conversation:', conversationId);
     }
   };
 
@@ -89,6 +107,8 @@ export function useSocket(userId, onNewMessage, onTypingStart, onTypingStop) {
     socket: socketRef.current,
     isConnected,
     emitTypingStart,
-    emitTypingStop
+    emitTypingStop,
+    joinConversation,
+    leaveConversation
   };
 }

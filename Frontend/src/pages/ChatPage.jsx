@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth-context';
-import { chatAPI } from '../lib/api';
+import { chatAPI, predictionAPI } from '../lib/api';
 import { useSocket } from '../lib/useSocket';
+import { useTypingIndicator } from '../lib/useTypingIndicator';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
@@ -299,11 +300,13 @@ const mockPatientHistory = [
 
 export function ChatPage() {
   const { user } = useAuth();
-  const messagesEndRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
   
   // Branch logic by user role
   const isDoctor = user?.role === 'doctor';
+  
+  console.log('[ChatPage] Component render - user role:', user?.role, 'isDoctor:', isDoctor);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -313,10 +316,41 @@ export function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [typingUserId, setTypingUserId] = useState(null); // Store userId of person typing in selected conversation
+  const [isLocalUserTyping, setIsLocalUserTyping] = useState(false); // Track if current user is typing
+  const [typingConversations, setTypingConversations] = useState({}); // Track typing per conversation: { conversationId: senderId }
+  const [patientHistory, setPatientHistory] = useState([]); // Prediction history for selected patient (doctor view)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false); // Loading state for prediction history
+  const [selectedPrediction, setSelectedPrediction] = useState(null); // Selected prediction for detail modal
+  const [isPredictionModalOpen, setIsPredictionModalOpen] = useState(false); // Modal visibility
+
+  // Get userId early - needed by callbacks below
+  const userId = user?._id?.toString() || user?.id?.toString();
+  
+  console.log('[ChatPage] userId:', userId, 'conversations length:', conversations.length, 'selectedConversationId:', selectedConversationId);
 
   // Socket.io handlers
   const handleNewMessage = useCallback((data) => {
+    console.log('[ChatPage] Received new message:', data);
+    
+    // Update conversations list with new last message and increment unread
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === data.conversationId.toString()) {
+        return {
+          ...conv,
+          lastMessage: data.content,
+          lastMessageAt: data.createdAt, // Store timestamp for relative time
+          timestamp: formatTimestamp(new Date(data.createdAt).getTime()),
+          // Increment unread ONLY if this is not the currently selected conversation
+          // or if the message is from someone else (not own message)
+          unread: (data.conversationId.toString() === selectedConversationId && data.senderId === userId) 
+            ? conv.unread 
+            : (conv.unread || 0) + 1
+        };
+      }
+      return conv;
+    }));
+    
     // Only add message if it's for the current conversation
     if (data.conversationId.toString() === selectedConversationId) {
       const newMessage = {
@@ -327,39 +361,266 @@ export function ChatPage() {
         senderRole: data.senderRole,
         content: data.content,
         createdAt: data.createdAt,
-        isOwn: false // Message from other user
+        isOwn: data.senderId === userId // Check if it's own message
       };
       setMessages(prev => [...prev, newMessage]);
-      setOtherUserTyping(false); // Hide typing indicator when message arrives
+      setTypingUserId(null); // Hide typing indicator when message arrives
+      
+      // If viewing this conversation, mark as read immediately
+      if (data.senderId !== userId) {
+        markConversationAsRead(data.conversationId.toString());
+      }
+      
+      // Scroll to bottom when receiving new message
+      setTimeout(() => scrollToBottom(), 100);
     }
-    // Reload conversations to update last message
-    loadConversations();
-  }, [selectedConversationId]);
+  }, [selectedConversationId, userId]);
 
   const handleTypingStart = useCallback((data) => {
-    if (data.conversationId === selectedConversationId) {
-      setOtherUserTyping(true);
+    // data = { senderId, conversationId }
+    console.log('[ChatPage] Received typing:start', data);
+    
+    // Don't track typing for own messages
+    if (data.senderId !== userId) {
+      // Update typing for selected conversation (for message area)
+      if (data.conversationId === selectedConversationId) {
+        setTypingUserId(data.senderId);
+        console.log('[ChatPage] Set typing user in chat:', data.senderId);
+      }
+      
+      // Update typing for conversation list (for all conversations)
+      setTypingConversations(prev => ({
+        ...prev,
+        [data.conversationId]: data.senderId
+      }));
+      console.log('[ChatPage] Set typing in conversation list:', data.conversationId, data.senderId);
+      
+      // Clear any existing timeout for this conversation
+      if (typingTimeoutsRef.current[data.conversationId]) {
+        clearTimeout(typingTimeoutsRef.current[data.conversationId]);
+      }
+      
+      // Set new timeout to auto-clear after 5 seconds of inactivity
+      typingTimeoutsRef.current[data.conversationId] = setTimeout(() => {
+        console.log('[ChatPage] Auto-clearing typing indicator for:', data.conversationId);
+        
+        // Clear typing for selected conversation
+        if (data.conversationId === selectedConversationId) {
+          setTypingUserId(null);
+        }
+        
+        // Clear typing for conversation list
+        setTypingConversations(prev => {
+          const updated = { ...prev };
+          delete updated[data.conversationId];
+          return updated;
+        });
+        
+        // Clean up timeout reference
+        delete typingTimeoutsRef.current[data.conversationId];
+      }, 5000); // 5 seconds timeout
     }
-  }, [selectedConversationId]);
+  }, [selectedConversationId, userId]);
 
   const handleTypingStop = useCallback((data) => {
-    if (data.conversationId === selectedConversationId) {
-      setOtherUserTyping(false);
+    // data = { senderId, conversationId }
+    console.log('[ChatPage] Received typing:stop', data);
+    
+    // Clear the auto-clear timeout since typing stopped explicitly
+    if (typingTimeoutsRef.current[data.conversationId]) {
+      clearTimeout(typingTimeoutsRef.current[data.conversationId]);
+      delete typingTimeoutsRef.current[data.conversationId];
     }
-  }, [selectedConversationId]);
+    
+    // Clear typing for selected conversation (for message area)
+    if (data.conversationId === selectedConversationId) {
+      if (data.senderId === typingUserId) {
+        setTypingUserId(null);
+        console.log('[ChatPage] Cleared typing indicator in chat');
+      }
+    }
+    
+    // Clear typing for conversation list
+    setTypingConversations(prev => {
+      const updated = { ...prev };
+      if (updated[data.conversationId] === data.senderId) {
+        delete updated[data.conversationId];
+        console.log('[ChatPage] Cleared typing in conversation list:', data.conversationId);
+      }
+      return updated;
+    });
+  }, [selectedConversationId, typingUserId]);
 
   // Initialize Socket.io
-  const { isConnected, emitTypingStart, emitTypingStop } = useSocket(
-    user?.id || user?._id,
+  const { isConnected, emitTypingStart, emitTypingStop, joinConversation, leaveConversation } = useSocket(
+    userId,
     handleNewMessage,
     handleTypingStart,
     handleTypingStop
   );
 
+  // Initialize typing indicator controller with 3000ms re-emit interval
+  const { handleTyping, stopTyping, cleanup } = useTypingIndicator(
+    emitTypingStart,
+    emitTypingStop,
+    selectedConversationId,
+    userId,
+    3000 // Re-emit typing:start every 3 seconds
+  );
+
+  // Cleanup typing indicator when conversation changes
+  useEffect(() => {
+    return () => cleanup();
+  }, [selectedConversationId, cleanup]);
+
+  // Cleanup all typing timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all typing timeouts
+      Object.values(typingTimeoutsRef.current).forEach(timeout => {
+        clearTimeout(timeout);
+      });
+      typingTimeoutsRef.current = {};
+      console.log('[ChatPage] Cleared all typing timeouts on unmount');
+    };
+  }, []);
+
+  // Join ALL conversation rooms when page loads (for conversation list typing indicators)
+  useEffect(() => {
+    if (conversations.length > 0 && isConnected) {
+      // Join all conversation rooms
+      conversations.forEach(conv => {
+        if (conv.id && conv.id !== 'new') {
+          joinConversation(conv.id);
+          console.log('[ChatPage] Joined conversation room for list:', conv.id);
+        }
+      });
+      
+      // Leave all rooms on cleanup (page unmount)
+      return () => {
+        conversations.forEach(conv => {
+          if (conv.id && conv.id !== 'new') {
+            leaveConversation(conv.id);
+            console.log('[ChatPage] Left conversation room on unmount:', conv.id);
+          }
+        });
+      };
+    }
+  }, [conversations, isConnected, joinConversation, leaveConversation]);
+
+  // Join selected conversation room (defensive - already joined above, but ensures connection)
+  useEffect(() => {
+    if (selectedConversationId && selectedConversationId !== 'new' && isConnected) {
+      // Re-join the conversation room (in case it wasn't in the list yet)
+      joinConversation(selectedConversationId);
+      console.log('[ChatPage] Ensured joined for selected conversation:', selectedConversationId);
+    }
+  }, [selectedConversationId, isConnected, joinConversation]);
+
+  // Debug log
+  useEffect(() => {
+    console.log('[ChatPage] User:', user);
+    console.log('[ChatPage] User ID for Socket:', userId);
+    console.log('[ChatPage] Socket connected:', isConnected);
+  }, [user, userId, isConnected]);
+
   // Load conversations based on role
   useEffect(() => {
     loadConversations();
   }, [isDoctor]);
+
+  // Fetch prediction history for patient view only
+  useEffect(() => {
+    // Skip for doctor view
+    if (isDoctor) {
+      return;
+    }
+    
+    console.log('[ChatPage] Prediction history useEffect called with deps:', {
+      isDoctor,
+      selectedConversationId,
+      conversationsLength: conversations.length,
+      userId
+    });
+    
+    const fetchPredictionHistory = async () => {
+      // Skip if no conversation selected or conversations not loaded yet
+      if (!selectedConversationId) {
+        console.log('[ChatPage] Skipping - no conversation selected');
+        setPatientHistory([]);
+        return;
+      }
+      
+      if (conversations.length === 0) {
+        console.log('[ChatPage] Skipping - conversations not loaded yet');
+        return;
+      }
+      
+      // Get current selected conversation
+      const currentConversation = conversations.find(c => c.id === selectedConversationId);
+      
+      console.log('[ChatPage] Prediction history effect triggered:', {
+        isDoctor,
+        userId,
+        selectedConversationId,
+        hasConversation: !!currentConversation,
+        conversationsLength: conversations.length,
+        currentConversation
+      });
+      
+      if (!currentConversation) {
+        console.log('[ChatPage] No conversation found for ID:', selectedConversationId);
+        setPatientHistory([]);
+        return;
+      }
+
+      let targetPatientId;
+      
+      // Patient viewing own history: use current user's ID
+      targetPatientId = userId;
+      console.log('[ChatPage] Patient view - own ID:', targetPatientId);
+      
+      if (!targetPatientId) {
+        console.log('[ChatPage] No valid patientId found');
+        setPatientHistory([]);
+        return;
+      }
+      
+      try {
+        setIsLoadingHistory(true);
+        console.log('[ChatPage] Fetching prediction history for patient:', targetPatientId);
+        
+        // Use getMyPredictions for patient view
+        const response = await predictionAPI.getMyPredictions();
+          
+        console.log('[ChatPage] API response:', response);
+        console.log('[ChatPage] API response.data:', response.data);
+        console.log('[ChatPage] API response.data type:', Array.isArray(response.data), 'length:', response.data?.length);
+        const predictions = response.data || [];
+        
+        // Transform predictions to history format
+        const formattedHistory = predictions.map(pred => ({
+          predictionId: pred._id,
+          title: `Dự đoán nguy cơ tiểu đường - ${pred.result === 'positive' ? 'Nguy cơ cao' : 'Nguy cơ thấp'}`,
+          date: new Date(pred.createdAt).toLocaleDateString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          })
+        }));
+        
+        setPatientHistory(formattedHistory);
+        console.log('[ChatPage] Loaded prediction history:', formattedHistory.length, 'items');
+      } catch (err) {
+        console.error('[ChatPage] Error loading prediction history:', err);
+        setPatientHistory([]); // Clear on error
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchPredictionHistory();
+  }, [isDoctor, selectedConversationId, conversations, userId]); // Add back conversations as dependency
 
   const loadConversations = async () => {
     try {
@@ -382,6 +643,7 @@ export function ChatPage() {
             specialty: 'Bệnh nhân'
           },
           lastMessage: conv.lastMessage,
+          lastMessageAt: conv.lastMessageAt, // Store for relative time calculation
           timestamp: formatTimestamp(conv.lastMessageAt),
           unread: conv.unreadCount || 0
         }));
@@ -403,6 +665,7 @@ export function ChatPage() {
               specialty: conv.doctorSpecialty || 'Bác sĩ'
             },
             lastMessage: conv.lastMessage,
+            lastMessageAt: conv.lastMessageAt, // Store for relative time calculation
             timestamp: formatTimestamp(conv.lastMessageAt),
             unread: conv.unreadCount || 0
           };
@@ -453,6 +716,23 @@ export function ChatPage() {
     if (days === 1) return 'Hôm qua';
     return `${days} ngày`;
   };
+  
+  // Mark conversation as read (clear unread badge)
+  const markConversationAsRead = async (conversationId) => {
+    try {
+      // Immediately update UI - don't wait for server
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId ? { ...conv, unread: 0 } : conv
+      ));
+      
+      // Send to server in background (fire and forget)
+      await chatAPI.markAsRead(conversationId);
+      console.log('[ChatPage] Marked conversation as read:', conversationId);
+    } catch (err) {
+      console.error('[ChatPage] Error marking as read:', err);
+      // Don't revert UI - user experience is more important
+    }
+  };
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -463,24 +743,26 @@ export function ChatPage() {
     }
   }, [selectedConversationId]);
 
-  const loadMessages = async (conversationId) => {
+  const loadMessages = async (conversationId, shouldScroll = false) => {
     try {
       const response = await chatAPI.getMessages(conversationId);
       const loadedMessages = response.data || [];
       setMessages(loadedMessages);
+      
+      // Only scroll if explicitly requested (e.g., after sending message)
+      if (shouldScroll) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
     } catch (err) {
       console.error('Error loading messages:', err);
       setMessages([]);
     }
   };
 
-  // Auto scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   // Filter conversations
@@ -494,15 +776,58 @@ export function ChatPage() {
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
 
+  // Get display name for typing user
+  const getTypingUserName = () => {
+    if (!typingUserId) {
+      console.log('[ChatPage] No typingUserId');
+      return null;
+    }
+    
+    console.log('[ChatPage] Computing typing user name:', {
+      typingUserId,
+      typingUserIdType: typeof typingUserId,
+      selectedConversationDoctorId: selectedConversation?.doctor?.id,
+      doctorIdType: typeof selectedConversation?.doctor?.id,
+      selectedConversationDoctorName: selectedConversation?.doctor?.name,
+      isDoctor,
+      idsMatch: selectedConversation?.doctor?.id === typingUserId,
+      idsMatchStrict: selectedConversation?.doctor?.id?.toString() === typingUserId?.toString()
+    });
+    
+    // In doctor-patient chat, the typing user is the conversation partner
+    // Convert both IDs to strings for comparison
+    const doctorIdStr = selectedConversation?.doctor?.id?.toString();
+    const typingUserIdStr = typingUserId?.toString();
+    
+    if (doctorIdStr === typingUserIdStr) {
+      // Return actual name from database
+      const name = selectedConversation.doctor.name;
+      
+      if (isDoctor) {
+        // Doctor viewing patient - return patient name
+        console.log('[ChatPage] Returning patient name:', name);
+        return name;
+      } else {
+        // Patient viewing doctor - return "Bác sĩ <doctor name>"
+        console.log('[ChatPage] Returning doctor name:', name);
+        return `Bác sĩ ${name}`;
+      }
+    }
+    
+    console.log('[ChatPage] IDs do not match, returning null');
+    return null;
+  };
+
+  const typingUserName = getTypingUserName();
+  console.log('[ChatPage] Final typing user name:', typingUserName);
+
   const handleSendMessage = async (content) => {
     if (!content.trim()) return;
     
     try {
-      // Stop typing indicator
-      const receiverId = selectedConversation?.doctor?.id;
-      if (receiverId) {
-        emitTypingStop(selectedConversationId, receiverId);
-      }
+      // Stop typing indicator immediately when sending
+      stopTyping();
+      setIsLocalUserTyping(false); // Clear local typing state
 
       // Prepare message data
       const messageData = {
@@ -525,8 +850,8 @@ export function ChatPage() {
         setSelectedConversationId(currentConversationId);
       }
 
-      // Reload messages to show the new message
-      await loadMessages(currentConversationId);
+      // Reload messages to show the new message and scroll to bottom
+      await loadMessages(currentConversationId, true);
       
       // Reload conversations list to update last message and timestamp
       loadConversations();
@@ -536,34 +861,52 @@ export function ChatPage() {
     }
   };
 
-  const handleTypingChange = (isTyping) => {
-    const receiverId = selectedConversation?.doctor?.id;
-    if (!receiverId || !selectedConversationId) return;
-
+  // Called from MessageComposer when input changes
+  // inputLength: number of characters in input
+  const handleTypingChange = (inputLength) => {
+    if (!selectedConversationId || selectedConversationId === 'new') return;
+    
+    // Update local typing state IMMEDIATELY (for instant UI)
+    const isTyping = inputLength > 0;
+    setIsLocalUserTyping(isTyping);
+    
+    // Emit socket events with debounce (to reduce network traffic)
     if (isTyping) {
-      // User started typing
-      emitTypingStart(selectedConversationId, receiverId);
-      
-      // Clear previous timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set timeout to stop typing after 500ms of inactivity
-      typingTimeoutRef.current = setTimeout(() => {
-        emitTypingStop(selectedConversationId, receiverId);
-      }, 500);
+      handleTyping(); // Debounced typing:start
     } else {
-      // User stopped typing
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      emitTypingStop(selectedConversationId, receiverId);
+      stopTyping(); // Immediate typing:stop when input is empty
     }
   };
 
   const handleConversationClick = (convId) => {
     setSelectedConversationId(convId);
+    
+    // Clear unread badge immediately when opening conversation
+    if (convId && convId !== 'new') {
+      markConversationAsRead(convId);
+    }
+  };
+
+  // Handle prediction click - show detail modal
+  const handlePredictionClick = async (predictionId) => {
+    if (!predictionId) return;
+    
+    try {
+      console.log('[ChatPage] Fetching prediction detail:', predictionId);
+      const response = await predictionAPI.getById(predictionId);
+      const prediction = response.data;
+      
+      setSelectedPrediction(prediction);
+      setIsPredictionModalOpen(true);
+      console.log('[ChatPage] Prediction detail loaded:', prediction);
+    } catch (err) {
+      console.error('[ChatPage] Error loading prediction detail:', err);
+    }
+  };
+
+  const closePredictionModal = () => {
+    setIsPredictionModalOpen(false);
+    setSelectedPrediction(null);
   };
 
   return (
@@ -639,6 +982,7 @@ export function ChatPage() {
                 conversation={conv}
                 isActive={selectedConversationId === conv.id}
                 onClick={() => handleConversationClick(conv.id)}
+                isTyping={!!typingConversations[conv.id]}
               />
             ))
           ) : (
@@ -688,7 +1032,7 @@ export function ChatPage() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">
               {messages.length > 0 ? (
                 <>
                   {messages.map((message) => (
@@ -698,10 +1042,9 @@ export function ChatPage() {
                       isOwn={message.isOwn}
                     />
                   ))}
-                  {otherUserTyping && (
-                    <TypingIndicator senderName={selectedConversation.doctor.name} />
+                  {typingUserName && (
+                    <TypingIndicator senderName={typingUserName} />
                   )}
-                  <div ref={messagesEndRef} />
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
@@ -732,13 +1075,75 @@ export function ChatPage() {
         )}
       </div>
 
-      {/* Right Sidebar - Info Panel (Desktop only) */}
+      {/* Right Sidebar - Info Panel (Only for patient view) */}
       {selectedConversationId && selectedConversation && !isDoctor && (
-        <div className="hidden lg:block">
+        <div className="w-80 flex-shrink-0">
           <ChatInfoPanel
             doctor={selectedConversation.doctor}
-            patientHistory={mockPatientHistory}
+            patientHistory={patientHistory}
+            isLoadingHistory={isLoadingHistory}
+            isDoctor={isDoctor}
+            onPredictionClick={handlePredictionClick}
           />
+        </div>
+      )}
+
+      {/* Prediction Detail Modal */}
+      {isPredictionModalOpen && selectedPrediction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePredictionModal}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Chi tiết dự đoán</h2>
+              <button onClick={closePredictionModal} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1">Kết quả</p>
+                  <p className={`text-lg font-semibold ${selectedPrediction.result === 'positive' ? 'text-red-600' : 'text-green-600'}`}>
+                    {selectedPrediction.result === 'positive' ? 'Nguy cơ cao' : 'Nguy cơ thấp'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1">Xác suất</p>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {(selectedPrediction.probability * 100).toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Ngày dự đoán</p>
+                <p className="text-base text-gray-800">
+                  {new Date(selectedPrediction.createdAt).toLocaleString('vi-VN')}
+                </p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">Thông tin đầu vào</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">Tuổi:</span> {selectedPrediction.inputData?.age || 'N/A'}</div>
+                  <div><span className="font-medium">Giới tính:</span> {selectedPrediction.inputData?.gender === 1 ? 'Nữ' : 'Nam'}</div>
+                  <div><span className="font-medium">BMI:</span> {selectedPrediction.inputData?.bmi?.toFixed(1) || 'N/A'}</div>
+                  <div><span className="font-medium">Đường huyết:</span> {selectedPrediction.inputData?.bloodGlucose || 'N/A'}</div>
+                  <div><span className="font-medium">Huyết áp:</span> {selectedPrediction.inputData?.bloodPressure || 'N/A'}</div>
+                  <div><span className="font-medium">Insulin:</span> {selectedPrediction.inputData?.insulin || 'N/A'}</div>
+                </div>
+              </div>
+              
+              {selectedPrediction.advice && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-blue-600 font-medium mb-1">Khuyến nghị</p>
+                  <p className="text-sm text-gray-700">{selectedPrediction.advice}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

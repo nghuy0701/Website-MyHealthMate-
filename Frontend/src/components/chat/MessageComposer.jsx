@@ -1,22 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Paperclip, Send } from 'lucide-react';
 
+/**
+ * MessageComposer - Chat input component
+ * 
+ * Typing indicator logic:
+ * - Notify parent with input length on EVERY change
+ * - Parent decides when to emit socket events (with debounce)
+ * - Parent controls UI visibility based on input length (instant)
+ */
 export function MessageComposer({ onSendMessage, onTypingChange, disabled }) {
   const [messageInput, setMessageInput] = useState('');
 
-  // Notify parent when typing state changes
-  useEffect(() => {
+  // Handle input change - notify parent with input length
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setMessageInput(newValue);
+    
+    // Always notify parent with current input length
+    // Parent will handle UI visibility and socket emission
     if (onTypingChange) {
-      onTypingChange(messageInput.length > 0);
+      onTypingChange(newValue.length);
     }
-  }, [messageInput, onTypingChange]);
+  };
 
   const handleSend = () => {
     if (!messageInput.trim() || disabled) return;
     onSendMessage(messageInput.trim());
     setMessageInput('');
+    
+    // Notify parent that input is now empty
+    if (onTypingChange) {
+      onTypingChange(0);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -40,7 +58,7 @@ export function MessageComposer({ onSendMessage, onTypingChange, disabled }) {
         
         <Input
           value={messageInput}
-          onChange={(e) => setMessageInput(e.target.value)}
+          onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           placeholder="Nhập câu hỏi sức khỏe của bạn..."
           className="flex-1 rounded-full border-gray-300"
