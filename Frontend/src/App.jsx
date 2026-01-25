@@ -13,6 +13,7 @@ import { PredictionPage } from './pages/PredictionPage.jsx';
 import { HistoryPage } from './pages/HistoryPage.jsx';
 import { PredictionDetailPage } from './pages/PredictionDetailPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
+import { ChatPage } from './pages/ChatPage.jsx';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
 import AdminApp from './pages/admin/AdminApp.jsx';
 import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
@@ -76,6 +77,22 @@ export default function App() {
                         element={
                           <ProtectedRoute>
                             <ProfilePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/chat"
+                        element={
+                          <ProtectedRoute>
+                            <ChatPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/chat/:conversationId"
+                        element={
+                          <ProtectedRoute>
+                            <ChatPage />
                           </ProtectedRoute>
                         }
                       />

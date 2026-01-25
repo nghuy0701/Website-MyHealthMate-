@@ -1,20 +1,27 @@
 import express from 'express'
+import { createServer } from 'http'
 import cors from 'cors'
 import session from 'express-session'
 import { CONNECT_DB, GET_DB } from '~/configs/mongodb'
 import { env } from '~/configs/environment'
 import { corsOptions } from '~/configs/cors'
 import { sessionConfig } from '~/configs/session'
+import { initializeSocketIO } from '~/configs/socket'
 import { APIs_V1 } from '~/routes/v1'
 import { errorHandlingMiddleware, generalLimiter } from '~/middlewares'
 import { createLogger } from '~/utils/logger'
 
 const START_SERVER = () => {
   const app = express()
+  const httpServer = createServer(app)
   const logger = createLogger('Server')
 
   const hostname = env.APP_HOST || 'localhost'
   const port = env.APP_PORT || 8017
+
+  // Initialize Socket.IO
+  const io = initializeSocketIO(httpServer, corsOptions)
+  app.set('io', io) // Make io accessible in routes
 
   // Trust proxy cho production
   if (env.NODE_ENV === 'production') {
@@ -49,7 +56,8 @@ const START_SERVER = () => {
         users: '/api/v1/users',
         predictions: '/api/v1/predictions',
         patients: '/api/v1/patients',
-        ml: '/api/v1/ml'
+        ml: '/api/v1/ml',
+        chat: '/api/v1/chat'
       }
     })
   })
@@ -57,11 +65,12 @@ const START_SERVER = () => {
   // Error Handling Middleware - Luôn đặt cuối cùng
   app.use(errorHandlingMiddleware)
 
-  // Start server
-  app.listen(port, hostname, () => {
+  // Start server with Socket.IO
+  httpServer.listen(port, hostname, () => {
     logger.success(`Server running at http://${hostname}:${port}/`, {
       author: env.AUTHOR,
-      environment: env.NODE_ENV
+      environment: env.NODE_ENV,
+      socketIO: 'enabled'
     })
   })
 }

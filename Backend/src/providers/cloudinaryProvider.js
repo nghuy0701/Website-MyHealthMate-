@@ -57,9 +57,36 @@ const deleteImage = async (publicId) => {
   }
 }
 
+// Upload single file (image or document) from buffer
+const uploadSingle = async (buffer, options = {}) => {
+  try {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: options.folder || 'myhealthmate',
+          resource_type: options.resource_type || 'auto',
+        },
+        (error, result) => {
+          if (error) {
+            reject(new Error(`Cloudinary upload failed: ${error.message}`))
+          } else {
+            resolve(result)
+          }
+        }
+      )
+      
+      // Write buffer to stream
+      uploadStream.end(buffer)
+    })
+  } catch (error) {
+    throw new Error(`Cloudinary upload failed: ${error.message}`)
+  }
+}
+
 const cloudinaryProvider = {
   uploadImage,
-  deleteImage
+  deleteImage,
+  uploadSingle
 }
 
 export { cloudinaryProvider }

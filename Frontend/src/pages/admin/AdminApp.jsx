@@ -8,6 +8,7 @@ import { PredictionManagement } from '../../components/admin/PredictionManagemen
 import { ArticleManagement } from '../../components/admin/ArticleManagement';
 import { QuestionManagement } from '../../components/admin/QuestionManagement';
 import { AdminProfile } from '../../components/admin/AdminProfile';
+import { AdminChatPage } from './AdminChatPage';
 
 export default function AdminApp() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function AdminApp() {
     if (path.includes('/admin/users')) return 'users';
     if (path.includes('/admin/articles')) return 'articles';
     if (path.includes('/admin/questions')) return 'questions';
+    if (path.includes('/admin/chat')) return 'chat';
     if (path.includes('/admin/profile')) return 'profile';
     return 'dashboard';
   };
@@ -74,6 +76,7 @@ export default function AdminApp() {
       'users': '/admin/users',
       'articles': '/admin/articles',
       'questions': '/admin/questions',
+      'chat': '/admin/chat',
       'profile': '/admin/profile',
     };
     navigate(routes[page] || '/admin/dashboard');
@@ -109,6 +112,7 @@ export default function AdminApp() {
             <Route path="predictions" element={<PredictionManagement />} />
             <Route path="articles" element={<ArticleManagement />} />
             <Route path="questions" element={<QuestionManagement />} />
+            <Route path="chat" element={<AdminChatPage />} />
             <Route path="profile" element={<AdminProfile profile={adminProfile} onUpdateProfile={handleUpdateProfile} />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
