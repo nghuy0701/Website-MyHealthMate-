@@ -171,10 +171,20 @@ const getDoctorInbox = async (doctorId) => {
           const participantInfos = await Promise.all(
             conv.participants.map(async (p) => {
               const user = await userModel.findOneById(p.userId.toString())
+              let name = user?.displayName || user?.userName || 'Unknown'
+              
+              // If patient, try to get fullName from patient collection
+              if (p.role === 'patient') {
+                const patientData = await patientModel.findByUserId(p.userId.toString())
+                if (patientData && patientData.length > 0 && patientData[0].fullName) {
+                  name = patientData[0].fullName
+                }
+              }
+              
               return {
                 userId: p.userId.toString(),
                 role: p.role,
-                name: user?.displayName || user?.userName || 'Unknown',
+                name: name,
                 avatar: user?.avatar || null
               }
             })
@@ -307,10 +317,20 @@ const getPatientConversation = async (patientId) => {
           const participantInfos = await Promise.all(
             conv.participants.map(async (p) => {
               const user = await userModel.findOneById(p.userId.toString())
+              let name = user?.displayName || user?.userName || 'Unknown'
+              
+              // If patient, try to get fullName from patient collection
+              if (p.role === 'patient') {
+                const patientData = await patientModel.findByUserId(p.userId.toString())
+                if (patientData && patientData.length > 0 && patientData[0].fullName) {
+                  name = patientData[0].fullName
+                }
+              }
+              
               return {
                 userId: p.userId.toString(),
                 role: p.role,
-                name: user?.displayName || user?.userName || 'Unknown',
+                name: name,
                 avatar: user?.avatar || null
               }
             })
@@ -397,10 +417,33 @@ const createGroupConversation = async (doctorId, groupName, patientIds) => {
     
     console.log('[chatService] Group created with ID:', result.insertedId)
 
+    // Enrich participants with names and avatars
+    const participantInfos = await Promise.all(
+      participants.map(async (p) => {
+        const user = await userModel.findOneById(p.userId.toString())
+        let name = user?.displayName || user?.userName || 'Unknown'
+        
+        // If patient, try to get fullName from patient collection
+        if (p.role === 'patient') {
+          const patientData = await patientModel.findByUserId(p.userId.toString())
+          if (patientData && patientData.length > 0 && patientData[0].fullName) {
+            name = patientData[0].fullName
+          }
+        }
+        
+        return {
+          userId: p.userId.toString(),
+          role: p.role,
+          name: name,
+          avatar: user?.avatar || null
+        }
+      })
+    )
+
     return {
       conversationId: result.insertedId,
       groupName,
-      participants,
+      participants: participantInfos,
       type: 'group'
     }
   } catch (error) {
@@ -498,9 +541,37 @@ const leaveGroup = async (userId, conversationId) => {
     
     console.log(`[chatService] User ${userId} left group ${conversationId}`)
     
+    // Get updated conversation with remaining participants
+    const updatedConv = await conversationModel.findOneById(conversationId)
+    
+    // Enrich remaining participants with names and avatars
+    const participantInfos = await Promise.all(
+      updatedConv.participants.map(async (p) => {
+        const user = await userModel.findOneById(p.userId.toString())
+        let name = user?.displayName || user?.userName || 'Unknown'
+        
+        // If patient, try to get fullName from patient collection
+        if (p.role === 'patient') {
+          const patientData = await patientModel.findByUserId(p.userId.toString())
+          if (patientData && patientData.length > 0 && patientData[0].fullName) {
+            name = patientData[0].fullName
+          }
+        }
+        
+        return {
+          userId: p.userId.toString(),
+          role: p.role,
+          name: name,
+          avatar: user?.avatar || null
+        }
+      })
+    )
+    
     return {
       success: true,
-      conversationId
+      conversationId,
+      participants: participantInfos,
+      groupName: updatedConv.groupName
     }
   } catch (error) {
     throw error
