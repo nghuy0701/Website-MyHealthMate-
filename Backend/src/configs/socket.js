@@ -29,12 +29,17 @@ export const initializeSocketIO = (httpServer, corsOptions) => {
     const userId = socket.userId
     logger.info(`[Socket.io] Connected: ${socket.id} (userId: ${userId})`)
 
-    // Join user's personal room
+    // Join user's personal room (for direct message notifications)
     socket.join(userId)
+    
+    // Broadcast user online status to all conversations they're in
+    io.emit('user:online', { userId })
 
     /**
      * Conversation room management
-     * Clients must join conversation rooms to receive typing indicators
+     * Users join conversation rooms to receive messages and typing indicators
+     * For direct chats: both users join the conversationId room
+     * For group chats: all participants join the conversationId room
      */
     socket.on('join:conversation', (conversationId) => {
       if (conversationId) {
@@ -82,6 +87,9 @@ export const initializeSocketIO = (httpServer, corsOptions) => {
     // Disconnect handler
     socket.on('disconnect', () => {
       logger.info(`[Socket.io] Disconnected: ${userId}`)
+      
+      // Broadcast user offline status
+      io.emit('user:offline', { userId })
     })
   })
 
