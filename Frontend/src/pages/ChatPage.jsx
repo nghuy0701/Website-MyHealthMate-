@@ -424,6 +424,36 @@ export function ChatPage() {
     });
   }, []);
   
+  // Handle group member leaving
+  const handleGroupMemberLeft = useCallback((data) => {
+    console.log('[ChatPage] Member left group:', data);
+    
+    // Update conversations list to reflect new participant count
+    setConversations(prev => prev.map(conv => {
+      if (conv.id === data.conversationId) {
+        return {
+          ...conv,
+          participants: data.participants,
+          participantCount: data.participants.length,
+          doctor: {
+            ...conv.doctor,
+            specialty: `${data.participants.length} thành viên`
+          }
+        };
+      }
+      return conv;
+    }));
+    
+    // If currently viewing this group, update the displayed participants
+    if (selectedConversationIdRef.current === data.conversationId) {
+      // Trigger re-render of GroupInfoPanel by updating conversation
+      const updatedConv = conversations.find(c => c.id === data.conversationId);
+      if (updatedConv) {
+        setConversations(prev => [...prev]); // Force update
+      }
+    }
+  }, []);
+  
   // Use refs to avoid re-render dependencies
   const selectedConversationIdRef = useRef(selectedConversationId);
   const userIdRef = useRef(userId);
@@ -567,6 +597,7 @@ export function ChatPage() {
     on('conversation:updated', handleConversationUpdated);
     on('user:online', handleUserOnline);
     on('user:offline', handleUserOffline);
+    on('group:member_left', handleGroupMemberLeft);
     
     return () => {
       console.log('[ChatPage] Unregistering socket event handlers');
@@ -577,6 +608,7 @@ export function ChatPage() {
       off('conversation:updated', handleConversationUpdated);
       off('user:online', handleUserOnline);
       off('user:offline', handleUserOffline);
+      off('group:member_left', handleGroupMemberLeft);
     };
   }, [isConnected, on, off]); // Handlers are stable now!
 

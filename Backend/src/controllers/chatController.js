@@ -204,20 +204,14 @@ const createGroupConversation = async (req, res, next) => {
       const io = req.app.get('io')
       const conversationId = result.conversationId.toString()
       
-      // Get participant details for frontend
-      const participantDetails = result.participants.map(p => ({
-        userId: p.userId.toString(),
-        role: p.role
-      }))
-      
-      // Emit to each participant's user room
+      // Emit to each participant's user room with full participant details
       result.participants.forEach(participant => {
         const userId = participant.userId.toString()
         io.to(userId).emit('conversation:created', {
           conversationId: conversationId,
           type: 'group',
           groupName: result.groupName,
-          participants: participantDetails,
+          participants: result.participants, // Already enriched with name and avatar
           participantCount: result.participants.length,
           createdAt: Date.now()
         })
@@ -246,19 +240,22 @@ const leaveGroup = async (req, res, next) => {
     }
 
     // Remove user from group
-    await chatService.leaveGroup(userId, conversationId)
+    const result = await chatService.leaveGroup(userId, conversationId)
 
-    // Emit socket event to notify others
+    // Emit socket event to notify remaining members
     if (req.app.get('io')) {
       const io = req.app.get('io')
       
-      // Notify conversation room
+      // Notify conversation room with updated participants list
       io.to(conversationId).emit('group:member_left', {
         conversationId,
-        userId
+        userId,
+        participants: result.participants, // Updated list without the user who left
+        groupName: result.groupName
       })
       
       console.log('[chatController] User left group:', userId, conversationId)
+      console.log('[chatController] Remaining participants:', result.participants.length)
     }
 
     res.status(StatusCodes.OK).json({
