@@ -9,10 +9,16 @@ const Router = express.Router()
  * Base: /api/v1/chat
  */
 
+// Create group conversation (doctor only)
+// POST /api/v1/chat/conversations/group
+// Auth: doctor only
+// Body: { groupName, patientIds[] }
+Router.post('/conversations/group', isAuthenticated, isDoctor, chatController.createGroupConversation)
+
 // Send message (patient or doctor)
 // POST /api/v1/chat/messages
-// Patient: Creates conversation if first message
-// Doctor: Requires conversationId in body
+// Patient: Creates conversation if first message (if no conversationId)
+// Doctor/Patient: Sends to existing conversation (if conversationId provided)
 Router.post('/messages', isAuthenticated, chatController.sendMessage)
 
 // Get doctor's inbox (conversations with patients who messaged)
@@ -34,5 +40,10 @@ Router.get('/messages/:conversationId', isAuthenticated, chatController.getMessa
 // PUT /api/v1/chat/messages/:conversationId/read
 // Auth: patient or doctor (must belong to conversation)
 Router.put('/messages/:conversationId/read', isAuthenticated, chatController.markAsRead)
+
+// Leave group conversation
+// POST /api/v1/chat/conversations/:conversationId/leave
+// Auth: patient or doctor (must belong to conversation)
+Router.post('/conversations/:conversationId/leave', isAuthenticated, chatController.leaveGroup)
 
 export const chatRoute = Router

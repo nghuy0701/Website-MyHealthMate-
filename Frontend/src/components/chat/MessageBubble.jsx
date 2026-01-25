@@ -1,8 +1,8 @@
 import { FileText, FileSpreadsheet, File as FileIcon, Download, ExternalLink } from 'lucide-react';
 import { formatFileSize } from '../../utils/fileUtils';
 
-export function MessageBubble({ message, isOwn }) {
-  const { content, createdAt, attachments } = message;
+export function MessageBubble({ message, isOwn, showSenderName = false }) {
+  const { content, createdAt, attachments, senderName } = message;
 
   // Normalize attachment object to handle different field names from backend
   const normalizeAttachment = (att) => {
@@ -57,6 +57,13 @@ export function MessageBubble({ message, isOwn }) {
   return (
     <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
       <div className={`max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+        {/* Sender Name - only show for group chats and not own messages */}
+        {showSenderName && !isOwn && senderName && (
+          <p className="text-xs text-gray-500 mb-1 px-3">
+            {senderName}
+          </p>
+        )}
+        
         {/* Message Bubble */}
         <div
           className={`rounded-2xl px-4 py-3 shadow-sm ${

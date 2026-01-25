@@ -6,12 +6,14 @@ import { useTypingIndicator } from '../lib/useTypingIndicator';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
-import { Search, Phone, Video, MoreVertical } from 'lucide-react';
+import { Search, Phone, Video, MoreVertical, Users } from 'lucide-react';
 import { ChatListItem } from '../components/chat/ChatListItem';
 import { MessageBubble } from '../components/chat/MessageBubble';
 import { MessageComposer } from '../components/chat/MessageComposer';
 import { ChatInfoPanel } from '../components/chat/ChatInfoPanel';
+import { GroupInfoPanel } from '../components/chat/GroupInfoPanel';
 import { TypingIndicator } from '../components/chat/TypingIndicator';
+import { LeaveGroupModal } from '../components/chat/LeaveGroupModal';
 
 // Mock data for PATIENTS viewing DOCTORS
 const mockPatientConversations = [
@@ -303,6 +305,7 @@ export function ChatPage() {
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
+  const loadConversationsRef = useRef(); // Stable ref for socket handler
   
   // Branch logic by user role
   const isDoctor = user?.role === 'doctor';
@@ -324,11 +327,16 @@ export function ChatPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false); // Loading state for prediction history
   const [selectedPrediction, setSelectedPrediction] = useState(null); // Selected prediction for detail modal
   const [isPredictionModalOpen, setIsPredictionModalOpen] = useState(false); // Modal visibility
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false); // Group creation modal
+  const [groupName, setGroupName] = useState(''); // Group name input
+  const [selectedPatients, setSelectedPatients] = useState([]); // Selected patient IDs for group
+  const [onlineUsers, setOnlineUsers] = useState(new Set()); // Track online users by userId
+  const [isLeaveGroupModalOpen, setIsLeaveGroupModalOpen] = useState(false); // Leave group confirmation
 
-  // Get userId early - needed by callbacks below
+  // Get userId early
   const userId = user?._id?.toString() || user?.id?.toString();
   
-  console.log('[ChatPage] userId:', userId, 'conversations length:', conversations.length, 'selectedConversationId:', selectedConversationId);
+  console.log('[ChatPage] Render - userId:', userId, 'conversations:', conversations.length);
 
   // Scroll to bottom of messages container (NOT window)
   const scrollToBottom = useCallback(() => {
@@ -341,62 +349,147 @@ export function ChatPage() {
     }
   }, []);
 
-  // Socket.io handlers
+  // Socket event handlers - stable with useCallback
+  const handleConversationCreated = useCallback((data) => {
+    console.log('[ChatPage] Received conversation:created:', data);
+    
+    const newConversation = {
+      id: data.conversationId.toString(),
+      type: 'group',
+      groupName: data.groupName,
+      participants: data.participants || [],
+      participantCount: data.participantCount || 0,
+      doctor: {
+        id: 'group',
+        name: data.groupName,
+        avatar: `https://api.dicebear.com/7.x/shapes/svg?seed=${data.groupName}`,
+        status: 'online',
+        specialty: `${data.participantCount} thành viên`
+      },
+      lastMessage: 'Nhóm mới',
+      lastMessageAt: data.createdAt,
+      timestamp: 'Vừa xong',
+      unread: 0
+    };
+    
+    setConversations(prev => [newConversation, ...prev]);
+    console.log('[ChatPage] Added new group to conversations');
+  }, []);
+  
+  const handleConversationUpdated = useCallback((data) => {
+    console.log('[ChatPage] Received conversation:updated:', data);
+    
+    setConversations(prev => {
+      const exists = prev.find(c => c.id === data.conversationId.toString());
+      if (exists) {
+        // Update existing conversation
+        return prev.map(c => 
+          c.id === data.conversationId.toString()
+            ? {
+                ...c,
+                lastMessage: data.lastMessage,
+                lastMessageAt: data.lastMessageAt,
+                timestamp: formatTimestamp(data.lastMessageAt)
+              }
+            : c
+        );
+      } else {
+        // New conversation - reload to get full details
+        console.log('[ChatPage] New conversation detected, reloading list');
+        if (loadConversationsRef.current) {
+          loadConversationsRef.current();
+        }
+        return prev;
+      }
+    });
+  }, []);
+  
+  const handleUserOnline = useCallback((data) => {
+    console.log('[ChatPage] User online:', data.userId);
+    setOnlineUsers(prev => {
+      if (prev.has(data.userId)) return prev; // Already online, no update needed
+      const updated = new Set(prev);
+      updated.add(data.userId);
+      return updated;
+    });
+  }, []);
+  
+  const handleUserOffline = useCallback((data) => {
+    console.log('[ChatPage] User offline:', data.userId);
+    setOnlineUsers(prev => {
+      if (!prev.has(data.userId)) return prev; // Already offline, no update needed
+      const updated = new Set(prev);
+      updated.delete(data.userId);
+      return updated;
+    });
+  }, []);
+  
+  // Use refs to avoid re-render dependencies
+  const selectedConversationIdRef = useRef(selectedConversationId);
+  const userIdRef = useRef(userId);
+  const scrollToBottomRef = useRef(scrollToBottom);
+  
+  useEffect(() => {
+    selectedConversationIdRef.current = selectedConversationId;
+    userIdRef.current = userId;
+    scrollToBottomRef.current = scrollToBottom;
+  }, [selectedConversationId, userId, scrollToBottom]);
+  
+  // Keep loadConversations ref updated for socket handlers
+  useEffect(() => {
+    loadConversationsRef.current = loadConversations;
+  });
+  
   const handleNewMessage = useCallback((data) => {
     console.log('[ChatPage] Received new message:', data);
+    const convId = data.conversationId.toString();
+    const currentSelectedId = selectedConversationIdRef.current;
+    const currentUserId = userIdRef.current;
+    const scrollFn = scrollToBottomRef.current;
     
-    // Update conversations list with new last message and increment unread
+    // Update conversations list
     setConversations(prev => prev.map(conv => {
-      if (conv.id === data.conversationId.toString()) {
+      if (conv.id === convId) {
+        const isSelected = convId === currentSelectedId;
+        const isOwnMessage = data.senderId === currentUserId;
         return {
           ...conv,
-          lastMessage: data.content,
-          lastMessageAt: data.createdAt, // Store timestamp for relative time
-          timestamp: formatTimestamp(new Date(data.createdAt).getTime()),
-          // Increment unread ONLY if this is not the currently selected conversation
-          // or if the message is from someone else (not own message)
-          unread: (data.conversationId.toString() === selectedConversationId && data.senderId === userId) 
-            ? conv.unread 
-            : (conv.unread || 0) + 1
+          lastMessage: data.content || '[Attachment]',
+          lastMessageAt: data.createdAt,
+          timestamp: 'Vừa xong',
+          unread: (isSelected && isOwnMessage) ? conv.unread : (conv.unread || 0) + 1
         };
       }
       return conv;
     }));
     
-    // Only add message if it's for the current conversation
-    if (data.conversationId.toString() === selectedConversationId) {
-      const newMessage = {
+    // Only add message if viewing this conversation
+    if (convId === currentSelectedId) {
+      setMessages(prev => [...prev, {
         id: data.messageId,
         conversationId: data.conversationId,
         senderId: data.senderId,
-        senderName: data.senderRole === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân',
+        senderName: data.senderName || 'Unknown',
         senderRole: data.senderRole,
         content: data.content,
         attachments: data.attachments || [],
         createdAt: data.createdAt,
-        isOwn: data.senderId === userId // Check if it's own message
-      };
-      setMessages(prev => [...prev, newMessage]);
-      setTypingUserId(null); // Hide typing indicator when message arrives
+        isOwn: data.senderId === currentUserId
+      }]);
       
-      // If viewing this conversation, mark as read immediately
-      if (data.senderId !== userId) {
-        markConversationAsRead(data.conversationId.toString());
-      }
-      
-      // Auto-scroll only when receiving message in current conversation
-      setTimeout(() => scrollToBottom(), 100);
+      setTypingUserId(null);
+      setTimeout(() => scrollFn(), 100);
     }
-  }, [selectedConversationId, userId, scrollToBottom]);
+  }, []); // NO dependencies!
 
   const handleTypingStart = useCallback((data) => {
-    // data = { senderId, conversationId }
     console.log('[ChatPage] Received typing:start', data);
+    const currentUserId = userIdRef.current;
+    const currentSelectedId = selectedConversationIdRef.current;
     
-    // Don't track typing for own messages
-    if (data.senderId !== userId) {
+    if (data.senderId !== currentUserId) {
       // Update typing for selected conversation (for message area)
-      if (data.conversationId === selectedConversationId) {
+      if (data.conversationId === currentSelectedId) {
         setTypingUserId(data.senderId);
         console.log('[ChatPage] Set typing user in chat:', data.senderId);
       }
@@ -413,12 +506,12 @@ export function ChatPage() {
         clearTimeout(typingTimeoutsRef.current[data.conversationId]);
       }
       
-      // Set new timeout to auto-clear after 5 seconds of inactivity
+      // Set new timeout to auto-clear after 10 seconds of inactivity
       typingTimeoutsRef.current[data.conversationId] = setTimeout(() => {
         console.log('[ChatPage] Auto-clearing typing indicator for:', data.conversationId);
         
         // Clear typing for selected conversation
-        if (data.conversationId === selectedConversationId) {
+        if (data.conversationId === currentSelectedId) {
           setTypingUserId(null);
         }
         
@@ -431,26 +524,21 @@ export function ChatPage() {
         
         // Clean up timeout reference
         delete typingTimeoutsRef.current[data.conversationId];
-      }, 5000); // 5 seconds timeout
+      }, 10000);
     }
-  }, [selectedConversationId, userId]);
+  }, []); // NO dependencies!
 
   const handleTypingStop = useCallback((data) => {
-    // data = { senderId, conversationId }
     console.log('[ChatPage] Received typing:stop', data);
+    const currentSelectedId = selectedConversationIdRef.current;
     
-    // Clear the auto-clear timeout since typing stopped explicitly
     if (typingTimeoutsRef.current[data.conversationId]) {
       clearTimeout(typingTimeoutsRef.current[data.conversationId]);
       delete typingTimeoutsRef.current[data.conversationId];
     }
     
-    // Clear typing for selected conversation (for message area)
-    if (data.conversationId === selectedConversationId) {
-      if (data.senderId === typingUserId) {
-        setTypingUserId(null);
-        console.log('[ChatPage] Cleared typing indicator in chat');
-      }
+    if (data.conversationId === currentSelectedId) {
+      setTypingUserId(prev => prev === data.senderId ? null : prev);
     }
     
     // Clear typing for conversation list
@@ -462,23 +550,43 @@ export function ChatPage() {
       }
       return updated;
     });
-  }, [selectedConversationId, typingUserId]);
+  }, []);
 
-  // Initialize Socket.io
-  const { isConnected, emitTypingStart, emitTypingStop, joinConversation, leaveConversation } = useSocket(
-    userId,
-    handleNewMessage,
-    handleTypingStart,
-    handleTypingStop
-  );
+  // Initialize Socket.io - STABLE connection
+  const { isConnected, on, off, emit, joinConversation, leaveConversation } = useSocket(userId);
+  
+  // Register socket event listeners ONCE when connected
+  useEffect(() => {
+    if (!isConnected) return;
+    
+    console.log('[ChatPage] Registering socket event handlers');
+    on('message:new', handleNewMessage);
+    on('typing:start', handleTypingStart);
+    on('typing:stop', handleTypingStop);
+    on('conversation:created', handleConversationCreated);
+    on('conversation:updated', handleConversationUpdated);
+    on('user:online', handleUserOnline);
+    on('user:offline', handleUserOffline);
+    
+    return () => {
+      console.log('[ChatPage] Unregistering socket event handlers');
+      off('message:new', handleNewMessage);
+      off('typing:start', handleTypingStart);
+      off('typing:stop', handleTypingStop);
+      off('conversation:created', handleConversationCreated);
+      off('conversation:updated', handleConversationUpdated);
+      off('user:online', handleUserOnline);
+      off('user:offline', handleUserOffline);
+    };
+  }, [isConnected, on, off]); // Handlers are stable now!
 
-  // Initialize typing indicator controller with 3000ms re-emit interval
+  // Initialize typing indicator controller
   const { handleTyping, stopTyping, cleanup } = useTypingIndicator(
-    emitTypingStart,
-    emitTypingStop,
+    (conversationId, senderId) => emit('typing:start', { conversationId, senderId }),
+    (conversationId, senderId) => emit('typing:stop', { conversationId, senderId }),
     selectedConversationId,
     userId,
-    3000 // Re-emit typing:start every 3 seconds
+    3000
   );
 
   // Cleanup typing indicator when conversation changes
@@ -498,37 +606,15 @@ export function ChatPage() {
     };
   }, []);
 
-  // Join ALL conversation rooms when page loads (for conversation list typing indicators)
+  // Join selected conversation room when it changes
   useEffect(() => {
-    if (conversations.length > 0 && isConnected) {
-      // Join all conversation rooms
-      conversations.forEach(conv => {
-        if (conv.id && conv.id !== 'new') {
-          joinConversation(conv.id);
-          console.log('[ChatPage] Joined conversation room for list:', conv.id);
-        }
-      });
-      
-      // Leave all rooms on cleanup (page unmount)
-      return () => {
-        conversations.forEach(conv => {
-          if (conv.id && conv.id !== 'new') {
-            leaveConversation(conv.id);
-            console.log('[ChatPage] Left conversation room on unmount:', conv.id);
-          }
-        });
-      };
-    }
-  }, [conversations, isConnected, joinConversation, leaveConversation]);
-
-  // Join selected conversation room (defensive - already joined above, but ensures connection)
-  useEffect(() => {
-    if (selectedConversationId && selectedConversationId !== 'new' && isConnected) {
-      // Re-join the conversation room (in case it wasn't in the list yet)
-      joinConversation(selectedConversationId);
-      console.log('[ChatPage] Ensured joined for selected conversation:', selectedConversationId);
-    }
-  }, [selectedConversationId, isConnected, joinConversation]);
+    if (!selectedConversationId || selectedConversationId === 'new' || !isConnected) return;
+    
+    console.log('[ChatPage] Joining conversation room:', selectedConversationId);
+    joinConversation(selectedConversationId);
+    // No cleanup needed - useSocket handles leaving when joining another room
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversationId, isConnected]);
 
   // Debug log
   useEffect(() => {
@@ -652,68 +738,113 @@ export function ChatPage() {
       setError(null);
 
       if (isDoctor) {
-        // Load doctor's inbox
+        // Load doctor's inbox (direct and group conversations)
         const response = await chatAPI.getDoctorInbox();
         const inbox = response.data || [];
         
         // Transform to match UI structure
-        const transformedConversations = inbox.map(conv => ({
-          id: conv.conversationId.toString(),
-          doctor: {
-            id: conv.patientId.toString(),
-            name: conv.patientName,
-            avatar: conv.patientAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.patientName}`,
-            status: 'online', // Can be enhanced with real status later
-            specialty: 'Bệnh nhân'
-          },
-          lastMessage: conv.lastMessage,
-          lastMessageAt: conv.lastMessageAt, // Store for relative time calculation
-          timestamp: formatTimestamp(conv.lastMessageAt),
-          unread: conv.unreadCount || 0
-        }));
+        const transformedConversations = inbox.map(conv => {
+          // Default to 'direct' if type is missing (backward compatibility)
+          const convType = conv.type || 'direct';
+          
+          if (convType === 'group') {
+            // Group conversation
+            return {
+              id: conv.conversationId.toString(),
+              type: 'group',
+              groupName: conv.groupName,
+              participants: conv.participants || [],
+              participantCount: conv.participantCount || 0,
+              doctor: {
+                id: 'group',
+                name: conv.groupName,
+                avatar: `https://api.dicebear.com/7.x/shapes/svg?seed=${conv.groupName}`,
+                status: 'online',
+                specialty: `${conv.participantCount} thành viên`
+              },
+              lastMessage: conv.lastMessage,
+              lastMessageAt: conv.lastMessageAt,
+              timestamp: formatTimestamp(conv.lastMessageAt),
+              unread: conv.unreadCount || 0
+            };
+          } else {
+            // Direct conversation
+            return {
+              id: conv.conversationId.toString(),
+              type: 'direct',
+              doctor: {
+                id: conv.patientId.toString(),
+                name: conv.patientName,
+                avatar: conv.patientAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.patientName}`,
+                status: 'online',
+                specialty: conv.patientName
+              },
+              lastMessage: conv.lastMessage,
+              lastMessageAt: conv.lastMessageAt,
+              timestamp: formatTimestamp(conv.lastMessageAt),
+              unread: conv.unreadCount || 0
+            };
+          }
+        });
         
         setConversations(transformedConversations);
       } else {
-        // Load patient's conversation
+        // Load patient's conversations (direct + groups)
         const response = await chatAPI.getPatientConversation();
-        const conv = response.data;
+        console.log('[ChatPage] Patient conversation response:', response);
+        const conversations = response.data || [];
         
-        if (conv && conv.hasConversation) {
-          const transformedConversation = {
-            id: conv.conversationId.toString(),
-            doctor: {
-              id: conv.doctorId.toString(),
-              name: conv.doctorName,
-              avatar: conv.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.doctorName}`,
-              status: 'online',
-              specialty: conv.doctorSpecialty || 'Bác sĩ'
-            },
-            lastMessage: conv.lastMessage,
-            lastMessageAt: conv.lastMessageAt, // Store for relative time calculation
-            timestamp: formatTimestamp(conv.lastMessageAt),
-            unread: conv.unreadCount || 0
-          };
-          setConversations([transformedConversation]);
-        } else if (conv && !conv.hasConversation) {
-          // Doctor assigned but no messages yet
-          const transformedConversation = {
-            id: 'new',
-            doctor: {
-              id: conv.doctorId.toString(),
-              name: conv.doctorName,
-              avatar: conv.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.doctorName}`,
-              status: 'online',
-              specialty: conv.doctorSpecialty || 'Bác sĩ'
-            },
-            lastMessage: 'Bắt đầu cuộc trò chuyện với bác sĩ',
-            timestamp: 'Mới',
-            unread: 0
-          };
-          setConversations([transformedConversation]);
+        if (Array.isArray(conversations) && conversations.length > 0) {
+          const transformedConversations = conversations.map(conv => {
+            const convType = conv.type || 'direct';
+            
+            if (convType === 'group') {
+              // Group conversation
+              return {
+                id: conv.conversationId ? conv.conversationId.toString() : 'new',
+                type: 'group',
+                groupName: conv.groupName,
+                participants: conv.participants || [],
+                participantCount: conv.participantCount || 0,
+                doctor: {
+                  id: 'group',
+                  name: conv.groupName,
+                  avatar: `https://api.dicebear.com/7.x/shapes/svg?seed=${conv.groupName}`,
+                  status: 'online',
+                  specialty: `${conv.participantCount || 0} thành viên`
+                },
+                lastMessage: conv.lastMessage || 'Nhóm mới',
+                lastMessageAt: conv.lastMessageAt,
+                timestamp: conv.lastMessageAt ? formatTimestamp(conv.lastMessageAt) : 'Mới',
+                unread: conv.unreadCount || 0
+              };
+            } else {
+              // Direct conversation with doctor
+              return {
+                id: conv.conversationId ? conv.conversationId.toString() : 'new',
+                type: 'direct',
+                doctor: {
+                  id: conv.doctorId.toString(),
+                  name: conv.doctorName,
+                  avatar: conv.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.doctorName}`,
+                  status: 'online',
+                  specialty: conv.doctorSpecialty || 'Bác sĩ'
+                },
+                lastMessage: conv.lastMessage || (conv.hasConversation ? '' : 'Bắt đầu cuộc trò chuyện với bác sĩ'),
+                lastMessageAt: conv.lastMessageAt,
+                timestamp: conv.lastMessageAt ? formatTimestamp(conv.lastMessageAt) : 'Mới',
+                unread: conv.unreadCount || 0
+              };
+            }
+          });
+          
+          setConversations(transformedConversations);
         } else {
-          // No assigned doctor
+          // No conversations at all
+          console.warn('[ChatPage] No conversations found for patient');
           setConversations([]);
-          setError('Bạn chưa được phân công bác sĩ. Vui lòng liên hệ quản trị viên.');
+          // Don't set error immediately - patient might not have been assigned yet
+          setError(null);
         }
       }
     } catch (err) {
@@ -791,8 +922,8 @@ export function ChatPage() {
   const filteredConversations = conversations.filter(conv => {
     const matchesSearch = conv.doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
     if (selectedFilter === 'all') return matchesSearch;
-    if (selectedFilter === 'doctors') return matchesSearch && !conv.isGroup;
-    if (selectedFilter === 'groups') return matchesSearch && conv.isGroup;
+    if (selectedFilter === 'doctors') return matchesSearch && conv.type === 'direct';
+    if (selectedFilter === 'groups') return matchesSearch && conv.type === 'group';
     return matchesSearch;
   });
 
@@ -857,8 +988,8 @@ export function ChatPage() {
         attachments
       };
 
-      // Doctor needs to provide conversationId
-      if (isDoctor && selectedConversationId) {
+      // Include conversationId if sending to existing conversation
+      if (selectedConversationId && selectedConversationId !== 'new') {
         messageData.conversationId = selectedConversationId;
       }
 
@@ -906,7 +1037,7 @@ export function ChatPage() {
 
   const handleConversationClick = (convId) => {
     setSelectedConversationId(convId);
-    
+                                                                                                
     // Clear unread badge immediately when opening conversation
     if (convId && convId !== 'new') {
       markConversationAsRead(convId);
@@ -935,15 +1066,107 @@ export function ChatPage() {
     setSelectedPrediction(null);
   };
 
+  // Create group conversation
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedPatients.length < 2) {
+      alert('Vui lòng nhập tên nhóm và chọn ít nhất 2 bệnh nhân');
+      return;
+    }
+
+    try {
+      console.log('[ChatPage] Creating group:', { groupName, patientIds: selectedPatients });
+      
+      const response = await chatAPI.createGroupConversation({
+        groupName: groupName.trim(),
+        patientIds: selectedPatients
+      });
+      
+      console.log('[ChatPage] Group created, response:', response);
+
+      // Close modal and reset
+      setIsGroupModalOpen(false);
+      setGroupName('');
+      setSelectedPatients([]);
+
+      // Note: Socket event 'conversation:created' will add the group to conversations list
+      // We only select it here to show the chat
+      const conversationId = response.conversation?.conversationId;
+      if (conversationId) {
+        const convIdString = conversationId.toString();
+        console.log('[ChatPage] Auto-selecting new group:', convIdString);
+        setSelectedConversationId(convIdString);
+      }
+    } catch (error) {
+      console.error('[ChatPage] Error creating group:', error);
+      alert(error.response?.data?.message || error.message || 'Không thể tạo nhóm. Vui lòng thử lại.');
+    }
+  };
+
+  // Leave group conversation
+  const handleLeaveGroup = () => {
+    console.log('[ChatPage] handleLeaveGroup called, selectedConversationId:', selectedConversationId);
+    console.log('[ChatPage] Before setState - isLeaveGroupModalOpen:', isLeaveGroupModalOpen);
+    setIsLeaveGroupModalOpen(true);
+    console.log('[ChatPage] After setState - setting to true');
+  };
+  
+  const confirmLeaveGroup = async () => {
+    if (!selectedConversationId) return;
+    
+    console.log('[ChatPage] confirmLeaveGroup - Start leaving group:', selectedConversationId);
+    
+    try {
+      // Bước 1: Call API to leave group (remove from database)
+      console.log('[ChatPage] Step 1: Calling API to leave group...');
+      await chatAPI.leaveGroup(selectedConversationId);
+      console.log('[ChatPage] Step 1: Successfully left group on server');
+      
+      // Bước 2: Leave socket room
+      console.log('[ChatPage] Step 2: Leaving socket room:', selectedConversationId);
+      leaveConversation();
+      
+      // BƯớc 3: Remove conversation from local state
+      console.log('[ChatPage] Step 3: Removing conversation from state');
+      setConversations(prev => prev.filter(c => c.id !== selectedConversationId));
+      
+      // BƯớc 4: Clear selected conversation
+      console.log('[ChatPage] Step 4: Clearing selected conversation');
+      setSelectedConversationId(null);
+      
+      // BƯớc 5: Close modal
+      console.log('[ChatPage] Step 5: Closing modal');
+      setIsLeaveGroupModalOpen(false);
+      
+      console.log('[ChatPage] Successfully left group');
+    } catch (error) {
+      console.error('[ChatPage] Error leaving group:', error);
+      alert('Không thể rời nhóm. Vui lòng thử lại.');
+      setIsLeaveGroupModalOpen(false);
+    }
+  };
+
   return (
+    <>
     <div className="flex bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Left Sidebar - Conversation List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            {isDoctor ? 'Tư vấn bệnh nhân' : 'Tư vấn y tế'}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              {isDoctor ? 'Tư vấn bệnh nhân' : 'Tư vấn y tế'}
+            </h1>
+            {isDoctor && (
+              <Button 
+                onClick={() => setIsGroupModalOpen(true)}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700"
+                title="Tạo nhóm tư vấn"
+              >
+                <Users className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
           
           {/* Search */}
           <div className="relative mb-4">
@@ -977,6 +1200,16 @@ export function ChatPage() {
               }`}
             >
               {isDoctor ? 'Bệnh nhân' : 'Bác sĩ'}
+            </button>
+            <button
+              onClick={() => setSelectedFilter('groups')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedFilter === 'groups'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Nhóm
             </button>
           </div>
         </div>
@@ -1054,6 +1287,7 @@ export function ChatPage() {
                       key={message.id}
                       message={message}
                       isOwn={message.isOwn}
+                      showSenderName={selectedConversation?.type === 'group'}
                     />
                   ))}
                   {typingUserName && (
@@ -1090,16 +1324,28 @@ export function ChatPage() {
         )}
       </div>
 
-      {/* Right Sidebar - Info Panel (Only for patient view) */}
-      {selectedConversationId && selectedConversation && !isDoctor && (
+      {/* Right Sidebar - Info Panel */}
+      {selectedConversationId && selectedConversation && (
         <div className="w-80 flex-shrink-0 overflow-hidden">
-          <ChatInfoPanel
-            doctor={selectedConversation.doctor}
-            patientHistory={patientHistory}
-            isLoadingHistory={isLoadingHistory}
-            isDoctor={isDoctor}
-            onPredictionClick={handlePredictionClick}
-          />
+          {selectedConversation.type === 'group' ? (
+            // Show GroupInfoPanel for BOTH doctor and patient in group chats
+            <GroupInfoPanel
+              groupName={selectedConversation.groupName}
+              participants={selectedConversation.participants || []}
+              onlineUsers={onlineUsers}
+              onLeaveGroup={handleLeaveGroup}
+              currentUserId={userId}
+            />
+          ) : !isDoctor ? (
+            // Show ChatInfoPanel only for patient in direct chats
+            <ChatInfoPanel
+              doctor={selectedConversation.doctor}
+              patientHistory={patientHistory}
+              isLoadingHistory={isLoadingHistory}
+              isDoctor={isDoctor}
+              onPredictionClick={handlePredictionClick}
+            />
+          ) : null}
         </div>
       )}
 
@@ -1161,6 +1407,101 @@ export function ChatPage() {
           </div>
         </div>
       )}
+
+      {/* Group Creation Modal (Doctor only) */}
+      {isGroupModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsGroupModalOpen(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Tạo nhóm tư vấn</h2>
+              <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tên nhóm
+                </label>
+                <Input
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="VD: Nhóm tư vấn đái tháo đường"
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Chọn bệnh nhân (tối thiểu 2)
+                </label>
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                  {conversations
+                    .filter(conv => conv.type === 'direct')
+                    .map(conv => (
+                      <label key={conv.doctor.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedPatients.includes(conv.doctor.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedPatients([...selectedPatients, conv.doctor.id]);
+                            } else {
+                              setSelectedPatients(selectedPatients.filter(id => id !== conv.doctor.id));
+                            }
+                          }}
+                          className="mr-3"
+                        />
+                        <Avatar className="w-8 h-8 mr-2">
+                          <AvatarImage src={conv.doctor.avatar} alt={conv.doctor.name} />
+                          <AvatarFallback>{conv.doctor.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-gray-700">{conv.doctor.name}</span>
+                      </label>
+                    ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Đã chọn: {selectedPatients.length} bệnh nhân
+                </p>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    setIsGroupModalOpen(false);
+                    setGroupName('');
+                    setSelectedPatients([]);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleCreateGroup}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  disabled={!groupName.trim() || selectedPatients.length < 2}
+                >
+                  Tạo nhóm
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+
+    {/* Leave Group Modal */}
+    <LeaveGroupModal
+      isOpen={isLeaveGroupModalOpen}
+      groupName={selectedConversation?.groupName || ''}
+      onConfirm={confirmLeaveGroup}
+      onCancel={() => setIsLeaveGroupModalOpen(false)}
+    />
+    </>
   );
 }

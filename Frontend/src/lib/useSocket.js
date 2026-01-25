@@ -4,110 +4,104 @@ import { io } from 'socket.io-client';
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8017';
 
 /**
- * Custom hook for Socket.io connection and chat events
- * @param {string} userId - Current user's ID for room joining
- * @param {Function} onNewMessage - Callback when new message arrives
- * @param {Function} onTypingStart - Callback when someone starts typing
- * @param {Function} onTypingStop - Callback when someone stops typing
+ * Stable Socket.io hook
+ * Creates connection ONCE per userId, never recreates
  */
-export function useSocket(userId, onNewMessage, onTypingStart, onTypingStop) {
+export function useSocket(userId) {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const currentConversationRoomRef = useRef(null);
 
+  // Initialize socket ONCE
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || socketRef.current) return;
 
-    // Initialize socket connection
+    console.log('[Socket] Connecting for user:', userId);
+
     const socket = io(SOCKET_URL, {
-      auth: {
-        userId: userId
-      },
-      transports: ['websocket', 'polling']
+      auth: { userId },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
     });
 
     socketRef.current = socket;
 
-    // Connection handlers
     socket.on('connect', () => {
-      console.log('[Socket.io] Connected:', socket.id);
+      console.log('[Socket] Connected:', socket.id);
       setIsConnected(true);
     });
 
-    socket.on('disconnect', () => {
-      console.log('[Socket.io] Disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log('[Socket] Disconnected:', reason);
       setIsConnected(false);
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('[Socket.io] Connection error:', error);
+    socket.on('connect_error', (err) => {
+      console.error('[Socket] Error:', err.message);
       setIsConnected(false);
     });
 
-    // Chat event listeners
-    socket.on('message:new', (data) => {
-      console.log('[Socket.io] New message:', data);
-      if (onNewMessage) {
-        onNewMessage(data);
-      }
-    });
-
-    socket.on('typing:start', (data) => {
-      console.log('[Socket.io] Typing start:', data);
-      if (onTypingStart) {
-        onTypingStart(data);
-      }
-    });
-
-    socket.on('typing:stop', (data) => {
-      console.log('[Socket.io] Typing stop:', data);
-      if (onTypingStop) {
-        onTypingStop(data);
-      }
-    });
-
-    // Cleanup on unmount
     return () => {
-      console.log('[Socket.io] Cleaning up connection');
+      console.log('[Socket] Cleanup');
       socket.disconnect();
+      socketRef.current = null;
+      currentConversationRoomRef.current = null;
     };
-  }, [userId, onNewMessage, onTypingStart, onTypingStop]);
+  }, [userId]);
 
-  // Helper functions to emit events
-  // Consistent payload: { conversationId, senderId }
-  const emitTypingStart = (conversationId, senderId) => {
-    if (socketRef.current?.connected && conversationId && senderId) {
-      socketRef.current.emit('typing:start', { conversationId, senderId });
-      console.log('[Socket] Emit typing:start', { conversationId, senderId });
-    }
-  };
-
-  const emitTypingStop = (conversationId, senderId) => {
-    if (socketRef.current?.connected && conversationId && senderId) {
-      socketRef.current.emit('typing:stop', { conversationId, senderId });
-      console.log('[Socket] Emit typing:stop', { conversationId, senderId });
-    }
-  };
-
-  // Helper functions to join/leave conversation rooms
+  // Join conversation room (leave previous first)
   const joinConversation = (conversationId) => {
-    if (socketRef.current?.connected && conversationId) {
-      socketRef.current.emit('join:conversation', conversationId);
-      console.log('[Socket] Joined conversation:', conversationId);
+    if (!socketRef.current?.connected || !conversationId) return;
+
+    // Leave previous room if exists
+    if (currentConversationRoomRef.current) {
+      socketRef.current.emit('leave:conversation', currentConversationRoomRef.current);
+      console.log('[Socket] Left conversation:', currentConversationRoomRef.current);
+    }
+
+    // Join new room
+    socketRef.current.emit('join:conversation', conversationId);
+    currentConversationRoomRef.current = conversationId;
+    console.log('[Socket] Joined conversation:', conversationId);
+  };
+
+  // Leave conversation room
+  const leaveConversation = () => {
+    if (!socketRef.current?.connected || !currentConversationRoomRef.current) return;
+
+    socketRef.current.emit('leave:conversation', currentConversationRoomRef.current);
+    console.log('[Socket] Left conversation:', currentConversationRoomRef.current);
+    currentConversationRoomRef.current = null;
+  };
+
+  // Register event listener
+  const on = (event, handler) => {
+    if (socketRef.current) {
+      socketRef.current.on(event, handler);
     }
   };
 
-  const leaveConversation = (conversationId) => {
-    if (socketRef.current?.connected && conversationId) {
-      socketRef.current.emit('leave:conversation', conversationId);
-      console.log('[Socket] Left conversation:', conversationId);
+  // Unregister event listener
+  const off = (event, handler) => {
+    if (socketRef.current) {
+      socketRef.current.off(event, handler);
+    }
+  };
+
+  // Emit event
+  const emit = (event, data) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(event, data);
     }
   };
 
   return {
-    socket: socketRef.current,
     isConnected,
-    emitTypingStart,
-    emitTypingStop,
+    on,
+    off,
+    emit,
     joinConversation,
     leaveConversation
   };

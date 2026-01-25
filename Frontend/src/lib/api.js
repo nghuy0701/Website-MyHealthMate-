@@ -182,6 +182,9 @@ export const chatAPI = {
   // Send message (patient or doctor)
   sendMessage: (data) => apiClient.post('/chat/messages', data),
   
+  // Create group conversation (doctor only)
+  createGroupConversation: (data) => apiClient.post('/chat/conversations/group', data),
+  
   // Get doctor's inbox (conversations with patients)
   getDoctorInbox: () => apiClient.get('/chat/conversations/doctor'),
   
@@ -193,6 +196,9 @@ export const chatAPI = {
   
   // Mark messages as read
   markAsRead: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/read`),
+  
+  // Leave group conversation
+  leaveGroup: (conversationId) => apiClient.post(`/chat/conversations/${conversationId}/leave`),
   
   // Upload file attachment
   uploadFile: (formData) => apiClient.uploadFile('/uploads', formData),
