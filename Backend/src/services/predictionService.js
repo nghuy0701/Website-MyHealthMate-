@@ -4,6 +4,7 @@ import { StatusCodes  } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import mlService from './mlService.js'
 import emailService from './emailService.js'
+import { notificationService } from './index.js'
 
 // Create New Prediction
 const createNew = async (req) => {
@@ -74,6 +75,35 @@ const createNew = async (req) => {
         .catch(err => {
           // Silent fail - email is not critical
         })
+    }
+
+    // Create notification for patient about new prediction result
+    try {
+      const riskEmoji = getPrediction.riskLevel === 'high' ? '🔴' : 
+                        getPrediction.riskLevel === 'medium' ? '🟠' : '🟢';
+      
+      const notificationData = {
+        userId: userId,
+        type: 'prediction',
+        title: `${riskEmoji} Kết quả dự đoán mới`,
+        description: `Kết quả dự đoán tiểu đường của bạn đã sẵn sàng. Mức độ nguy cơ: ${getPrediction.riskLevel === 'high' ? 'Cao' : getPrediction.riskLevel === 'medium' ? 'Trung bình' : 'Thấp'} (${Math.round(getPrediction.probability * 100)}%)`,
+        role: 'patient', // Only show to patients
+        deepLink: {
+          pathname: `/prediction/${getPrediction._id.toString()}`,
+          query: {}
+        },
+        meta: {
+          predictionId: getPrediction._id.toString(),
+          riskLevel: getPrediction.riskLevel,
+          probability: getPrediction.probability
+        }
+      };
+      
+      await notificationService.createNotification(notificationData);
+      console.log(`[Prediction] Created notification for user ${userId}`);
+    } catch (notifError) {
+      console.error('[Prediction] Error creating notification:', notifError);
+      // Don't fail the prediction if notification fails
     }
 
     return formatPrediction(getPrediction)

@@ -5,7 +5,8 @@ import {
   AlertTriangle, 
   FileText,
   Lightbulb,
-  X 
+  X,
+  Sparkles
 } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/timeFormatter';
 import { useNavigate } from 'react-router-dom';
@@ -16,15 +17,17 @@ const NOTIFICATION_ICONS = {
   prediction: Activity,
   alert: AlertTriangle,
   article: FileText,
-  reminder: Lightbulb
+  reminder: Lightbulb,
+  welcome: Sparkles
 };
 
 const NOTIFICATION_COLORS = {
-  chat: 'text-blue-600 bg-blue-50',
-  prediction: 'text-purple-600 bg-purple-50',
-  alert: 'text-red-600 bg-red-50',
-  article: 'text-green-600 bg-green-50',
-  reminder: 'text-yellow-600 bg-yellow-50'
+  chat: 'text-purple-600 bg-purple-50',
+  prediction: 'text-green-600 bg-green-50',
+  alert: 'text-orange-600 bg-orange-50',
+  article: 'text-blue-600 bg-blue-50',
+  reminder: 'text-blue-500 bg-blue-50',
+  welcome: 'text-gray-600 bg-gray-50'
 };
 
 export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
@@ -33,26 +36,28 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
   const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
   const colorClass = NOTIFICATION_COLORS[notification.type] || 'text-gray-600 bg-gray-50';
 
-  const handleClick = () => {
-    // Mark as read
-    if (!notification.isRead) {
-      onMarkAsRead(notification.id);
+  const handleClick = async () => {
+    // Welcome notification is not in database, don't try to mark as read
+    if (notification.type !== 'welcome' && !notification.isRead) {
+      await onMarkAsRead(notification.id);
     }
 
     // Close drawer
     closeDrawer();
 
-    // Navigate using deep link
+    // Navigate using deep link or link field
     if (notification.deepLink) {
       const { pathname, query } = notification.deepLink;
       
       if (query && Object.keys(query).length > 0) {
-        // Build query string
         const queryString = new URLSearchParams(query).toString();
         navigate(`${pathname}?${queryString}`);
       } else {
         navigate(pathname);
       }
+    } else if (notification.link) {
+      // Support simple link field
+      navigate(notification.link);
     } else {
       // Fallback navigation based on type
       if (notification.type === 'chat') {

@@ -20,7 +20,12 @@ export const useNotificationStore = create((set, get) => ({
 
   // Initialize socket connection
   initSocket: (userId) => {
-    if (!userId) return;
+    if (!userId) {
+      console.warn('[NotificationStore] ❌ No userId provided to initSocket');
+      return;
+    }
+
+    console.log('[NotificationStore] 🔌 Initializing socket for userId:', userId);
 
     const socket = io(SOCKET_URL, {
       auth: { userId },
@@ -28,21 +33,27 @@ export const useNotificationStore = create((set, get) => ({
     });
 
     socket.on('connect', () => {
-      console.log('[NotificationStore] Socket connected:', socket.id);
+      console.log('[NotificationStore] ✅ Socket connected:', socket.id);
+      console.log('[NotificationStore] 📡 Socket auth userId:', userId);
+      console.log('[NotificationStore] 🏠 Socket will receive notifications on room:', userId);
     });
 
     socket.on('notification:new', (data) => {
+      console.log('[NotificationStore] 🔔 Socket event notification:new received:', data);
       const { notification } = data;
-      console.log('[NotificationStore] New notification:', notification);
+      console.log('[NotificationStore] Notification details:', notification);
       
       // Check if should suppress (e.g., chat notification for current conversation)
       const currentConversationId = get().currentConversationId;
+      console.log('[NotificationStore] Current conversation ID:', currentConversationId);
+      
       if (notification.type === 'chat' && 
           notification.deepLink?.query?.conversationId === currentConversationId) {
-        console.log('[NotificationStore] Suppressing notification for current conversation');
+        console.log('[NotificationStore] ⛔ Suppressing notification for current conversation');
         return;
       }
       
+      console.log('[NotificationStore] ✅ Adding notification to store');
       get().addNotification(notification);
     });
 
@@ -64,24 +75,35 @@ export const useNotificationStore = create((set, get) => ({
 
   // Load notifications from API
   loadNotifications: async (userRole) => {
+    if (!userRole) {
+      console.warn('[NotificationStore] ❌ No user role provided');
+      return;
+    }
+    
     try {
       set({ isLoading: true });
-      const response = await notificationAPI.getMyNotifications();
-      const notifications = response.data || [];
+      console.log('[NotificationStore] 📡 Fetching notifications from API for role:', userRole);
       
-      // Filter by user role
-      const filteredNotifications = notifications.filter(n => 
-        !n.role || n.role === userRole
-      );
+      const response = await notificationAPI.getMyNotifications();
+      console.log('[NotificationStore] 📦 API Response:', response);
+      
+      const notifications = response.data || [];
+      console.log('[NotificationStore] 📊 Received', notifications.length, 'notifications from backend');
+      
+      // Backend already filters by role, so use data directly
+      console.log('[NotificationStore] ✅ Using', notifications.length, 'notifications (backend filtered)');
       
       set({ 
-        notifications: filteredNotifications,
-        unreadCount: filteredNotifications.filter(n => !n.isRead).length
+        notifications: notifications,
+        unreadCount: notifications.filter(n => !n.isRead).length
       });
+      
+      console.log('[NotificationStore] ✅ State updated successfully');
     } catch (error) {
-      console.error('[NotificationStore] Error loading notifications:', error);
+      console.error('[NotificationStore] ❌ Error loading notifications:', error);
+      console.error('[NotificationStore] Error details:', error.message);
       if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        set({ notifications: [], unreadCount: 0 });
+        console.log('[NotificationStore] User not authenticated');
       }
     } finally {
       set({ isLoading: false });
@@ -92,9 +114,12 @@ export const useNotificationStore = create((set, get) => ({
   loadUnreadCount: async () => {
     try {
       const response = await notificationAPI.getUnreadCount();
-      set({ unreadCount: response.data?.count || 0 });
+      const count = response.data?.count || 0;
+      console.log('[NotificationStore] Unread count:', count);
+      set({ unreadCount: count });
     } catch (error) {
       console.error('[NotificationStore] Error loading unread count:', error);
+      // Don't set to 0, keep existing value
     }
   },
 
@@ -117,28 +142,41 @@ export const useNotificationStore = create((set, get) => ({
   // Mark notification as read
   markAsRead: async (notificationId) => {
     try {
-      await notificationAPI.markAsRead(notificationId);
+      // Update UI immediately (optimistic update)
+      set((state) => {
+        const notification = state.notifications.find(n => n.id === notificationId);
+        const wasUnread = notification && !notification.isRead;
+        
+        return {
+          notifications: state.notifications.map(n =>
+            n.id === notificationId ? { ...n, isRead: true } : n
+          ),
+          unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount
+        };
+      });
       
-      set((state) => ({
-        notifications: state.notifications.map(n =>
-          n.id === notificationId ? { ...n, isRead: true } : n
-        ),
-        unreadCount: Math.max(0, state.unreadCount - 1)
-      }));
+      // Then call API in background
+      await notificationAPI.markAsRead(notificationId);
+      console.log('[NotificationStore] Marked notification as read:', notificationId);
     } catch (error) {
       console.error('[NotificationStore] Error marking as read:', error);
+      // Rollback on error
+      get().loadNotifications(get().notifications[0]?.role);
     }
   },
 
   // Mark all as read
   markAllAsRead: async () => {
     try {
-      await notificationAPI.markAllAsRead();
-      
+      // Update UI immediately
       set((state) => ({
         notifications: state.notifications.map(n => ({ ...n, isRead: true })),
         unreadCount: 0
       }));
+      
+      // Then call API in background
+      await notificationAPI.markAllAsRead();
+      console.log('[NotificationStore] Marked all notifications as read');
     } catch (error) {
       console.error('[NotificationStore] Error marking all as read:', error);
     }
@@ -163,28 +201,52 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
-  // Get filtered notifications
+  // Get filtered notifications - DO FILTERING IN STORE
   getFilteredNotifications: () => {
     const { notifications, activeFilter } = get();
+    
+    console.log('[NotificationStore] Filtering notifications:', {
+      total: notifications.length,
+      activeFilter
+    });
+    
+    // If no notifications from API and on "All" tab, show welcome notification
+    if (notifications.length === 0 && activeFilter === 'all') {
+      const welcomeNotification = {
+        id: 'welcome-notification',
+        type: 'welcome',
+        title: 'Chào mừng đến với Diabetes Predictor',
+        description: 'Cảm ơn bạn đã đăng ký! Hãy bắt đầu với bài đánh giá đầu tiên.',
+        createdAt: new Date().toISOString(),
+        isRead: false,
+        deepLink: { pathname: '/prediction', query: {} },
+        link: '/prediction'
+      };
+      console.log('[NotificationStore] Showing welcome notification (no real notifications)');
+      return [welcomeNotification];
+    }
     
     if (activeFilter === 'all') {
       return notifications;
     }
     
-    return notifications.filter(n => n.type === activeFilter);
+    const filtered = notifications.filter(n => n.type === activeFilter);
+    console.log('[NotificationStore] Filtered result:', filtered.length, 'notifications');
+    return filtered;
   },
 
   // Drawer controls
   openDrawer: () => {
+    console.log('[NotificationStore] Opening drawer');
+    const currentState = get();
+    console.log('[NotificationStore] Current notifications:', currentState.notifications.length);
     set({ isDrawerOpen: true });
-    // Auto mark all as read when opening drawer
-    const unreadCount = get().unreadCount;
-    if (unreadCount > 0) {
-      get().markAllAsRead();
-    }
+    console.log('[NotificationStore] isDrawerOpen set to true');
+    // Do NOT auto mark all as read when opening drawer - let user control this
   },
 
   closeDrawer: () => {
+    console.log('[NotificationStore] Closing drawer');
     set({ isDrawerOpen: false });
   },
 

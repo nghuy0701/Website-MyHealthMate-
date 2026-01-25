@@ -63,10 +63,22 @@ export function Header() {
                 >
                   Tư vấn
                 </Link>
+
+                <Link
+                  to="/profile"
+                  className={`transition-colors ${
+                    isActive('/profile') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                  }`}
+                >
+                  Hồ sơ
+                </Link>
                 
                 {/* Notification Bell */}
                 <button
-                  onClick={openDrawer}
+                  onClick={() => {
+                    console.log('Bell clicked');
+                    openDrawer();
+                  }}
                   className="relative text-gray-600 hover:text-green-600 transition-colors"
                   aria-label="Thông báo"
                 >
@@ -78,14 +90,6 @@ export function Header() {
                   )}
                 </button>
 
-                <Link
-                  to="/profile"
-                  className={`transition-colors ${
-                    isActive('/profile') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
-                >
-                  Hồ sơ
-                </Link>
                 <Button
                   variant="outline"
                   onClick={logout}
