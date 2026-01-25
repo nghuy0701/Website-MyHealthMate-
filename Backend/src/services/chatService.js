@@ -14,7 +14,7 @@ import ApiError from '~/utils/ApiError'
  */
 
 // Patient sends message (creates conversation if first message)
-const sendMessageAsPatient = async (patientId, content) => {
+const sendMessageAsPatient = async (patientId, content, attachments = []) => {
   try {
     // 1. Find assigned doctor
     const mapping = await patientDoctorModel.findDoctorByPatientId(patientId)
@@ -35,7 +35,7 @@ const sendMessageAsPatient = async (patientId, content) => {
       const newConv = await conversationModel.createNew({
         patientId,
         doctorId,
-        lastMessage: content
+        lastMessage: content || '[Attachment]'
       })
       conversation = {
         _id: newConv.insertedId,
@@ -50,18 +50,23 @@ const sendMessageAsPatient = async (patientId, content) => {
       senderId: patientId,
       senderRole: 'patient',
       content,
+      attachments,
       read: false
     }
     const savedMessage = await messageModel.createNew(messageData)
 
     // 4. Update conversation's last message
-    await conversationModel.updateLastMessage(conversation._id.toString(), content)
+    await conversationModel.updateLastMessage(
+      conversation._id.toString(),
+      content || (attachments.length > 0 ? '[Attachment]' : '')
+    )
 
     // 5. Return message with metadata
     return {
       messageId: savedMessage.insertedId,
       conversationId: conversation._id,
       content,
+      attachments,
       senderId: patientId,
       senderRole: 'patient',
       receiverId: doctorId,
@@ -73,7 +78,7 @@ const sendMessageAsPatient = async (patientId, content) => {
 }
 
 // Doctor replies to patient
-const sendMessageAsDoctor = async (doctorId, conversationId, content) => {
+const sendMessageAsDoctor = async (doctorId, conversationId, content, attachments = []) => {
   try {
     // 1. Verify conversation belongs to doctor
     const conversation = await conversationModel.findOneById(conversationId)
@@ -94,12 +99,16 @@ const sendMessageAsDoctor = async (doctorId, conversationId, content) => {
       senderId: doctorId,
       senderRole: 'doctor',
       content,
+      attachments,
       read: false
     }
     const savedMessage = await messageModel.createNew(messageData)
 
     // 3. Update conversation's last message
-    await conversationModel.updateLastMessage(conversationId, content)
+    await conversationModel.updateLastMessage(
+      conversationId,
+      content || (attachments.length > 0 ? '[Attachment]' : '')
+    )
 
     // 4. Return message with metadata
     const patientId = conversation.patientId.toString()
@@ -107,6 +116,7 @@ const sendMessageAsDoctor = async (doctorId, conversationId, content) => {
       messageId: savedMessage.insertedId,
       conversationId: new ObjectId(conversationId),
       content,
+      attachments,
       senderId: doctorId,
       senderRole: 'doctor',
       receiverId: patientId,
@@ -185,6 +195,7 @@ const getMessages = async (userId, userRole, conversationId) => {
           senderName: sender?.displayName || sender?.userName || 'Unknown',
           senderRole: msg.senderRole,
           content: msg.content,
+          attachments: msg.attachments || [], // Include attachments
           read: msg.read,
           createdAt: msg.createdAt,
           isOwn: msg.senderId.toString() === userId

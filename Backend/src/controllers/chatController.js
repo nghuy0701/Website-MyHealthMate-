@@ -11,10 +11,10 @@ const sendMessage = async (req, res, next) => {
   try {
     const userId = req.session.user.userId
     const userRole = req.session.user.role
-    const { content, conversationId } = req.body
+    const { content, conversationId, attachments } = req.body
 
-    if (!content || content.trim() === '') {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Message content is required')
+    if (!content && (!attachments || attachments.length === 0)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Message content or attachments required')
     }
 
     let result
@@ -25,7 +25,7 @@ const sendMessage = async (req, res, next) => {
 
     if (isPatient) {
       // Patient sends message (may create conversation)
-      result = await chatService.sendMessageAsPatient(userId, content)
+      result = await chatService.sendMessageAsPatient(userId, content || '', attachments || [])
     } else if (isDoctor) {
       // Doctor replies to patient
       if (!conversationId) {
@@ -34,7 +34,7 @@ const sendMessage = async (req, res, next) => {
           'Conversation ID is required for doctor replies'
         )
       }
-      result = await chatService.sendMessageAsDoctor(userId, conversationId, content)
+      result = await chatService.sendMessageAsDoctor(userId, conversationId, content || '', attachments || [])
     } else {
       throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid user role for chat')
     }
@@ -49,6 +49,7 @@ const sendMessage = async (req, res, next) => {
         senderId: result.senderId,
         senderRole: result.senderRole,
         content: result.content,
+        attachments: result.attachments || [],
         createdAt: result.createdAt
       })
     }

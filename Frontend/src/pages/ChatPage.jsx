@@ -301,6 +301,7 @@ const mockPatientHistory = [
 export function ChatPage() {
   const { user } = useAuth();
   const messagesContainerRef = useRef(null);
+  const messagesEndRef = useRef(null);
   const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
   
   // Branch logic by user role
@@ -328,6 +329,17 @@ export function ChatPage() {
   const userId = user?._id?.toString() || user?.id?.toString();
   
   console.log('[ChatPage] userId:', userId, 'conversations length:', conversations.length, 'selectedConversationId:', selectedConversationId);
+
+  // Scroll to bottom of messages container (NOT window)
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }, []);
 
   // Socket.io handlers
   const handleNewMessage = useCallback((data) => {
@@ -360,6 +372,7 @@ export function ChatPage() {
         senderName: data.senderRole === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân',
         senderRole: data.senderRole,
         content: data.content,
+        attachments: data.attachments || [],
         createdAt: data.createdAt,
         isOwn: data.senderId === userId // Check if it's own message
       };
@@ -371,10 +384,10 @@ export function ChatPage() {
         markConversationAsRead(data.conversationId.toString());
       }
       
-      // Scroll to bottom when receiving new message
+      // Auto-scroll only when receiving message in current conversation
       setTimeout(() => scrollToBottom(), 100);
     }
-  }, [selectedConversationId, userId]);
+  }, [selectedConversationId, userId, scrollToBottom]);
 
   const handleTypingStart = useCallback((data) => {
     // data = { senderId, conversationId }
@@ -528,6 +541,17 @@ export function ChatPage() {
   useEffect(() => {
     loadConversations();
   }, [isDoctor]);
+
+  // Prevent page scroll when chat is open
+  useEffect(() => {
+    // Add overflow-hidden to body when chat page mounts
+    document.body.style.overflow = 'hidden';
+    
+    // Restore on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   // Fetch prediction history for patient view only
   useEffect(() => {
@@ -737,7 +761,7 @@ export function ChatPage() {
   // Load messages when conversation changes
   useEffect(() => {
     if (selectedConversationId && selectedConversationId !== 'new') {
-      loadMessages(selectedConversationId);
+      loadMessages(selectedConversationId, true); // Auto-scroll when opening conversation
     } else {
       setMessages([]);
     }
@@ -749,6 +773,10 @@ export function ChatPage() {
       const loadedMessages = response.data || [];
       setMessages(loadedMessages);
       
+      // Auto-scroll to bottom when opening conversation
+      if (shouldScroll && loadedMessages.length > 0) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
       // Only scroll if explicitly requested (e.g., after sending message)
       if (shouldScroll) {
         setTimeout(() => scrollToBottom(), 100);
@@ -756,12 +784,6 @@ export function ChatPage() {
     } catch (err) {
       console.error('Error loading messages:', err);
       setMessages([]);
-    }
-  };
-
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   };
 
@@ -821,8 +843,8 @@ export function ChatPage() {
   const typingUserName = getTypingUserName();
   console.log('[ChatPage] Final typing user name:', typingUserName);
 
-  const handleSendMessage = async (content) => {
-    if (!content.trim()) return;
+  const handleSendMessage = async (content, attachments = []) => {
+    if (!content.trim() && attachments.length === 0) return;
     
     try {
       // Stop typing indicator immediately when sending
@@ -831,7 +853,8 @@ export function ChatPage() {
 
       // Prepare message data
       const messageData = {
-        content: content.trim()
+        content: content.trim(),
+        attachments
       };
 
       // Doctor needs to provide conversationId
@@ -850,8 +873,11 @@ export function ChatPage() {
         setSelectedConversationId(currentConversationId);
       }
 
-      // Reload messages to show the new message and scroll to bottom
-      await loadMessages(currentConversationId, true);
+      // Reload messages to show the new message
+      await loadMessages(currentConversationId, false); // Don't scroll on load
+      
+      // Auto-scroll only when sending own message
+      setTimeout(() => scrollToBottom(), 100);
       
       // Reload conversations list to update last message and timestamp
       loadConversations();
@@ -910,7 +936,7 @@ export function ChatPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex bg-gray-50">
+    <div className="flex bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Left Sidebar - Conversation List */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
@@ -952,16 +978,6 @@ export function ChatPage() {
             >
               {isDoctor ? 'Bệnh nhân' : 'Bác sĩ'}
             </button>
-            <button
-              onClick={() => setSelectedFilter('groups')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === 'groups'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Nhóm
-            </button>
           </div>
         </div>
 
@@ -998,7 +1014,7 @@ export function ChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {selectedConversationId && selectedConversation ? (
           <>
             {/* Chat Header */}
@@ -1020,19 +1036,17 @@ export function ChatPage() {
               
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="rounded-full">
-                  <Phone className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Video className="w-5 h-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full">
                   <MoreVertical className="w-5 h-5" />
                 </Button>
               </div>
             </div>
 
             {/* Messages Area */}
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <div 
+              ref={messagesContainerRef} 
+              className="flex-1 overflow-y-auto p-6 bg-gray-50"
+              style={{ minHeight: 0 }}
+            >
               {messages.length > 0 ? (
                 <>
                   {messages.map((message) => (
@@ -1045,6 +1059,7 @@ export function ChatPage() {
                   {typingUserName && (
                     <TypingIndicator senderName={typingUserName} />
                   )}
+                  <div ref={messagesEndRef} />
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
@@ -1077,7 +1092,7 @@ export function ChatPage() {
 
       {/* Right Sidebar - Info Panel (Only for patient view) */}
       {selectedConversationId && selectedConversation && !isDoctor && (
-        <div className="w-80 flex-shrink-0">
+        <div className="w-80 flex-shrink-0 overflow-hidden">
           <ChatInfoPanel
             doctor={selectedConversation.doctor}
             patientHistory={patientHistory}
