@@ -11,8 +11,9 @@
     "production": "npm run build && cross-env NODE_ENV=production node ./dist/server.js",
     "dev": "cross-env NODE_ENV=development nodemon --exec babel-node ./src/server.js",
     "start": "node dist/server.js",
-    "seed:doctor": "babel-node ./src/seedDoctorAccount.js",
-    "seed:assign-doctor": "babel-node ./src/seedAssignDoctor.js",
+    "seed:doctor": "babel-node ./src/seeds/seedDoctorAccount.js",
+    "seed:assign-doctor": "babel-node ./src/seeds/seedAssignDoctor.js",
+    "seed": "babel-node ./src/seeds/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -39,6 +40,7 @@
     "joi": "^17.11.0",
     "mongodb": "^6.9.0",
     "multer": "^2.0.2",
+    "socket.io": "^4.8.3",
     "uuid": "^9.0.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
