@@ -71,3 +71,5 @@ export const notificationService = {
   markAllNotificationsAsRead,
   deleteNotification
 }
+
+export default notificationService

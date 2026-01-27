@@ -5,17 +5,26 @@ import { NotificationItem } from './NotificationItem';
 import { useNotificationStore } from '../../lib/useNotificationStore';
 import { useAuth } from '../../lib/auth-context';
 
+// Các tab filter thông báo
 const FILTER_TABS = [
   { id: 'all', label: 'Tất cả' },
   { id: 'prediction', label: 'Dự đoán' },
   { id: 'reminder', label: 'Nhắc nhở' },
-  { id: 'alert', label: 'Cảnh báo' },
-  { id: 'article', label: 'Bài viết' }
+  { id: 'alert', label: 'Cảnh báo' }
 ];
 
+/**
+ * Component Panel thông báo - Slide in từ bên phải
+ * - Hiển thị danh sách thông báo
+ * - Cho phép lọc theo loại (prediction, alert, reminder, chat)
+ * - Tìm kiếm thông báo
+ * - Đánh dấu đã đọc / Xóa thông báo
+ */
 export function NotificationDrawer() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Lấy state và actions từ store
   const isDrawerOpen = useNotificationStore(state => state.isDrawerOpen);
   const isLoading = useNotificationStore(state => state.isLoading);
   const activeFilter = useNotificationStore(state => state.activeFilter);
@@ -29,96 +38,130 @@ export function NotificationDrawer() {
   const loadNotifications = useNotificationStore(state => state.loadNotifications);
   const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications);
 
-  // Map role: member -> patient
+  // Chuyển đổi role: member -> patient
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
 
-  console.log('[NotificationDrawer] Component state:', { isDrawerOpen, userRole, notificationCount: notifications.length });
-
-  // Fetch latest notifications when drawer opens
+  // Khóa scroll của body khi drawer mở
   useEffect(() => {
-    console.log('[NotificationDrawer] useEffect running - isDrawerOpen:', isDrawerOpen, 'userRole:', userRole);
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isDrawerOpen]);
+
+  // Đóng drawer khi nhấn phím Escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        closeDrawer();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isDrawerOpen, closeDrawer]);
+
+  // Load thông báo mới nhất khi mở drawer
+  useEffect(() => {
     if (isDrawerOpen && userRole) {
-      console.log('[NotificationDrawer] Drawer opened, fetching latest notifications for role:', userRole);
       loadNotifications(userRole);
     }
   }, [isDrawerOpen, userRole, loadNotifications]);
 
-  // Get filtered notifications from store (filtering done in store)
+  // Lấy danh sách thông báo đã lọc theo tab
   const filteredNotifications = getFilteredNotifications();
-  
-  // Apply search filter on top of type filter
+
+  // Áp dụng thêm filter tìm kiếm
   const displayNotifications = searchQuery.trim()
     ? filteredNotifications.filter(n => {
-        const query = searchQuery.toLowerCase();
-        return n.title?.toLowerCase().includes(query) || 
-               n.description?.toLowerCase().includes(query);
-      })
+      const query = searchQuery.toLowerCase();
+      return n.title?.toLowerCase().includes(query) ||
+        n.description?.toLowerCase().includes(query);
+    })
     : filteredNotifications;
-  
+
+  // Kiểm tra có thông báo chưa đọc không
   const hasUnread = notifications.some(n => !n.isRead);
 
-  console.log('[NotificationDrawer] Render state:', {
-    isDrawerOpen,
-    totalNotifications: notifications.length,
-    filteredCount: filteredNotifications.length,
-    displayCount: displayNotifications.length,
-    activeFilter,
-    searchQuery,
-    unreadCount,
-    isLoading,
-    displayNotificationsSample: displayNotifications[0]
-  });
-
+  // Render portal vào document.body để đảm bảo hiển thị đúng
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Lớp phủ tối phía sau */}
       <div
-        className="fixed inset-0 bg-black transition-opacity"
-        style={{ 
-          zIndex: 9998,
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          zIndex: 9998,
           opacity: isDrawerOpen ? 1 : 0,
-          pointerEvents: isDrawerOpen ? 'auto' : 'none'
+          pointerEvents: isDrawerOpen ? 'auto' : 'none',
+          transition: 'opacity 300ms'
         }}
         onClick={closeDrawer}
+        aria-hidden="true"
       />
 
-      {/* Drawer */}
-      <div 
-        className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transition-transform duration-300"
-        style={{ 
+      {/* Panel thông báo - Slide từ phải sang */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          height: '100vh',
+          width: '100%',
+          maxWidth: '400px',
+          backgroundColor: 'white',
           zIndex: 9999,
-          transform: isDrawerOpen ? 'translateX(0)' : 'translateX(100%)'
+          transform: isDrawerOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 300ms ease-in-out',
+          boxShadow: '-4px 0 6px -1px rgba(0, 0, 0, 0.1), -2px 0 4px -1px rgba(0, 0, 0, 0.06)',
+          display: 'flex',
+          flexDirection: 'column'
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notification-title"
       >
-        {/* Header */}
-        <div className="border-b border-gray-200">
-          <div className="flex items-center justify-between p-4">
-            <h2 className="text-xl font-semibold text-gray-800">Thông báo</h2>
+        {/* Header - Cố định ở trên */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+          {/* Tiêu đề và nút đóng */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <h2 id="notification-title" className="text-xl font-semibold text-gray-800">
+              Thông báo
+            </h2>
             <button
               onClick={closeDrawer}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Đóng thông báo"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
-          
-          {/* Mark all as read button */}
+
+          {/* Nút đánh dấu tất cả đã đọc - Chỉ hiện khi có thông báo chưa đọc */}
           {hasUnread && (
             <div className="px-4 pb-3">
               <button
                 onClick={() => {
                   markAllAsRead();
                 }}
-                className="w-full py-2 px-4 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                className="w-full py-2.5 px-4 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
               >
                 <Check className="w-4 h-4" />
                 Đánh dấu tất cả đã đọc
               </button>
             </div>
           )}
-          
-          {/* Search box */}
+
+          {/* Ô tìm kiếm */}
           <div className="px-4 pb-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -127,36 +170,39 @@ export function NotificationDrawer() {
                 placeholder="Tìm thông báo..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex overflow-x-auto border-b border-gray-200 px-4">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveFilter(tab.id)}
-              className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
-                activeFilter === tab.id
+        {/* Tabs lọc - Sticky dưới header */}
+        <div className="flex-shrink-0 sticky top-0 bg-white border-b border-gray-200 z-10">
+          <div className="flex overflow-x-auto scrollbar-hide">
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveFilter(tab.id)}
+                className={`flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${activeFilter === tab.id
                   ? 'text-green-600 border-green-600'
                   : 'text-gray-600 border-transparent hover:text-green-600'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Danh sách thông báo - Có thể scroll */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           {isLoading ? (
+            // Loading spinner
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             </div>
           ) : displayNotifications.length === 0 ? (
+            // Empty state
             <div className="flex flex-col items-center justify-center h-full text-gray-500 p-8">
               <div className="text-5xl mb-4">🔔</div>
               <p className="text-center text-sm">
@@ -170,14 +216,17 @@ export function NotificationDrawer() {
               </p>
             </div>
           ) : (
-            displayNotifications.map((notification) => (
-              <NotificationItem
-                key={notification.id}
-                notification={notification}
-                onMarkAsRead={markAsRead}
-                onDelete={deleteNotification}
-              />
-            ))
+            // Danh sách thông báo
+            <div className="divide-y divide-gray-100">
+              {displayNotifications.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={markAsRead}
+                  onDelete={deleteNotification}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>

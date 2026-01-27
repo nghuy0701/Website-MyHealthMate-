@@ -47,7 +47,7 @@ const sendMessage = async (req, res, next) => {
     if (req.app.get('io')) {
       const io = req.app.get('io')
       const receiverId = result.receiverId
-      
+
       // Emit message event
       io.to(receiverId).emit('message:new', {
         messageId: result.messageId,
@@ -76,8 +76,11 @@ const sendMessage = async (req, res, next) => {
 // Helper function to create chat notification
 const createChatNotification = async (receiverId, messageResult, senderIsDoctor, io) => {
   try {
-    const senderName = senderIsDoctor ? messageResult.senderName : 'Bệnh nhân'
-    const truncatedContent = messageResult.content.length > 100 
+    // Fetch sender's name from database
+    const { userModel } = await import('~/models')
+    const sender = await userModel.findOneById(messageResult.senderId)
+    const senderName = sender?.displayName || sender?.userName || (senderIsDoctor ? 'Bác sĩ' : 'Bệnh nhân')
+    const truncatedContent = messageResult.content.length > 100
       ? messageResult.content.substring(0, 100) + '…'
       : messageResult.content
 
@@ -90,18 +93,18 @@ const createChatNotification = async (receiverId, messageResult, senderIsDoctor,
       deepLink: {
         pathname: '/chat',
         query: {
-          conversationId: messageResult.conversationId
+          conversationId: messageResult.conversationId.toString()
         }
       },
       meta: {
-        conversationId: messageResult.conversationId,
+        conversationId: messageResult.conversationId.toString(),
         senderId: messageResult.senderId,
         senderName: senderName
       }
     }
 
     const notification = await notificationService.createNotification(notificationData)
-    
+
     // Emit notification event to receiver
     io.to(receiverId).emit('notification:new', {
       notification: {
@@ -120,8 +123,8 @@ const createChatNotification = async (receiverId, messageResult, senderIsDoctor,
         }
       }
     })
-    
-    logger.info(`[Notification] Created chat notification for user ${receiverId}`)
+
+    logger.info(`[Notification] Created chat notification for user ${receiverId} from ${senderName}`)
   } catch (error) {
     logger.error('[Notification] Error creating chat notification:', error)
   }
@@ -192,7 +195,7 @@ const markAsRead = async (req, res, next) => {
     // Verify user belongs to conversation
     const { conversationModel } = await import('~/models')
     const belongsTo = await conversationModel.belongsToConversation(conversationId, userId)
-    
+
     if (!belongsTo) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,

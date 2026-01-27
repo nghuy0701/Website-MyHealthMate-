@@ -3,7 +3,12 @@ import { useAuth } from '../../lib/auth-context';
 import { useNotificationStore } from '../../lib/useNotificationStore';
 
 /**
- * Component to initialize notification store when user logs in/out
+ * Component khởi tạo hệ thống thông báo khi user login/logout
+ * - Kết nối Socket.IO khi user login
+ * - Load danh sách thông báo và unread count
+ * - Ngắt kết nối và xóa state khi user logout
+ * 
+ * Component này không render gì cả, chỉ chạy side effects
  */
 export function NotificationInitializer() {
   const { user } = useAuth();
@@ -13,48 +18,37 @@ export function NotificationInitializer() {
   const loadUnreadCount = useNotificationStore(state => state.loadUnreadCount);
   const clearAll = useNotificationStore(state => state.clearAll);
 
-  // Map user fields for compatibility
+  // Lấy userId và role từ user object
   const userId = user?.userId || user?._id;
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
 
-  console.log('[NotificationInitializer] Component rendered, userId:', userId, 'role:', userRole);
-
   useEffect(() => {
-    console.log('[NotificationInitializer] useEffect triggered, user:', user);
-    
     if (user && userId && userRole) {
-      console.log('[NotificationInitializer] ✅ User authenticated - starting initialization');
-      console.log('[NotificationInitializer] User ID:', userId, 'Role:', userRole);
-      
-      // Initialize socket first
-      console.log('[NotificationInitializer] Step 1: Initializing socket...');
+      // User đã login - Khởi tạo hệ thống thông báo
+      console.log('[Notification] ✅ User logged in - Initializing notification system');
+
+      // Bước 1: Kết nối Socket.IO
       initSocket(userId);
-      
-      // Then fetch notifications from API
+
+      // Bước 2: Load danh sách thông báo và unread count
       const fetchData = async () => {
         try {
-          console.log('[NotificationInitializer] Step 2: Fetching notifications for role:', userRole);
           await loadNotifications(userRole);
-          console.log('[NotificationInitializer] ✅ Notifications loaded successfully');
-          
-          console.log('[NotificationInitializer] Step 3: Loading unread count...');
           await loadUnreadCount();
-          console.log('[NotificationInitializer] ✅ Unread count loaded successfully');
+          console.log('[Notification] ✅ Notification system initialized');
         } catch (err) {
-          console.error('[NotificationInitializer] ❌ Error loading notification data:', err);
+          console.error('[Notification] ❌ Error initializing:', err);
         }
       };
-      
+
       fetchData();
     } else if (user === null) {
-      // User logged out - cleanup
-      console.log('[NotificationInitializer] User logged out, cleaning up');
+      // User đã logout - Dọn dẹp
+      console.log('[Notification] 🔌 User logged out - Cleaning up');
       disconnectSocket();
       clearAll();
-    } else {
-      console.log('[NotificationInitializer] ⏳ Waiting for user data... userId:', userId, 'role:', userRole);
     }
   }, [userId, userRole, initSocket, disconnectSocket, loadNotifications, loadUnreadCount, clearAll]);
 
-  return null; // This component doesn't render anything
+  return null; // Component này không render gì
 }

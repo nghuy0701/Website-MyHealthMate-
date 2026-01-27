@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { env  } from '~/configs/environment'
-import { StatusCodes  } from 'http-status-codes'
+import { env } from '~/configs/environment'
+import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 
 /**
@@ -142,9 +142,9 @@ const predictDiabetes = async (data) => {
  * @returns {String} Risk level: Low, Medium, High
  */
 const determineRiskLevel = (probability) => {
-  if (probability < 30) return 'Low'
-  if (probability < 60) return 'Medium'
-  return 'High'
+  if (probability < 30) return 'low'
+  if (probability < 60) return 'medium'
+  return 'high'
 }
 
 /**
@@ -168,7 +168,7 @@ const fallbackPrediction = (data) => {
   let score = 0
 
   // === MEDICAL INDICES (60 points max) ===
-  
+
   // Glucose level (most important factor - 25 points)
   if (glucose > 140) score += 25
   else if (glucose > 126) score += 20
@@ -194,7 +194,7 @@ const fallbackPrediction = (data) => {
   else score += 1
 
   // === SYMPTOMS (40 points max) ===
-  
+
   // Critical symptoms (5 points each)
   if (data.frequentThirst === 'Có' || data.frequentThirst === true) score += 5
   if (data.frequentUrination === 'Có' || data.frequentUrination === true) score += 5
@@ -206,7 +206,7 @@ const fallbackPrediction = (data) => {
   // Risk factors (3 points each)
   if (data.familyHistory === 'Có' || data.familyHistory === true) score += 5
   if (data.highBloodPressureDiagnosis === 'Có' || data.highBloodPressureDiagnosis === true) score += 3
-  
+
   // Lifestyle factors (2 points each)
   if (data.lowExercise === 'Có' || data.lowExercise === true) score += 2
   if (data.sweetConsumption === 'Có' || data.sweetConsumption === true) score += 2
