@@ -81,17 +81,15 @@ const NOTIFICATION_COLORS = {
  *   - deepLink: Thông tin điều hướng
  *   - meta: Metadata bổ sung
  * @param {Function} props.onMarkAsRead - Callback đánh dấu đã đọc
- * @param {Function} props.onDelete - Callback xóa thông báo
  * 
  * Tính năng:
  * - Hiển thị icon và màu sắc theo loại thông báo
  * - Click vào thông báo để điều hướng đến trang liên quan
  * - Tự động đánh dấu đã đọc khi click
- * - Nút xóa thông báo
  * - Hiển thị badge chưa đọc (chấm xanh)
  * - Hiển thị thời gian tương đối (ví dụ: "2 phút trước")
  */
-export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
+export function NotificationItem({ notification, onMarkAsRead }) {
   const navigate = useNavigate(); // Hook để điều hướng trang
   const closeDrawer = useNotificationStore(state => state.closeDrawer); // Lấy hàm đóng drawer từ store
 
@@ -156,20 +154,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
     }
   };
 
-  /**
-   * handleDelete - Xử lý khi click nút xóa
-   * 
-   * @param {Event} e - Click event
-   * 
-   * Lưu ý:
-   * - stopPropagation() để ngăn event bubbling (không trigger handleClick)
-   * - Gọi callback onDelete để xóa thông báo
-   */
-  const handleDelete = (e) => {
-    e.stopPropagation(); // Ngăn event bubbling lên thẻ cha
-    onDelete(notification.id); // Gọi hàm xóa
-  };
-
   // ============================================
   // RENDER UI
   // ============================================
@@ -180,7 +164,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
    * - Icon: Hiển thị icon theo type với màu tương ứng
    * - Content:
    *   + Title: Tiêu đề thông báo
-   *   + Delete button: Nút xóa
    *   + Description: Nội dung (giới hạn 2 dòng)
    *   + Footer: Thời gian + badge chưa đọc
    */
@@ -197,16 +180,8 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }) {
 
       {/* Content - Nội dung thông báo */}
       <div className="flex-1 min-w-0">
-        {/* Header: Title + Delete button */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h4 className="font-semibold text-gray-800 text-sm">{notification.title}</h4>
-          <button
-            onClick={handleDelete}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Title - Tiêu đề thông báo */}
+        <h4 className="font-semibold text-gray-800 text-sm">{notification.title}</h4>
 
         {/* Description - Giới hạn 2 dòng (line-clamp-2) */}
         <p className="text-sm text-gray-600 mb-1 line-clamp-2">{notification.description}</p>

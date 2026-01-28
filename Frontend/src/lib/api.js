@@ -188,6 +188,4 @@ export const notificationAPI = {
   // Mark all notifications as read
   markAllAsRead: () => apiClient.put('/notifications/read-all'),
   
-  // Delete notification
-  deleteNotification: (id) => apiClient.delete(`/notifications/${id}`),
 }
