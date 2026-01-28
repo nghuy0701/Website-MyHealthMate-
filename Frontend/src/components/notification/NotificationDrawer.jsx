@@ -1,11 +1,28 @@
-import { X, Check, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { NotificationItem } from './NotificationItem';
-import { useNotificationStore } from '../../lib/useNotificationStore';
-import { useAuth } from '../../lib/auth-context';
+// ============================================
+// IMPORT CÁC COMPONENTS VÀ HOOKS
+// ============================================
+import { X, Check, Search } from 'lucide-react'; // Icons: Đóng, Check, Tìm kiếm
+import { useState, useEffect } from 'react'; // React hooks
+import { createPortal } from 'react-dom'; // Render component vào DOM node khác
+import { NotificationItem } from './NotificationItem'; // Component hiển thị một thông báo
+import { useNotificationStore } from '../../lib/useNotificationStore'; // Zustand store
+import { useAuth } from '../../lib/auth-context'; // Auth context để lấy thông tin user
 
-// Các tab filter thông báo
+// ============================================
+// CONFIGURATION - CẤU HÌNH FILTER TABS
+// ============================================
+
+/**
+ * FILTER_TABS - Các tab lọc thông báo
+ * 
+ * Mỗi tab cho phép lọc thông báo theo loại:
+ * - all: Hiển thị tất cả thông báo
+ * - prediction: Chỉ hiển thị thông báo dự đoán
+ * - reminder: Chỉ hiển thị thông báo nhắc nhở
+ * - alert: Chỉ hiển thị thông báo cảnh báo
+ * 
+ * Lưu ý: Không có tab 'chat' vì thông báo chat được hiển thị trong tab 'all'
+ */
 const FILTER_TABS = [
   { id: 'all', label: 'Tất cả' },
   { id: 'prediction', label: 'Dự đoán' },
@@ -13,48 +30,93 @@ const FILTER_TABS = [
   { id: 'alert', label: 'Cảnh báo' }
 ];
 
+// ============================================
+// NOTIFICATION DRAWER COMPONENT
+// ============================================
+
 /**
- * Component Panel thông báo - Slide in từ bên phải
+ * NotificationDrawer - Component Panel thông báo chính
+ * 
+ * Đặc điểm:
+ * - Slide in từ bên phải khi mở
  * - Hiển thị danh sách thông báo
- * - Cho phép lọc theo loại (prediction, alert, reminder, chat)
- * - Tìm kiếm thông báo
+ * - Cho phép lọc theo loại (prediction, alert, reminder, tất cả)
+ * - Tìm kiếm thông báo theo tiêu đề/nội dung
  * - Đánh dấu đã đọc / Xóa thông báo
+ * - Render bằng Portal để hiển thị trên cùng (z-index cao)
+ * 
+ * Tính năng:
+ * - Khóa scroll của body khi mở
+ * - Đóng bằng nút X, click backdrop, hoặc phím Escape
+ * - Tự động load thông báo khi mở
+ * - Hiển thị loading spinner khi đang tải
+ * - Hiển thị empty state khi không có thông báo
  */
 export function NotificationDrawer() {
-  const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { user } = useAuth(); // Lấy thông tin user đang đăng nhập
+  const [searchQuery, setSearchQuery] = useState(''); // State cho ô tìm kiếm
 
-  // Lấy state và actions từ store
-  const isDrawerOpen = useNotificationStore(state => state.isDrawerOpen);
-  const isLoading = useNotificationStore(state => state.isLoading);
-  const activeFilter = useNotificationStore(state => state.activeFilter);
-  const unreadCount = useNotificationStore(state => state.unreadCount);
-  const notifications = useNotificationStore(state => state.notifications);
-  const closeDrawer = useNotificationStore(state => state.closeDrawer);
-  const markAsRead = useNotificationStore(state => state.markAsRead);
-  const markAllAsRead = useNotificationStore(state => state.markAllAsRead);
-  const deleteNotification = useNotificationStore(state => state.deleteNotification);
-  const setActiveFilter = useNotificationStore(state => state.setActiveFilter);
-  const loadNotifications = useNotificationStore(state => state.loadNotifications);
-  const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications);
+  // ============================================
+  // LẤY STATE VÀ ACTIONS TỪ STORE
+  // ============================================
 
-  // Chuyển đổi role: member -> patient
+  // Lấy các state từ Zustand store
+  const isDrawerOpen = useNotificationStore(state => state.isDrawerOpen); // Trạng thái mở/đóng
+  const isLoading = useNotificationStore(state => state.isLoading); // Trạng thái đang tải
+  const activeFilter = useNotificationStore(state => state.activeFilter); // Tab filter hiện tại
+  const unreadCount = useNotificationStore(state => state.unreadCount); // Số thông báo chưa đọc
+  const notifications = useNotificationStore(state => state.notifications); // Danh sách thông báo
+
+  // Lấy các action functions từ store
+  const closeDrawer = useNotificationStore(state => state.closeDrawer); // Hàm đóng drawer
+  const markAsRead = useNotificationStore(state => state.markAsRead); // Hàm đánh dấu đã đọc
+  const markAllAsRead = useNotificationStore(state => state.markAllAsRead); // Hàm đánh dấu tất cả đã đọc
+  const deleteNotification = useNotificationStore(state => state.deleteNotification); // Hàm xóa thông báo
+  const setActiveFilter = useNotificationStore(state => state.setActiveFilter); // Hàm đặt filter
+  const loadNotifications = useNotificationStore(state => state.loadNotifications); // Hàm load thông báo
+  const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications); // Hàm lấy danh sách đã lọc
+
+  // ============================================
+  // CHUYỂN ĐỔI ROLE
+  // ============================================
+
+  /**
+   * Chuyển đổi role: member -> patient
+   * 
+   * Lý do: Backend sử dụng role 'patient', nhưng frontend có thể sử dụng 'member'
+   * Cần chuẩn hóa để gọi API đúng
+   */
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
 
-  // Khóa scroll của body khi drawer mở
+  // ============================================
+  // EFFECTS - XỬ LÝ SIDE EFFECTS
+  // ============================================
+
+  /**
+   * Effect 1: Khóa scroll của body khi drawer mở
+   * 
+   * Mục đích: Ngăn user scroll trang phía sau khi drawer đang mở
+   * Cleanup: Khôi phục scroll khi drawer đóng hoặc component unmount
+   */
   useEffect(() => {
     if (isDrawerOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden'; // Khóa scroll
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = ''; // Khôi phục scroll
     }
 
+    // Cleanup function: Chạy khi component unmount hoặc isDrawerOpen thay đổi
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = ''; // Luôn khôi phục scroll khi cleanup
     };
   }, [isDrawerOpen]);
 
-  // Đóng drawer khi nhấn phím Escape
+  /**
+   * Effect 2: Đóng drawer khi nhấn phím Escape
+   * 
+   * Mục đích: Cung cấp cách đóng drawer nhanh bằng bàn phím
+   * UX: Chuẩn mực cho modal/drawer
+   */
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isDrawerOpen) {
@@ -62,21 +124,50 @@ export function NotificationDrawer() {
       }
     };
 
+    // Thêm event listener
     document.addEventListener('keydown', handleEscape);
+
+    // Cleanup: Gỡ event listener khi component unmount
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isDrawerOpen, closeDrawer]);
 
-  // Load thông báo mới nhất khi mở drawer
+  /**
+   * Effect 3: Load thông báo mới nhất khi mở drawer
+   * 
+   * Mục đích: Đảm bảo luôn hiển thị dữ liệu mới nhất
+   * Chỉ load khi:
+   * - Drawer đang mở (isDrawerOpen = true)
+   * - Có userRole (user đã đăng nhập)
+   */
   useEffect(() => {
     if (isDrawerOpen && userRole) {
-      loadNotifications(userRole);
+      loadNotifications(userRole); // Gọi API lấy danh sách thông báo
     }
   }, [isDrawerOpen, userRole, loadNotifications]);
 
-  // Lấy danh sách thông báo đã lọc theo tab
+  // ============================================
+  // DATA PROCESSING - XỬ LÝ DỮ LIỆU
+  // ============================================
+
+  /**
+   * Bước 1: Lấy danh sách thông báo đã lọc theo tab
+   * 
+   * Ví dụ:
+   * - Nếu activeFilter = 'all' -> Trả về tất cả thông báo
+   * - Nếu activeFilter = 'prediction' -> Chỉ trả về thông báo type='prediction'
+   */
   const filteredNotifications = getFilteredNotifications();
 
-  // Áp dụng thêm filter tìm kiếm
+  /**
+   * Bước 2: Áp dụng thêm filter tìm kiếm
+   * 
+   * Nếu có searchQuery:
+   * - Tìm kiếm trong title và description
+   * - Không phân biệt hoa thường (toLowerCase)
+   * 
+   * Nếu không có searchQuery:
+   * - Hiển thị tất cả filteredNotifications
+   */
   const displayNotifications = searchQuery.trim()
     ? filteredNotifications.filter(n => {
       const query = searchQuery.toLowerCase();
@@ -85,7 +176,12 @@ export function NotificationDrawer() {
     })
     : filteredNotifications;
 
-  // Kiểm tra có thông báo chưa đọc không
+  /**
+   * Kiểm tra có thông báo chưa đọc không
+   * 
+   * Dùng để hiển thị nút "Đánh dấu tất cả đã đọc"
+   * Chỉ hiển nút này khi có ít nhất 1 thông báo chưa đọc
+   */
   const hasUnread = notifications.some(n => !n.isRead);
 
   // Render portal vào document.body để đảm bảo hiển thị đúng
