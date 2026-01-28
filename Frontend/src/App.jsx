@@ -20,6 +20,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
 import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
 import { AdminVerifyEmailPage } from './pages/admin/AdminVerifyEmailPage.jsx';
 import { Toaster } from './components/ui/sonner';
+import { AiMedicalAssistantMiniChat } from './components/chat/AiMedicalAssistantMiniChat.jsx'; // Import mini-chat
 
 export default function App() {
   return (
@@ -109,6 +110,8 @@ export default function App() {
             />
           </Routes>
           <Toaster position="top-right" />
+          {/* Mini Chat AI - Luôn hiển thị trên tất cả các trang */}
+          <AiMedicalAssistantMiniChat />
         </AuthProvider>
       </AdminProvider>
     </BrowserRouter>
