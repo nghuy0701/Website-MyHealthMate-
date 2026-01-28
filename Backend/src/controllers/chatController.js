@@ -1,6 +1,10 @@
 import { StatusCodes } from 'http-status-codes'
 import { chatService } from '~/services'
+import { notificationService } from '~/services/notificationService'
 import ApiError from '~/utils/ApiError'
+import { createLogger } from '~/utils/logger'
+
+const logger = createLogger('ChatController')
 
 /**
  * Chat Controller - Handles HTTP requests for chat functionality
@@ -92,6 +96,63 @@ const sendMessage = async (req, res, next) => {
   }
 }
 
+// Helper function to create chat notification
+const createChatNotification = async (receiverId, messageResult, senderIsDoctor, io) => {
+  try {
+    // Fetch sender's name from database
+    const { userModel } = await import('~/models')
+    const sender = await userModel.findOneById(messageResult.senderId)
+    const senderName = sender?.displayName || sender?.userName || (senderIsDoctor ? 'Bác sĩ' : 'Bệnh nhân')
+    const truncatedContent = messageResult.content.length > 100
+      ? messageResult.content.substring(0, 100) + '…'
+      : messageResult.content
+
+    const notificationData = {
+      userId: receiverId,
+      type: 'chat',
+      title: `Tin nhắn mới từ ${senderName}`,
+      description: truncatedContent,
+      role: senderIsDoctor ? 'patient' : 'doctor', // Only show to the recipient's role
+      deepLink: {
+        pathname: '/chat',
+        query: {
+          conversationId: messageResult.conversationId.toString()
+        }
+      },
+      meta: {
+        conversationId: messageResult.conversationId.toString(),
+        senderId: messageResult.senderId,
+        senderName: senderName
+      }
+    }
+
+    const notification = await notificationService.createNotification(notificationData)
+
+    // Emit notification event to receiver
+    io.to(receiverId).emit('notification:new', {
+      notification: {
+        id: notification._id.toString(),
+        type: notification.type,
+        title: notification.title,
+        description: notification.description,
+        isRead: notification.isRead,
+        role: notification.role,
+        deepLink: notification.deepLink,
+        createdAt: notification.createdAt,
+        meta: {
+          conversationId: notification.meta?.conversationId?.toString(),
+          senderId: notification.meta?.senderId?.toString(),
+          senderName: notification.meta?.senderName
+        }
+      }
+    })
+
+    logger.info(`[Notification] Created chat notification for user ${receiverId} from ${senderName}`)
+  } catch (error) {
+    logger.error('[Notification] Error creating chat notification:', error)
+  }
+}
+
 // Get doctor's inbox (conversations with patients)
 const getDoctorInbox = async (req, res, next) => {
   try {
@@ -157,7 +218,7 @@ const markAsRead = async (req, res, next) => {
     // Verify user belongs to conversation
     const { conversationModel } = await import('~/models')
     const belongsTo = await conversationModel.belongsToConversation(conversationId, userId)
-    
+
     if (!belongsTo) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
