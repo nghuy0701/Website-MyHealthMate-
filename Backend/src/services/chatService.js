@@ -1,8 +1,8 @@
 import { StatusCodes } from 'http-status-codes'
 import { ObjectId } from 'mongodb'
-import { 
-  patientDoctorModel, 
-  conversationModel, 
+import {
+  patientDoctorModel,
+  conversationModel,
   messageModel,
   userModel,
   patientModel
@@ -30,7 +30,7 @@ const sendMessageAsPatient = async (patientId, content, attachments = []) => {
 
     // 2. Find or create direct conversation
     let conversation = await conversationModel.findByPatientAndDoctor(patientId, doctorId)
-    
+
     if (!conversation) {
       // Create new direct conversation (first message)
       const newConv = await conversationModel.createNew({
@@ -134,7 +134,7 @@ const sendMessageAsDoctor = async (doctorId, conversationId, content, attachment
 const getDoctorInbox = async (doctorId) => {
   try {
     console.log('[chatService] getDoctorInbox called for doctorId:', doctorId)
-    
+
     // Get all conversations for this doctor (direct and group)
     const conversations = await conversationModel.findByDoctorId(doctorId)
     console.log('[chatService] Raw conversations from DB:', conversations.length)
@@ -143,7 +143,7 @@ const getDoctorInbox = async (doctorId) => {
     const inbox = await Promise.all(
       conversations.map(async (conv) => {
         const convId = conv._id.toString()
-        
+
         // Count unread messages
         const unreadCount = await messageModel.countUnreadMessages(convId, doctorId)
 
@@ -154,7 +154,7 @@ const getDoctorInbox = async (doctorId) => {
           // Direct chat - get patient info
           const patientId = conv.patientId.toString()
           const patient = await userModel.findOneById(patientId)
-          
+
           return {
             conversationId: conv._id,
             type: 'direct',
@@ -172,7 +172,7 @@ const getDoctorInbox = async (doctorId) => {
             conv.participants.map(async (p) => {
               const user = await userModel.findOneById(p.userId.toString())
               let name = user?.displayName || user?.userName || 'Unknown'
-              
+
               // If patient, try to get fullName from patient collection
               if (p.role === 'patient') {
                 const patientData = await patientModel.findByUserId(p.userId.toString())
@@ -180,7 +180,7 @@ const getDoctorInbox = async (doctorId) => {
                   name = patientData[0].fullName
                 }
               }
-              
+
               return {
                 userId: p.userId.toString(),
                 role: p.role,
@@ -202,7 +202,7 @@ const getDoctorInbox = async (doctorId) => {
             updatedAt: conv.updatedAt
           }
         }
-        
+
         // Fallback for unknown types
         return null
       })
@@ -240,10 +240,10 @@ const getMessages = async (userId, userRole, conversationId) => {
     const enrichedMessages = await Promise.all(
       messages.map(async (msg) => {
         const sender = await userModel.findOneById(msg.senderId.toString())
-        
+
         // Get sender name - check patient collection if senderRole is 'patient'
         let senderName = sender?.displayName || sender?.userName || 'Unknown'
-        
+
         if (msg.senderRole === 'patient') {
           // Try to get from patient collection
           const patientData = await patientModel.findByUserId(msg.senderId.toString())
@@ -251,7 +251,7 @@ const getMessages = async (userId, userRole, conversationId) => {
             senderName = patientData[0].fullName
           }
         }
-        
+
         return {
           id: msg._id,
           conversationId: msg.conversationId,
@@ -261,6 +261,7 @@ const getMessages = async (userId, userRole, conversationId) => {
           content: msg.content,
           attachments: msg.attachments || [], // Include attachments
           read: msg.read,
+          status: msg.status || 'sent', // Include status
           createdAt: msg.createdAt,
           isOwn: msg.senderId.toString() === userId
         }
@@ -277,29 +278,29 @@ const getMessages = async (userId, userRole, conversationId) => {
 const getPatientConversation = async (patientId) => {
   try {
     console.log('[chatService] getPatientConversation called for patientId:', patientId)
-    
+
     // Get all conversations for this patient (direct and group)
     const conversations = await conversationModel.findByPatientId(patientId)
     console.log('[chatService] Found conversations:', conversations.length)
-    
+
     // Find assigned doctor for direct chat creation
     const mapping = await patientDoctorModel.findDoctorByPatientId(patientId)
     console.log('[chatService] Doctor mapping:', mapping ? 'Found' : 'Not found')
-    
+
     // Enrich conversations
     const enrichedConversations = await Promise.all(
       conversations.map(async (conv) => {
         const convId = conv._id.toString()
         const convType = conv.type || 'direct'
-        
+
         // Count unread messages
         const unreadCount = await messageModel.countUnreadMessages(convId, patientId)
-        
+
         if (convType === 'direct') {
           // Direct conversation with doctor
           const doctorId = conv.doctorId.toString()
           const doctor = await userModel.findOneById(doctorId)
-          
+
           return {
             conversationId: conv._id,
             type: 'direct',
@@ -318,7 +319,7 @@ const getPatientConversation = async (patientId) => {
             conv.participants.map(async (p) => {
               const user = await userModel.findOneById(p.userId.toString())
               let name = user?.displayName || user?.userName || 'Unknown'
-              
+
               // If patient, try to get fullName from patient collection
               if (p.role === 'patient') {
                 const patientData = await patientModel.findByUserId(p.userId.toString())
@@ -326,7 +327,7 @@ const getPatientConversation = async (patientId) => {
                   name = patientData[0].fullName
                 }
               }
-              
+
               return {
                 userId: p.userId.toString(),
                 role: p.role,
@@ -335,7 +336,7 @@ const getPatientConversation = async (patientId) => {
               }
             })
           )
-          
+
           return {
             conversationId: conv._id,
             type: 'group',
@@ -348,16 +349,16 @@ const getPatientConversation = async (patientId) => {
             hasConversation: true
           }
         }
-        
+
         // Fallback for unknown types
         return null
       })
     )
-    
+
     // Filter out null values
     const validConversations = enrichedConversations.filter(c => c !== null)
     console.log('[chatService] Valid conversations after filter:', validConversations.length)
-    
+
     // If patient has assigned doctor but no direct conversation yet, add placeholder
     if (mapping && !validConversations.some(c => c && c.type === 'direct')) {
       const doctorId = mapping.doctorId.toString()
@@ -373,7 +374,7 @@ const getPatientConversation = async (patientId) => {
         hasConversation: false
       })
     }
-    
+
     console.log('[chatService] Returning conversations:', validConversations.length)
     return validConversations
   } catch (error) {
@@ -385,7 +386,7 @@ const getPatientConversation = async (patientId) => {
 const createGroupConversation = async (doctorId, groupName, patientIds) => {
   try {
     console.log('[chatService] Creating group:', { doctorId, groupName, patientIds })
-    
+
     // Validate patients exist and are assigned to doctor
     for (const patientId of patientIds) {
       const mapping = await patientDoctorModel.findDoctorByPatientId(patientId)
@@ -403,7 +404,7 @@ const createGroupConversation = async (doctorId, groupName, patientIds) => {
       { userId: doctorId, role: 'doctor' },
       ...patientIds.map(id => ({ userId: id, role: 'patient' }))
     ]
-    
+
     console.log('[chatService] Participants:', participants)
 
     // Create group conversation
@@ -414,7 +415,7 @@ const createGroupConversation = async (doctorId, groupName, patientIds) => {
       createdBy: doctorId,
       lastMessage: 'Group created'
     })
-    
+
     console.log('[chatService] Group created with ID:', result.insertedId)
 
     // Enrich participants with names and avatars
@@ -422,7 +423,7 @@ const createGroupConversation = async (doctorId, groupName, patientIds) => {
       participants.map(async (p) => {
         const user = await userModel.findOneById(p.userId.toString())
         let name = user?.displayName || user?.userName || 'Unknown'
-        
+
         // If patient, try to get fullName from patient collection
         if (p.role === 'patient') {
           const patientData = await patientModel.findByUserId(p.userId.toString())
@@ -430,7 +431,7 @@ const createGroupConversation = async (doctorId, groupName, patientIds) => {
             name = patientData[0].fullName
           }
         }
-        
+
         return {
           userId: p.userId.toString(),
           role: p.role,
@@ -491,7 +492,7 @@ const sendMessage = async (userId, userRole, conversationId, content, attachment
     // 5. Get sender name for display
     const sender = await userModel.findOneById(userId)
     let senderName = sender?.displayName || sender?.userName || 'Unknown'
-    
+
     // If sender is a patient, get full name from patient collection
     if (messageData.senderRole === 'patient') {
       const patientData = await patientModel.findByUserId(userId)
@@ -520,36 +521,36 @@ const sendMessage = async (userId, userRole, conversationId, content, attachment
 const leaveGroup = async (userId, conversationId) => {
   try {
     const conversation = await conversationModel.findOneById(conversationId)
-    
+
     if (!conversation) {
       throw new Error('Conversation not found')
     }
-    
+
     if (conversation.type !== 'group') {
       throw new Error('Can only leave group conversations')
     }
-    
+
     // Remove user from participants
     const updatedConversation = await conversationModel.removeParticipant(
       conversationId,
       userId
     )
-    
+
     if (!updatedConversation) {
       throw new Error('Failed to leave group')
     }
-    
+
     console.log(`[chatService] User ${userId} left group ${conversationId}`)
-    
+
     // Get updated conversation with remaining participants
     const updatedConv = await conversationModel.findOneById(conversationId)
-    
+
     // Enrich remaining participants with names and avatars
     const participantInfos = await Promise.all(
       updatedConv.participants.map(async (p) => {
         const user = await userModel.findOneById(p.userId.toString())
         let name = user?.displayName || user?.userName || 'Unknown'
-        
+
         // If patient, try to get fullName from patient collection
         if (p.role === 'patient') {
           const patientData = await patientModel.findByUserId(p.userId.toString())
@@ -557,7 +558,7 @@ const leaveGroup = async (userId, conversationId) => {
             name = patientData[0].fullName
           }
         }
-        
+
         return {
           userId: p.userId.toString(),
           role: p.role,
@@ -566,13 +567,40 @@ const leaveGroup = async (userId, conversationId) => {
         }
       })
     )
-    
+
     return {
       success: true,
       conversationId,
       participants: participantInfos,
       groupName: updatedConv.groupName
     }
+  } catch (error) {
+    throw error
+  }
+}
+
+// Mark messages as seen
+const markMessagesAsSeen = async (conversationId, userId) => {
+  try {
+    // Verify user belongs to conversation
+    const belongsTo = await conversationModel.belongsToConversation(conversationId, userId)
+    if (!belongsTo) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'You are not authorized to access this conversation'
+      )
+    }
+
+    // Mark messages as seen
+    const updatedMessages = await messageModel.markConversationMessagesAsSeen(conversationId, userId)
+
+    // Return message IDs and sender IDs for socket notification
+    return updatedMessages.map(msg => ({
+      messageId: msg._id.toString(),
+      senderId: msg.senderId.toString(),
+      conversationId: msg.conversationId.toString(),
+      status: 'seen'
+    }))
   } catch (error) {
     throw error
   }
@@ -586,5 +614,6 @@ export const chatService = {
   getDoctorInbox,
   getMessages,
   getPatientConversation,
-  leaveGroup
+  leaveGroup,
+  markMessagesAsSeen
 }

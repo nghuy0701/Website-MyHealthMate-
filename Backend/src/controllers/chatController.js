@@ -1,10 +1,32 @@
 import { StatusCodes } from 'http-status-codes'
 import { chatService } from '~/services'
 import ApiError from '~/utils/ApiError'
+import { messageModel } from '~/models'
 
 /**
  * Chat Controller - Handles HTTP requests for chat functionality
  */
+
+// TEMPORARY: Migrate existing messages to add status field
+const migrateMessageStatus = async (req, res, next) => {
+  try {
+    const { GET_DB } = await import('~/configs/mongodb')
+    const db = GET_DB()
+
+    const result = await db.collection('messages').updateMany(
+      { status: { $exists: false } },
+      { $set: { status: 'sent' } }
+    )
+
+    res.status(StatusCodes.OK).json({
+      message: 'Migration completed',
+      modifiedCount: result.modifiedCount
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 
 // Send message (branched by role)
 const sendMessage = async (req, res, next) => {
@@ -43,7 +65,7 @@ const sendMessage = async (req, res, next) => {
     if (req.app.get('io')) {
       const io = req.app.get('io')
       const conversationId = result.conversationId.toString()
-      
+
       // ALWAYS emit to conversation room (for both direct and group)
       // Both users join this room when they open the conversation
       io.to(conversationId).emit('message:new', {
@@ -56,7 +78,7 @@ const sendMessage = async (req, res, next) => {
         attachments: result.attachments || [],
         createdAt: result.createdAt
       })
-      
+
       // ALSO emit to user rooms for conversation list updates
       // This ensures inbox/conversation list updates even when not viewing the chat
       if (result.participants) {
@@ -157,7 +179,7 @@ const markAsRead = async (req, res, next) => {
     // Verify user belongs to conversation
     const { conversationModel } = await import('~/models')
     const belongsTo = await conversationModel.belongsToConversation(conversationId, userId)
-    
+
     if (!belongsTo) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
@@ -203,7 +225,7 @@ const createGroupConversation = async (req, res, next) => {
     if (req.app.get('io')) {
       const io = req.app.get('io')
       const conversationId = result.conversationId.toString()
-      
+
       // Emit to each participant's user room with full participant details
       result.participants.forEach(participant => {
         const userId = participant.userId.toString()
@@ -245,7 +267,7 @@ const leaveGroup = async (req, res, next) => {
     // Emit socket event to notify remaining members
     if (req.app.get('io')) {
       const io = req.app.get('io')
-      
+
       // Notify conversation room with updated participants list
       io.to(conversationId).emit('group:member_left', {
         conversationId,
@@ -253,7 +275,7 @@ const leaveGroup = async (req, res, next) => {
         participants: result.participants, // Updated list without the user who left
         groupName: result.groupName
       })
-      
+
       console.log('[chatController] User left group:', userId, conversationId)
       console.log('[chatController] Remaining participants:', result.participants.length)
     }
@@ -267,6 +289,63 @@ const leaveGroup = async (req, res, next) => {
   }
 }
 
+// Mark messages as seen
+const markMessagesAsSeen = async (req, res, next) => {
+  try {
+    const userId = req.session.user.userId
+    const { conversationId } = req.params
+
+    if (!conversationId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Conversation ID is required')
+    }
+
+    console.log('[chatController] markMessagesAsSeen called:', { userId, conversationId })
+
+    // Mark messages as seen and get updated messages
+    const updatedMessages = await chatService.markMessagesAsSeen(conversationId, userId)
+
+    console.log('[chatController] Updated messages count:', updatedMessages.length)
+
+    // Emit socket event to notify senders
+    if (req.app.get('io') && updatedMessages.length > 0) {
+      const io = req.app.get('io')
+
+      // Group messages by sender to emit once per sender
+      const bySender = {}
+      updatedMessages.forEach(msg => {
+        if (!bySender[msg.senderId]) {
+          bySender[msg.senderId] = []
+        }
+        bySender[msg.senderId].push(msg.messageId)
+      })
+
+      console.log('[chatController] Emitting status updates to senders:', Object.keys(bySender))
+
+      // Emit to each sender
+      Object.keys(bySender).forEach(senderId => {
+        const payload = {
+          conversationId,
+          messageIds: bySender[senderId],
+          status: 'seen',
+          seenBy: userId
+        }
+        console.log('[chatController] Emitting to sender:', senderId, payload)
+        io.to(senderId).emit('message:status_update', payload)
+      })
+    } else {
+      console.log('[chatController] No messages to update or no socket IO')
+    }
+
+    res.status(StatusCodes.OK).json({
+      message: 'Messages marked as seen',
+      data: { count: updatedMessages.length }
+    })
+  } catch (error) {
+    console.error('[chatController] Error in markMessagesAsSeen:', error)
+    next(error)
+  }
+}
+
 export const chatController = {
   sendMessage,
   createGroupConversation,
@@ -274,5 +353,7 @@ export const chatController = {
   getPatientConversation,
   getMessages,
   markAsRead,
-  leaveGroup
+  leaveGroup,
+  markMessagesAsSeen,
+  migrateMessageStatus
 }

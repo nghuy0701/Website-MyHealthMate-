@@ -306,12 +306,12 @@ export function ChatPage() {
   const messagesEndRef = useRef(null);
   const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
   const loadConversationsRef = useRef(); // Stable ref for socket handler
-  
+
   // Branch logic by user role
   const isDoctor = user?.role === 'doctor';
-  
+
   console.log('[ChatPage] Component render - user role:', user?.role, 'isDoctor:', isDoctor);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [conversations, setConversations] = useState([]);
@@ -335,14 +335,14 @@ export function ChatPage() {
 
   // Get userId early
   const userId = user?._id?.toString() || user?.id?.toString();
-  
+
   console.log('[ChatPage] Render - userId:', userId, 'conversations:', conversations.length);
 
   // Scroll to bottom of messages container (NOT window)
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
         block: 'nearest',
         inline: 'nearest'
       });
@@ -352,7 +352,7 @@ export function ChatPage() {
   // Socket event handlers - stable with useCallback
   const handleConversationCreated = useCallback((data) => {
     console.log('[ChatPage] Received conversation:created:', data);
-    
+
     const newConversation = {
       id: data.conversationId.toString(),
       type: 'group',
@@ -371,26 +371,26 @@ export function ChatPage() {
       timestamp: 'Vừa xong',
       unread: 0
     };
-    
+
     setConversations(prev => [newConversation, ...prev]);
     console.log('[ChatPage] Added new group to conversations');
   }, []);
-  
+
   const handleConversationUpdated = useCallback((data) => {
     console.log('[ChatPage] Received conversation:updated:', data);
-    
+
     setConversations(prev => {
       const exists = prev.find(c => c.id === data.conversationId.toString());
       if (exists) {
         // Update existing conversation
-        return prev.map(c => 
+        return prev.map(c =>
           c.id === data.conversationId.toString()
             ? {
-                ...c,
-                lastMessage: data.lastMessage,
-                lastMessageAt: data.lastMessageAt,
-                timestamp: formatTimestamp(data.lastMessageAt)
-              }
+              ...c,
+              lastMessage: data.lastMessage,
+              lastMessageAt: data.lastMessageAt,
+              timestamp: formatTimestamp(data.lastMessageAt)
+            }
             : c
         );
       } else {
@@ -403,7 +403,7 @@ export function ChatPage() {
       }
     });
   }, []);
-  
+
   const handleUserOnline = useCallback((data) => {
     console.log('[ChatPage] User online:', data.userId);
     setOnlineUsers(prev => {
@@ -413,7 +413,7 @@ export function ChatPage() {
       return updated;
     });
   }, []);
-  
+
   const handleUserOffline = useCallback((data) => {
     console.log('[ChatPage] User offline:', data.userId);
     setOnlineUsers(prev => {
@@ -423,11 +423,11 @@ export function ChatPage() {
       return updated;
     });
   }, []);
-  
+
   // Handle group member leaving
   const handleGroupMemberLeft = useCallback((data) => {
     console.log('[ChatPage] Member left group:', data);
-    
+
     // Update conversations list to reflect new participant count
     setConversations(prev => prev.map(conv => {
       if (conv.id === data.conversationId) {
@@ -443,7 +443,7 @@ export function ChatPage() {
       }
       return conv;
     }));
-    
+
     // If currently viewing this group, update the displayed participants
     if (selectedConversationIdRef.current === data.conversationId) {
       // Trigger re-render of GroupInfoPanel by updating conversation
@@ -453,30 +453,30 @@ export function ChatPage() {
       }
     }
   }, []);
-  
+
   // Use refs to avoid re-render dependencies
   const selectedConversationIdRef = useRef(selectedConversationId);
   const userIdRef = useRef(userId);
   const scrollToBottomRef = useRef(scrollToBottom);
-  
+
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversationId;
     userIdRef.current = userId;
     scrollToBottomRef.current = scrollToBottom;
   }, [selectedConversationId, userId, scrollToBottom]);
-  
+
   // Keep loadConversations ref updated for socket handlers
   useEffect(() => {
     loadConversationsRef.current = loadConversations;
   });
-  
+
   const handleNewMessage = useCallback((data) => {
     console.log('[ChatPage] Received new message:', data);
     const convId = data.conversationId.toString();
     const currentSelectedId = selectedConversationIdRef.current;
     const currentUserId = userIdRef.current;
     const scrollFn = scrollToBottomRef.current;
-    
+
     // Update conversations list
     setConversations(prev => prev.map(conv => {
       if (conv.id === convId) {
@@ -492,7 +492,7 @@ export function ChatPage() {
       }
       return conv;
     }));
-    
+
     // Only add message if viewing this conversation
     if (convId === currentSelectedId) {
       setMessages(prev => [...prev, {
@@ -506,7 +506,7 @@ export function ChatPage() {
         createdAt: data.createdAt,
         isOwn: data.senderId === currentUserId
       }]);
-      
+
       setTypingUserId(null);
       setTimeout(() => scrollFn(), 100);
     }
@@ -516,42 +516,42 @@ export function ChatPage() {
     console.log('[ChatPage] Received typing:start', data);
     const currentUserId = userIdRef.current;
     const currentSelectedId = selectedConversationIdRef.current;
-    
+
     if (data.senderId !== currentUserId) {
       // Update typing for selected conversation (for message area)
       if (data.conversationId === currentSelectedId) {
         setTypingUserId(data.senderId);
         console.log('[ChatPage] Set typing user in chat:', data.senderId);
       }
-      
+
       // Update typing for conversation list (for all conversations)
       setTypingConversations(prev => ({
         ...prev,
         [data.conversationId]: data.senderId
       }));
       console.log('[ChatPage] Set typing in conversation list:', data.conversationId, data.senderId);
-      
+
       // Clear any existing timeout for this conversation
       if (typingTimeoutsRef.current[data.conversationId]) {
         clearTimeout(typingTimeoutsRef.current[data.conversationId]);
       }
-      
+
       // Set new timeout to auto-clear after 10 seconds of inactivity
       typingTimeoutsRef.current[data.conversationId] = setTimeout(() => {
         console.log('[ChatPage] Auto-clearing typing indicator for:', data.conversationId);
-        
+
         // Clear typing for selected conversation
         if (data.conversationId === currentSelectedId) {
           setTypingUserId(null);
         }
-        
+
         // Clear typing for conversation list
         setTypingConversations(prev => {
           const updated = { ...prev };
           delete updated[data.conversationId];
           return updated;
         });
-        
+
         // Clean up timeout reference
         delete typingTimeoutsRef.current[data.conversationId];
       }, 10000);
@@ -561,16 +561,16 @@ export function ChatPage() {
   const handleTypingStop = useCallback((data) => {
     console.log('[ChatPage] Received typing:stop', data);
     const currentSelectedId = selectedConversationIdRef.current;
-    
+
     if (typingTimeoutsRef.current[data.conversationId]) {
       clearTimeout(typingTimeoutsRef.current[data.conversationId]);
       delete typingTimeoutsRef.current[data.conversationId];
     }
-    
+
     if (data.conversationId === currentSelectedId) {
       setTypingUserId(prev => prev === data.senderId ? null : prev);
     }
-    
+
     // Clear typing for conversation list
     setTypingConversations(prev => {
       const updated = { ...prev };
@@ -582,13 +582,31 @@ export function ChatPage() {
     });
   }, []);
 
+  // Handle message status update
+  const handleMessageStatusUpdate = useCallback((data) => {
+    console.log('[ChatPage] Received message:status_update:', data);
+    const { conversationId, messageIds, status } = data;
+    const currentSelectedId = selectedConversationIdRef.current;
+
+    // Only update if viewing this conversation
+    if (conversationId === currentSelectedId) {
+      setMessages(prev => prev.map(msg => {
+        if (messageIds.includes(msg.id?.toString() || msg.id)) {
+          return { ...msg, status };
+        }
+        return msg;
+      }));
+      console.log('[ChatPage] Updated message status to:', status);
+    }
+  }, []);
+
   // Initialize Socket.io - STABLE connection
   const { isConnected, on, off, emit, joinConversation, leaveConversation } = useSocket(userId);
-  
+
   // Register socket event listeners ONCE when connected
   useEffect(() => {
     if (!isConnected) return;
-    
+
     console.log('[ChatPage] Registering socket event handlers');
     on('message:new', handleNewMessage);
     on('typing:start', handleTypingStart);
@@ -598,7 +616,8 @@ export function ChatPage() {
     on('user:online', handleUserOnline);
     on('user:offline', handleUserOffline);
     on('group:member_left', handleGroupMemberLeft);
-    
+    on('message:status_update', handleMessageStatusUpdate);
+
     return () => {
       console.log('[ChatPage] Unregistering socket event handlers');
       off('message:new', handleNewMessage);
@@ -609,6 +628,7 @@ export function ChatPage() {
       off('user:online', handleUserOnline);
       off('user:offline', handleUserOffline);
       off('group:member_left', handleGroupMemberLeft);
+      off('message:status_update', handleMessageStatusUpdate);
     };
   }, [isConnected, on, off]); // Handlers are stable now!
 
@@ -641,7 +661,7 @@ export function ChatPage() {
   // Join selected conversation room when it changes
   useEffect(() => {
     if (!selectedConversationId || selectedConversationId === 'new' || !isConnected) return;
-    
+
     console.log('[ChatPage] Joining conversation room:', selectedConversationId);
     joinConversation(selectedConversationId);
     // No cleanup needed - useSocket handles leaving when joining another room
@@ -664,7 +684,7 @@ export function ChatPage() {
   useEffect(() => {
     // Add overflow-hidden to body when chat page mounts
     document.body.style.overflow = 'hidden';
-    
+
     // Restore on unmount
     return () => {
       document.body.style.overflow = '';
@@ -677,14 +697,14 @@ export function ChatPage() {
     if (isDoctor) {
       return;
     }
-    
+
     console.log('[ChatPage] Prediction history useEffect called with deps:', {
       isDoctor,
       selectedConversationId,
       conversationsLength: conversations.length,
       userId
     });
-    
+
     const fetchPredictionHistory = async () => {
       // Skip if no conversation selected or conversations not loaded yet
       if (!selectedConversationId) {
@@ -692,15 +712,15 @@ export function ChatPage() {
         setPatientHistory([]);
         return;
       }
-      
+
       if (conversations.length === 0) {
         console.log('[ChatPage] Skipping - conversations not loaded yet');
         return;
       }
-      
+
       // Get current selected conversation
       const currentConversation = conversations.find(c => c.id === selectedConversationId);
-      
+
       console.log('[ChatPage] Prediction history effect triggered:', {
         isDoctor,
         userId,
@@ -709,7 +729,7 @@ export function ChatPage() {
         conversationsLength: conversations.length,
         currentConversation
       });
-      
+
       if (!currentConversation) {
         console.log('[ChatPage] No conversation found for ID:', selectedConversationId);
         setPatientHistory([]);
@@ -717,29 +737,29 @@ export function ChatPage() {
       }
 
       let targetPatientId;
-      
+
       // Patient viewing own history: use current user's ID
       targetPatientId = userId;
       console.log('[ChatPage] Patient view - own ID:', targetPatientId);
-      
+
       if (!targetPatientId) {
         console.log('[ChatPage] No valid patientId found');
         setPatientHistory([]);
         return;
       }
-      
+
       try {
         setIsLoadingHistory(true);
         console.log('[ChatPage] Fetching prediction history for patient:', targetPatientId);
-        
+
         // Use getMyPredictions for patient view
         const response = await predictionAPI.getMyPredictions();
-          
+
         console.log('[ChatPage] API response:', response);
         console.log('[ChatPage] API response.data:', response.data);
         console.log('[ChatPage] API response.data type:', Array.isArray(response.data), 'length:', response.data?.length);
         const predictions = response.data || [];
-        
+
         // Transform predictions to history format
         const formattedHistory = predictions.map(pred => ({
           predictionId: pred._id,
@@ -750,7 +770,7 @@ export function ChatPage() {
             day: '2-digit'
           })
         }));
-        
+
         setPatientHistory(formattedHistory);
         console.log('[ChatPage] Loaded prediction history:', formattedHistory.length, 'items');
       } catch (err) {
@@ -773,12 +793,12 @@ export function ChatPage() {
         // Load doctor's inbox (direct and group conversations)
         const response = await chatAPI.getDoctorInbox();
         const inbox = response.data || [];
-        
+
         // Transform to match UI structure
         const transformedConversations = inbox.map(conv => {
           // Default to 'direct' if type is missing (backward compatibility)
           const convType = conv.type || 'direct';
-          
+
           if (convType === 'group') {
             // Group conversation
             return {
@@ -818,18 +838,18 @@ export function ChatPage() {
             };
           }
         });
-        
+
         setConversations(transformedConversations);
       } else {
         // Load patient's conversations (direct + groups)
         const response = await chatAPI.getPatientConversation();
         console.log('[ChatPage] Patient conversation response:', response);
         const conversations = response.data || [];
-        
+
         if (Array.isArray(conversations) && conversations.length > 0) {
           const transformedConversations = conversations.map(conv => {
             const convType = conv.type || 'direct';
-            
+
             if (convType === 'group') {
               // Group conversation
               return {
@@ -869,7 +889,7 @@ export function ChatPage() {
               };
             }
           });
-          
+
           setConversations(transformedConversations);
         } else {
           // No conversations at all
@@ -903,15 +923,15 @@ export function ChatPage() {
     if (days === 1) return 'Hôm qua';
     return `${days} ngày`;
   };
-  
+
   // Mark conversation as read (clear unread badge)
   const markConversationAsRead = async (conversationId) => {
     try {
       // Immediately update UI - don't wait for server
-      setConversations(prev => prev.map(conv => 
+      setConversations(prev => prev.map(conv =>
         conv.id === conversationId ? { ...conv, unread: 0 } : conv
       ));
-      
+
       // Send to server in background (fire and forget)
       await chatAPI.markAsRead(conversationId);
       console.log('[ChatPage] Marked conversation as read:', conversationId);
@@ -935,7 +955,16 @@ export function ChatPage() {
       const response = await chatAPI.getMessages(conversationId);
       const loadedMessages = response.data || [];
       setMessages(loadedMessages);
-      
+
+      // Mark messages as seen (this will trigger socket event to notify sender)
+      try {
+        await chatAPI.markMessagesAsSeen(conversationId);
+        console.log('[ChatPage] Marked messages as seen for conversation:', conversationId);
+      } catch (err) {
+        console.error('[ChatPage] Error marking messages as seen:', err);
+        // Don't fail the whole operation if marking as seen fails
+      }
+
       // Auto-scroll to bottom when opening conversation
       if (shouldScroll && loadedMessages.length > 0) {
         setTimeout(() => scrollToBottom(), 100);
@@ -967,7 +996,7 @@ export function ChatPage() {
       console.log('[ChatPage] No typingUserId');
       return null;
     }
-    
+
     console.log('[ChatPage] Computing typing user name:', {
       typingUserId,
       typingUserIdType: typeof typingUserId,
@@ -978,16 +1007,16 @@ export function ChatPage() {
       idsMatch: selectedConversation?.doctor?.id === typingUserId,
       idsMatchStrict: selectedConversation?.doctor?.id?.toString() === typingUserId?.toString()
     });
-    
+
     // In doctor-patient chat, the typing user is the conversation partner
     // Convert both IDs to strings for comparison
     const doctorIdStr = selectedConversation?.doctor?.id?.toString();
     const typingUserIdStr = typingUserId?.toString();
-    
+
     if (doctorIdStr === typingUserIdStr) {
       // Return actual name from database
       const name = selectedConversation.doctor.name;
-      
+
       if (isDoctor) {
         // Doctor viewing patient - return patient name
         console.log('[ChatPage] Returning patient name:', name);
@@ -998,7 +1027,7 @@ export function ChatPage() {
         return `Bác sĩ ${name}`;
       }
     }
-    
+
     console.log('[ChatPage] IDs do not match, returning null');
     return null;
   };
@@ -1008,7 +1037,7 @@ export function ChatPage() {
 
   const handleSendMessage = async (content, attachments = []) => {
     if (!content.trim() && attachments.length === 0) return;
-    
+
     try {
       // Stop typing indicator immediately when sending
       stopTyping();
@@ -1027,10 +1056,10 @@ export function ChatPage() {
 
       // Send message via API
       const response = await chatAPI.sendMessage(messageData);
-      
+
       // Get the conversation ID (might be new for patient's first message)
       const currentConversationId = response.data.conversationId.toString();
-      
+
       // If this was a new conversation for patient, update the conversation ID
       if (selectedConversationId === 'new') {
         setSelectedConversationId(currentConversationId);
@@ -1038,10 +1067,10 @@ export function ChatPage() {
 
       // Reload messages to show the new message
       await loadMessages(currentConversationId, false); // Don't scroll on load
-      
+
       // Auto-scroll only when sending own message
       setTimeout(() => scrollToBottom(), 100);
-      
+
       // Reload conversations list to update last message and timestamp
       loadConversations();
     } catch (error) {
@@ -1054,11 +1083,11 @@ export function ChatPage() {
   // inputLength: number of characters in input
   const handleTypingChange = (inputLength) => {
     if (!selectedConversationId || selectedConversationId === 'new') return;
-    
+
     // Update local typing state IMMEDIATELY (for instant UI)
     const isTyping = inputLength > 0;
     setIsLocalUserTyping(isTyping);
-    
+
     // Emit socket events with debounce (to reduce network traffic)
     if (isTyping) {
       handleTyping(); // Debounced typing:start
@@ -1069,7 +1098,7 @@ export function ChatPage() {
 
   const handleConversationClick = (convId) => {
     setSelectedConversationId(convId);
-                                                                                                
+
     // Clear unread badge immediately when opening conversation
     if (convId && convId !== 'new') {
       markConversationAsRead(convId);
@@ -1079,12 +1108,12 @@ export function ChatPage() {
   // Handle prediction click - show detail modal
   const handlePredictionClick = async (predictionId) => {
     if (!predictionId) return;
-    
+
     try {
       console.log('[ChatPage] Fetching prediction detail:', predictionId);
       const response = await predictionAPI.getById(predictionId);
       const prediction = response.data;
-      
+
       setSelectedPrediction(prediction);
       setIsPredictionModalOpen(true);
       console.log('[ChatPage] Prediction detail loaded:', prediction);
@@ -1107,12 +1136,12 @@ export function ChatPage() {
 
     try {
       console.log('[ChatPage] Creating group:', { groupName, patientIds: selectedPatients });
-      
+
       const response = await chatAPI.createGroupConversation({
         groupName: groupName.trim(),
         patientIds: selectedPatients
       });
-      
+
       console.log('[ChatPage] Group created, response:', response);
 
       // Close modal and reset
@@ -1141,34 +1170,34 @@ export function ChatPage() {
     setIsLeaveGroupModalOpen(true);
     console.log('[ChatPage] After setState - setting to true');
   };
-  
+
   const confirmLeaveGroup = async () => {
     if (!selectedConversationId) return;
-    
+
     console.log('[ChatPage] confirmLeaveGroup - Start leaving group:', selectedConversationId);
-    
+
     try {
       // Bước 1: Call API to leave group (remove from database)
       console.log('[ChatPage] Step 1: Calling API to leave group...');
       await chatAPI.leaveGroup(selectedConversationId);
       console.log('[ChatPage] Step 1: Successfully left group on server');
-      
+
       // Bước 2: Leave socket room
       console.log('[ChatPage] Step 2: Leaving socket room:', selectedConversationId);
       leaveConversation();
-      
+
       // BƯớc 3: Remove conversation from local state
       console.log('[ChatPage] Step 3: Removing conversation from state');
       setConversations(prev => prev.filter(c => c.id !== selectedConversationId));
-      
+
       // BƯớc 4: Clear selected conversation
       console.log('[ChatPage] Step 4: Clearing selected conversation');
       setSelectedConversationId(null);
-      
+
       // BƯớc 5: Close modal
       console.log('[ChatPage] Step 5: Closing modal');
       setIsLeaveGroupModalOpen(false);
-      
+
       console.log('[ChatPage] Successfully left group');
     } catch (error) {
       console.error('[ChatPage] Error leaving group:', error);
@@ -1179,361 +1208,358 @@ export function ChatPage() {
 
   return (
     <>
-    <div className="flex bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
-      {/* Left Sidebar - Conversation List */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-800">
-              {isDoctor ? 'Tư vấn bệnh nhân' : 'Tư vấn y tế'}
-            </h1>
-            {isDoctor && (
-              <Button 
-                onClick={() => setIsGroupModalOpen(true)}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-                title="Tạo nhóm tư vấn"
+      <div className="flex bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
+        {/* Left Sidebar - Conversation List */}
+        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-800">
+                {isDoctor ? 'Tư vấn bệnh nhân' : 'Tư vấn y tế'}
+              </h1>
+              {isDoctor && (
+                <Button
+                  onClick={() => setIsGroupModalOpen(true)}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                  title="Tạo nhóm tư vấn"
+                >
+                  <Users className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm..."
+                className="pl-10 bg-gray-50 border-gray-200 rounded-xl"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedFilter('all')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedFilter === 'all'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
               >
-                <Users className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-          
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm..."
-              className="pl-10 bg-gray-50 border-gray-200 rounded-xl"
-            />
+                Tất cả
+              </button>
+              <button
+                onClick={() => setSelectedFilter('doctors')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedFilter === 'doctors'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                {isDoctor ? 'Bệnh nhân' : 'Bác sĩ'}
+              </button>
+              <button
+                onClick={() => setSelectedFilter('groups')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedFilter === 'groups'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+              >
+                Nhóm
+              </button>
+            </div>
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedFilter('all')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === 'all'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Tất cả
-            </button>
-            <button
-              onClick={() => setSelectedFilter('doctors')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === 'doctors'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {isDoctor ? 'Bệnh nhân' : 'Bác sĩ'}
-            </button>
-            <button
-              onClick={() => setSelectedFilter('groups')}
-              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === 'groups'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Nhóm
-            </button>
+          {/* Conversation List */}
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-sm">Đang tải...</p>
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center text-red-500">
+                <p className="text-sm">{error}</p>
+              </div>
+            ) : filteredConversations.length > 0 ? (
+              filteredConversations.map((conv) => (
+                <ChatListItem
+                  key={conv.id}
+                  conversation={conv}
+                  isActive={selectedConversationId === conv.id}
+                  onClick={() => handleConversationClick(conv.id)}
+                  isTyping={!!typingConversations[conv.id]}
+                />
+              ))
+            ) : (
+              <div className="p-6 text-center text-gray-500">
+                <p className="text-sm">
+                  {isDoctor
+                    ? 'Chưa có bệnh nhân nào gửi tin nhắn'
+                    : 'Không tìm thấy cuộc trò chuyện'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="p-6 text-center text-gray-500">
-              <p className="text-sm">Đang tải...</p>
-            </div>
-          ) : error ? (
-            <div className="p-6 text-center text-red-500">
-              <p className="text-sm">{error}</p>
-            </div>
-          ) : filteredConversations.length > 0 ? (
-            filteredConversations.map((conv) => (
-              <ChatListItem
-                key={conv.id}
-                conversation={conv}
-                isActive={selectedConversationId === conv.id}
-                onClick={() => handleConversationClick(conv.id)}
-                isTyping={!!typingConversations[conv.id]}
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {selectedConversationId && selectedConversation ? (
+            <>
+              {/* Chat Header */}
+              <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={selectedConversation.doctor.avatar} />
+                    <AvatarFallback className="bg-green-100 text-green-700">
+                      {selectedConversation.doctor.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="font-semibold text-gray-800">{selectedConversation.doctor.name}</h2>
+                    <p className={`text-sm ${selectedConversation.doctor.status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
+                      {selectedConversation.doctor.status === 'online' ? '● Đang online' : '○ Offline'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <MoreVertical className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Messages Area */}
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-6 bg-gray-50"
+                style={{ minHeight: 0 }}
+              >
+                {messages.length > 0 ? (
+                  <>
+                    {messages.map((message) => (
+                      <MessageBubble
+                        key={message.id}
+                        message={message}
+                        isOwn={message.isOwn}
+                        showSenderName={selectedConversation?.type === 'group'}
+                      />
+                    ))}
+                    {typingUserName && (
+                      <TypingIndicator senderName={typingUserName} />
+                    )}
+                    <div ref={messagesEndRef} />
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <p className="text-sm">Chưa có tin nhắn nào</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
+              <MessageComposer
+                onSendMessage={handleSendMessage}
+                onTypingChange={handleTypingChange}
               />
-            ))
+            </>
           ) : (
-            <div className="p-6 text-center text-gray-500">
-              <p className="text-sm">
-                {isDoctor 
-                  ? 'Chưa có bệnh nhân nào gửi tin nhắn'
-                  : 'Không tìm thấy cuộc trò chuyện'}
-              </p>
+            /* Empty State */
+            <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <div className="text-6xl mb-4">💬</div>
+                <p className="text-lg font-medium mb-2">Chọn một cuộc trò chuyện để bắt đầu</p>
+                <p className="text-sm">
+                  {isDoctor
+                    ? 'Kết nối với bệnh nhân để tư vấn và hỗ trợ'
+                    : 'Kết nối với bác sĩ để được tư vấn sức khỏe'}
+                </p>
+              </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {selectedConversationId && selectedConversation ? (
-          <>
-            {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={selectedConversation.doctor.avatar} />
-                  <AvatarFallback className="bg-green-100 text-green-700">
-                    {selectedConversation.doctor.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="font-semibold text-gray-800">{selectedConversation.doctor.name}</h2>
-                  <p className={`text-sm ${selectedConversation.doctor.status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
-                    {selectedConversation.doctor.status === 'online' ? '● Đang online' : '○ Offline'}
+        {/* Right Sidebar - Info Panel */}
+        {selectedConversationId && selectedConversation && (
+          <div className="w-80 flex-shrink-0 overflow-hidden">
+            {selectedConversation.type === 'group' ? (
+              // Show GroupInfoPanel for BOTH doctor and patient in group chats
+              <GroupInfoPanel
+                groupName={selectedConversation.groupName}
+                participants={selectedConversation.participants || []}
+                onlineUsers={onlineUsers}
+                onLeaveGroup={handleLeaveGroup}
+                currentUserId={userId}
+              />
+            ) : !isDoctor ? (
+              // Show ChatInfoPanel only for patient in direct chats
+              <ChatInfoPanel
+                doctor={selectedConversation.doctor}
+                patientHistory={patientHistory}
+                isLoadingHistory={isLoadingHistory}
+                isDoctor={isDoctor}
+                onPredictionClick={handlePredictionClick}
+              />
+            ) : null}
+          </div>
+        )}
+
+        {/* Prediction Detail Modal */}
+        {isPredictionModalOpen && selectedPrediction && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePredictionModal}>
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Chi tiết dự đoán</h2>
+                <button onClick={closePredictionModal} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Kết quả</p>
+                    <p className={`text-lg font-semibold ${selectedPrediction.result === 'positive' ? 'text-red-600' : 'text-green-600'}`}>
+                      {selectedPrediction.result === 'positive' ? 'Nguy cơ cao' : 'Nguy cơ thấp'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Xác suất</p>
+                    <p className="text-lg font-semibold text-gray-800">
+                      {(selectedPrediction.probability * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-1">Ngày dự đoán</p>
+                  <p className="text-base text-gray-800">
+                    {new Date(selectedPrediction.createdAt).toLocaleString('vi-VN')}
                   </p>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <MoreVertical className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
 
-            {/* Messages Area */}
-            <div 
-              ref={messagesContainerRef} 
-              className="flex-1 overflow-y-auto p-6 bg-gray-50"
-              style={{ minHeight: 0 }}
-            >
-              {messages.length > 0 ? (
-                <>
-                  {messages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      isOwn={message.isOwn}
-                      showSenderName={selectedConversation?.type === 'group'}
-                    />
-                  ))}
-                  {typingUserName && (
-                    <TypingIndicator senderName={typingUserName} />
-                  )}
-                  <div ref={messagesEndRef} />
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <p className="text-sm">Chưa có tin nhắn nào</p>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Thông tin đầu vào</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="font-medium">Tuổi:</span> {selectedPrediction.inputData?.age || 'N/A'}</div>
+                    <div><span className="font-medium">Giới tính:</span> {selectedPrediction.inputData?.gender === 1 ? 'Nữ' : 'Nam'}</div>
+                    <div><span className="font-medium">BMI:</span> {selectedPrediction.inputData?.bmi?.toFixed(1) || 'N/A'}</div>
+                    <div><span className="font-medium">Đường huyết:</span> {selectedPrediction.inputData?.bloodGlucose || 'N/A'}</div>
+                    <div><span className="font-medium">Huyết áp:</span> {selectedPrediction.inputData?.bloodPressure || 'N/A'}</div>
+                    <div><span className="font-medium">Insulin:</span> {selectedPrediction.inputData?.insulin || 'N/A'}</div>
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Message Input */}
-            <MessageComposer 
-              onSendMessage={handleSendMessage}
-              onTypingChange={handleTypingChange}
-            />
-          </>
-        ) : (
-          /* Empty State */
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <div className="text-6xl mb-4">💬</div>
-              <p className="text-lg font-medium mb-2">Chọn một cuộc trò chuyện để bắt đầu</p>
-              <p className="text-sm">
-                {isDoctor 
-                  ? 'Kết nối với bệnh nhân để tư vấn và hỗ trợ'
-                  : 'Kết nối với bác sĩ để được tư vấn sức khỏe'}
-              </p>
+                {selectedPrediction.advice && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-blue-600 font-medium mb-1">Khuyến nghị</p>
+                    <p className="text-sm text-gray-700">{selectedPrediction.advice}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
+
+        {/* Group Creation Modal (Doctor only) */}
+        {isGroupModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsGroupModalOpen(false)}>
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Tạo nhóm tư vấn</h2>
+                <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tên nhóm
+                  </label>
+                  <Input
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="VD: Nhóm tư vấn đái tháo đường"
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chọn bệnh nhân (tối thiểu 2)
+                  </label>
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                    {conversations
+                      .filter(conv => conv.type === 'direct')
+                      .map(conv => (
+                        <label key={conv.doctor.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedPatients.includes(conv.doctor.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedPatients([...selectedPatients, conv.doctor.id]);
+                              } else {
+                                setSelectedPatients(selectedPatients.filter(id => id !== conv.doctor.id));
+                              }
+                            }}
+                            className="mr-3"
+                          />
+                          <Avatar className="w-8 h-8 mr-2">
+                            <AvatarImage src={conv.doctor.avatar} alt={conv.doctor.name} />
+                            <AvatarFallback>{conv.doctor.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm text-gray-700">{conv.doctor.name}</span>
+                        </label>
+                      ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Đã chọn: {selectedPatients.length} bệnh nhân
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => {
+                      setIsGroupModalOpen(false);
+                      setGroupName('');
+                      setSelectedPatients([]);
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleCreateGroup}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={!groupName.trim() || selectedPatients.length < 2}
+                  >
+                    Tạo nhóm
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* Right Sidebar - Info Panel */}
-      {selectedConversationId && selectedConversation && (
-        <div className="w-80 flex-shrink-0 overflow-hidden">
-          {selectedConversation.type === 'group' ? (
-            // Show GroupInfoPanel for BOTH doctor and patient in group chats
-            <GroupInfoPanel
-              groupName={selectedConversation.groupName}
-              participants={selectedConversation.participants || []}
-              onlineUsers={onlineUsers}
-              onLeaveGroup={handleLeaveGroup}
-              currentUserId={userId}
-            />
-          ) : !isDoctor ? (
-            // Show ChatInfoPanel only for patient in direct chats
-            <ChatInfoPanel
-              doctor={selectedConversation.doctor}
-              patientHistory={patientHistory}
-              isLoadingHistory={isLoadingHistory}
-              isDoctor={isDoctor}
-              onPredictionClick={handlePredictionClick}
-            />
-          ) : null}
-        </div>
-      )}
-
-      {/* Prediction Detail Modal */}
-      {isPredictionModalOpen && selectedPrediction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closePredictionModal}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Chi tiết dự đoán</h2>
-              <button onClick={closePredictionModal} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Kết quả</p>
-                  <p className={`text-lg font-semibold ${selectedPrediction.result === 'positive' ? 'text-red-600' : 'text-green-600'}`}>
-                    {selectedPrediction.result === 'positive' ? 'Nguy cơ cao' : 'Nguy cơ thấp'}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Xác suất</p>
-                  <p className="text-lg font-semibold text-gray-800">
-                    {(selectedPrediction.probability * 100).toFixed(2)}%
-                  </p>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Ngày dự đoán</p>
-                <p className="text-base text-gray-800">
-                  {new Date(selectedPrediction.createdAt).toLocaleString('vi-VN')}
-                </p>
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">Thông tin đầu vào</p>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Tuổi:</span> {selectedPrediction.inputData?.age || 'N/A'}</div>
-                  <div><span className="font-medium">Giới tính:</span> {selectedPrediction.inputData?.gender === 1 ? 'Nữ' : 'Nam'}</div>
-                  <div><span className="font-medium">BMI:</span> {selectedPrediction.inputData?.bmi?.toFixed(1) || 'N/A'}</div>
-                  <div><span className="font-medium">Đường huyết:</span> {selectedPrediction.inputData?.bloodGlucose || 'N/A'}</div>
-                  <div><span className="font-medium">Huyết áp:</span> {selectedPrediction.inputData?.bloodPressure || 'N/A'}</div>
-                  <div><span className="font-medium">Insulin:</span> {selectedPrediction.inputData?.insulin || 'N/A'}</div>
-                </div>
-              </div>
-              
-              {selectedPrediction.advice && (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-blue-600 font-medium mb-1">Khuyến nghị</p>
-                  <p className="text-sm text-gray-700">{selectedPrediction.advice}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Group Creation Modal (Doctor only) */}
-      {isGroupModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsGroupModalOpen(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Tạo nhóm tư vấn</h2>
-              <button onClick={() => setIsGroupModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên nhóm
-                </label>
-                <Input
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="VD: Nhóm tư vấn đái tháo đường"
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Chọn bệnh nhân (tối thiểu 2)
-                </label>
-                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2">
-                  {conversations
-                    .filter(conv => conv.type === 'direct')
-                    .map(conv => (
-                      <label key={conv.doctor.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedPatients.includes(conv.doctor.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedPatients([...selectedPatients, conv.doctor.id]);
-                            } else {
-                              setSelectedPatients(selectedPatients.filter(id => id !== conv.doctor.id));
-                            }
-                          }}
-                          className="mr-3"
-                        />
-                        <Avatar className="w-8 h-8 mr-2">
-                          <AvatarImage src={conv.doctor.avatar} alt={conv.doctor.name} />
-                          <AvatarFallback>{conv.doctor.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm text-gray-700">{conv.doctor.name}</span>
-                      </label>
-                    ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Đã chọn: {selectedPatients.length} bệnh nhân
-                </p>
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={() => {
-                    setIsGroupModalOpen(false);
-                    setGroupName('');
-                    setSelectedPatients([]);
-                  }}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  onClick={handleCreateGroup}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={!groupName.trim() || selectedPatients.length < 2}
-                >
-                  Tạo nhóm
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-
-    {/* Leave Group Modal */}
-    <LeaveGroupModal
-      isOpen={isLeaveGroupModalOpen}
-      groupName={selectedConversation?.groupName || ''}
-      onConfirm={confirmLeaveGroup}
-      onCancel={() => setIsLeaveGroupModalOpen(false)}
-    />
+      {/* Leave Group Modal */}
+      <LeaveGroupModal
+        isOpen={isLeaveGroupModalOpen}
+        groupName={selectedConversation?.groupName || ''}
+        onConfirm={confirmLeaveGroup}
+        onCancel={() => setIsLeaveGroupModalOpen(false)}
+      />
     </>
   );
 }

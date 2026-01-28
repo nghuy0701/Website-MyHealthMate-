@@ -41,6 +41,15 @@ Router.get('/messages/:conversationId', isAuthenticated, chatController.getMessa
 // Auth: patient or doctor (must belong to conversation)
 Router.put('/messages/:conversationId/read', isAuthenticated, chatController.markAsRead)
 
+// Mark messages as seen
+// PUT /api/v1/chat/messages/:conversationId/seen
+// Auth: patient or doctor (must belong to conversation)
+Router.put('/messages/:conversationId/seen', isAuthenticated, chatController.markMessagesAsSeen)
+
+// TEMPORARY: Migrate existing messages
+// GET /api/v1/chat/migrate-status
+Router.get('/migrate-status', chatController.migrateMessageStatus)
+
 // Leave group conversation
 // POST /api/v1/chat/conversations/:conversationId/leave
 // Auth: patient or doctor (must belong to conversation)

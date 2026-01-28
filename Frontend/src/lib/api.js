@@ -181,25 +181,28 @@ export const questionAPI = {
 export const chatAPI = {
   // Send message (patient or doctor)
   sendMessage: (data) => apiClient.post('/chat/messages', data),
-  
+
   // Create group conversation (doctor only)
   createGroupConversation: (data) => apiClient.post('/chat/conversations/group', data),
-  
+
   // Get doctor's inbox (conversations with patients)
   getDoctorInbox: () => apiClient.get('/chat/conversations/doctor'),
-  
+
   // Get patient's conversation info
   getPatientConversation: () => apiClient.get('/chat/conversations/patient'),
-  
+
   // Get messages in a conversation
   getMessages: (conversationId) => apiClient.get(`/chat/messages/${conversationId}`),
-  
+
   // Mark messages as read
   markAsRead: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/read`),
-  
+
+  // Mark messages as seen
+  markMessagesAsSeen: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/seen`),
+
   // Leave group conversation
   leaveGroup: (conversationId) => apiClient.post(`/chat/conversations/${conversationId}/leave`),
-  
+
   // Upload file attachment
   uploadFile: (formData) => apiClient.uploadFile('/uploads', formData),
 }
