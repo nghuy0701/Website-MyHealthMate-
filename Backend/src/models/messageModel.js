@@ -15,6 +15,7 @@ const createNew = async (data) => {
       senderId: new ObjectId(data.senderId),
       senderRole: data.senderRole, // 'patient' or 'doctor'
       content: data.content,
+      attachments: data.attachments || [], // Array of { type, url, filename, mimeType, size }
       read: data.read || false,
       createdAt: Date.now(),
       _destroy: false

@@ -61,6 +61,29 @@ class ApiClient {
   delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' })
   }
+
+  // Special method for file uploads - does NOT stringify body or set Content-Type
+  async uploadFile(endpoint, formData) {
+    const config = {
+      method: 'POST',
+      body: formData, // FormData is sent as-is
+      credentials: 'include', // Session cookies
+      // DO NOT set Content-Type - browser sets it with boundary automatically
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Upload failed')
+      }
+
+      return data
+    } catch (error) {
+      throw error
+    }
+  }
 }
 
 const apiClient = new ApiClient()
@@ -159,6 +182,9 @@ export const chatAPI = {
   // Send message (patient or doctor)
   sendMessage: (data) => apiClient.post('/chat/messages', data),
   
+  // Create group conversation (doctor only)
+  createGroupConversation: (data) => apiClient.post('/chat/conversations/group', data),
+  
   // Get doctor's inbox (conversations with patients)
   getDoctorInbox: () => apiClient.get('/chat/conversations/doctor'),
   
@@ -170,6 +196,12 @@ export const chatAPI = {
   
   // Mark messages as read
   markAsRead: (conversationId) => apiClient.put(`/chat/messages/${conversationId}/read`),
+  
+  // Leave group conversation
+  leaveGroup: (conversationId) => apiClient.post(`/chat/conversations/${conversationId}/leave`),
+  
+  // Upload file attachment
+  uploadFile: (formData) => apiClient.uploadFile('/uploads', formData),
 }
 
 // ============================================================================

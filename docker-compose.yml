@@ -71,8 +71,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       APP_HOST: 0.0.0.0
       APP_PORT: 8017
-      CLIENT_URL: ${CLIENT_URL:-http://localhost}
-      WEBSITE_DOMAIN_DEV: ${WEBSITE_DOMAIN_DEV:-http://localhost}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      WEBSITE_DOMAIN_DEV: ${WEBSITE_DOMAIN_DEV:-http://localhost:3000}
+      WEBSITE_DOMAIN_PROD: ${WEBSITE_DOMAIN_PROD:-}
       AUTHOR: ${AUTHOR:-MyHealthMate Team}
       
       # Database (MongoDB Atlas - Cloud)

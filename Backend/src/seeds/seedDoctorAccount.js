@@ -5,8 +5,8 @@
  * Run: npm run seed:doctor
  */
 
-import { GET_DB } from './configs/mongodb.js'
-import { CONNECT_DB } from './configs/mongodb.js'
+import { GET_DB } from '../configs/mongodb.js'
+import { CONNECT_DB } from '../configs/mongodb.js'
 import bcrypt from 'bcryptjs'
 
 const TEST_DOCTOR = {
