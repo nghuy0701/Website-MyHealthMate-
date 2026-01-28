@@ -17,7 +17,6 @@ import { PredictionDetailPage } from './pages/PredictionDetailPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { ChatPage } from './pages/ChatPage.jsx';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
-import AdminApp from './pages/admin/AdminApp.jsx';
 import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
 import { AdminVerifyEmailPage } from './pages/admin/AdminVerifyEmailPage.jsx';
 import { Toaster } from './components/ui/sonner';
@@ -29,88 +28,87 @@ export default function App() {
         <AuthProvider>
           <NotificationInitializer />
           <Routes>
-              {/* Admin Routes - No Header/Footer */}
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/admin/register" element={<AdminRegisterPage />} />
-              <Route path="/admin/verify-email/:token" element={<AdminVerifyEmailPage />} />
-              <Route path="/admin/*" element={<AdminApp />} />
+            {/* Admin Login/Register Routes - No Header/Footer */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/register" element={<AdminRegisterPage />} />
+            <Route path="/admin/verify-email/:token" element={<AdminVerifyEmailPage />} />
 
-              {/* Regular User Routes - With Header/Footer */}
-              <Route
-                path="/*"
-                element={
-                  <div className="flex flex-col min-h-screen">
-                    <Header />
-                    <main className="flex-1">
-                      <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<KnowledgePage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
-                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                        <Route path="/article/:id" element={<ArticleDetailPage />} />
+            {/* Regular User Routes - With Header/Footer */}
+            <Route
+              path="/*"
+              element={
+                <div className="flex flex-col min-h-screen">
+                  <Header />
+                  <main className="flex-1">
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<KnowledgePage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                      <Route path="/article/:id" element={<ArticleDetailPage />} />
 
-                        {/* Protected Routes */}
-                        <Route
-                          path="/prediction"
-                          element={
-                            <ProtectedRoute>
-                              <PredictionPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/history"
-                          element={
-                            <ProtectedRoute>
-                              <HistoryPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/prediction/:id"
-                          element={
-                            <ProtectedRoute>
-                              <PredictionDetailPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/profile"
-                          element={
-                            <ProtectedRoute>
-                              <ProfilePage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/chat"
-                          element={
-                            <ProtectedRoute>
-                              <ChatPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/chat/:conversationId"
-                          element={
-                            <ProtectedRoute>
-                              <ChatPage />
-                            </ProtectedRoute>
-                          }
-                        />
+                      {/* Protected Routes */}
+                      <Route
+                        path="/prediction"
+                        element={
+                          <ProtectedRoute>
+                            <PredictionPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/history"
+                        element={
+                          <ProtectedRoute>
+                            <HistoryPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/prediction/:id"
+                        element={
+                          <ProtectedRoute>
+                            <PredictionDetailPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/profile"
+                        element={
+                          <ProtectedRoute>
+                            <ProfilePage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/chat"
+                        element={
+                          <ProtectedRoute>
+                            <ChatPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/chat/:conversationId"
+                        element={
+                          <ProtectedRoute>
+                            <ChatPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                        {/* Fallback */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                    <NotificationDrawer />
-                  </div>
-                }
-              />
-            </Routes>
-            <Toaster position="top-right" />
+                      {/* Fallback */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                  <NotificationDrawer />
+                </div>
+              }
+            />
+          </Routes>
+          <Toaster position="top-right" />
         </AuthProvider>
       </AdminProvider>
     </BrowserRouter>

@@ -15,19 +15,18 @@ import { useAuth } from '../../lib/auth-context'; // Auth context để lấy th
 /**
  * FILTER_TABS - Các tab lọc thông báo
  * 
- * Mỗi tab cho phép lọc thông báo theo loại:
- * - all: Hiển thị tất cả thông báo
- * - prediction: Chỉ hiển thị thông báo dự đoán
- * - reminder: Chỉ hiển thị thông báo nhắc nhở
- * - alert: Chỉ hiển thị thông báo cảnh báo
- * 
- * Lưu ý: Không có tab 'chat' vì thông báo chat được hiển thị trong tab 'all'
+ * User (Patient): Hiển thị tất cả tabs (Tất cả, Dự đoán, Nhắc nhở, Cảnh báo)
+ * Doctor: Chỉ hiển thị tab "Tất cả" (vì doctor chỉ nhận chat notifications)
  */
-const FILTER_TABS = [
+const USER_FILTER_TABS = [
   { id: 'all', label: 'Tất cả' },
   { id: 'prediction', label: 'Dự đoán' },
   { id: 'reminder', label: 'Nhắc nhở' },
   { id: 'alert', label: 'Cảnh báo' }
+];
+
+const DOCTOR_FILTER_TABS = [
+  { id: 'all', label: 'Tất cả' }
 ];
 
 // ============================================
@@ -71,7 +70,6 @@ export function NotificationDrawer() {
   const closeDrawer = useNotificationStore(state => state.closeDrawer); // Hàm đóng drawer
   const markAsRead = useNotificationStore(state => state.markAsRead); // Hàm đánh dấu đã đọc
   const markAllAsRead = useNotificationStore(state => state.markAllAsRead); // Hàm đánh dấu tất cả đã đọc
-  const deleteNotification = useNotificationStore(state => state.deleteNotification); // Hàm xóa thông báo
   const setActiveFilter = useNotificationStore(state => state.setActiveFilter); // Hàm đặt filter
   const loadNotifications = useNotificationStore(state => state.loadNotifications); // Hàm load thông báo
   const getFilteredNotifications = useNotificationStore(state => state.getFilteredNotifications); // Hàm lấy danh sách đã lọc
@@ -87,6 +85,13 @@ export function NotificationDrawer() {
    * Cần chuẩn hóa để gọi API đúng
    */
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
+
+  /**
+   * Chọn filter tabs dựa trên role:
+   * - Doctor: Chỉ có tab "Tất cả" (vì chỉ nhận chat notifications)
+   * - User/Patient: Có tất cả tabs (Tất cả, Dự đoán, Nhắc nhở, Cảnh báo)
+   */
+  const FILTER_TABS = userRole === 'doctor' ? DOCTOR_FILTER_TABS : USER_FILTER_TABS;
 
   // ============================================
   // EFFECTS - XỬ LÝ SIDE EFFECTS
@@ -319,7 +324,6 @@ export function NotificationDrawer() {
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={markAsRead}
-                  onDelete={deleteNotification}
                 />
               ))}
             </div>

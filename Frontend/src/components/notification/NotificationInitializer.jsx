@@ -18,14 +18,23 @@ export function NotificationInitializer() {
   const loadUnreadCount = useNotificationStore(state => state.loadUnreadCount);
   const clearAll = useNotificationStore(state => state.clearAll);
 
-  // Lấy userId và role từ user object
-  const userId = user?.userId || user?._id;
+  // Lấy userId và role từ user object - Match logic from ChatPage.jsx
+  const userId = user?._id?.toString() || user?.id?.toString() || user?.userId;
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
+
+  // Debug log
+  console.log('[NotificationInitializer] User state:', {
+    hasUser: !!user,
+    userId,
+    userRole,
+    userKeys: user ? Object.keys(user) : []
+  });
 
   useEffect(() => {
     if (user && userId && userRole) {
       // User đã login - Khởi tạo hệ thống thông báo
       console.log('[Notification] ✅ User logged in - Initializing notification system');
+      console.log('[Notification] UserId:', userId, 'Role:', userRole);
 
       // Bước 1: Kết nối Socket.IO
       initSocket(userId);
@@ -47,8 +56,10 @@ export function NotificationInitializer() {
       console.log('[Notification] 🔌 User logged out - Cleaning up');
       disconnectSocket();
       clearAll();
+    } else {
+      console.log('[Notification] ⏳ Waiting for user data...', { hasUser: !!user, userId, userRole });
     }
-  }, [userId, userRole, initSocket, disconnectSocket, loadNotifications, loadUnreadCount, clearAll]);
+  }, [userId, userRole, user, initSocket, disconnectSocket, loadNotifications, loadUnreadCount, clearAll]);
 
   return null; // Component này không render gì
 }
