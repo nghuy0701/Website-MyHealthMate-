@@ -8,6 +8,7 @@ import { articleRoute } from './articles.js'
 import { questionRoute } from './questions.js'
 import { chatRoute } from './chat.js'
 import { notificationRoute } from './notifications.js'
+import { uploadRoute } from './uploads.js'
 
 const Router = express.Router()
 
@@ -21,6 +22,7 @@ Router.use('/articles', articleRoute)
 Router.use('/questions', questionRoute)
 Router.use('/chat', chatRoute)
 Router.use('/notifications', notificationRoute)
+Router.use('/uploads', uploadRoute)
 
 // Health check endpoint
 Router.get('/health', (req, res) => {

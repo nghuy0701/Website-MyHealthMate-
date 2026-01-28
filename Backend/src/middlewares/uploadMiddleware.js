@@ -5,13 +5,34 @@ import { StatusCodes } from 'http-status-codes'
 // Storage in memory for easy transfer to Cloudinary
 const storage = multer.memoryStorage()
 
-// File filter - only accept images
+// File filter - accept images and document files
 const fileFilter = (req, file, cb) => {
-  // Accept image files only
-  if (file.mimetype.startsWith('image/')) {
+  const allowedMimeTypes = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain',
+    'application/zip',
+    'application/x-zip-compressed'
+  ]
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true)
   } else {
-    cb(new ApiError(StatusCodes.BAD_REQUEST, 'Only image files are allowed!'), false)
+    cb(
+      new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'File type not allowed. Allowed: images, PDF, DOC, DOCX, XLS, XLSX, TXT, ZIP'
+      ),
+      false
+    )
   }
 }
 
@@ -20,10 +41,11 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max file size
+    fileSize: 10 * 1024 * 1024 // 10MB max file size
   }
 })
 
 export const uploadMiddleware = {
-  single: (fieldName) => upload.single(fieldName)
+  single: (fieldName) => upload.single(fieldName),
+  array: (fieldName, maxCount) => upload.array(fieldName, maxCount)
 }

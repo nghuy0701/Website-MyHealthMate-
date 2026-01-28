@@ -39,6 +39,7 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 - [🤖 Machine Learning Models](#-machine-learning-models)
 - [🔑 Tính Năng](#-tính-năng)
 - [📁 Cấu Trúc Project](#-cấu-trúc-project)
+- [🏗️ System & Socket Architecture (Realtime Chat)](#-system--socket-architecture-realtime-chat)
 - [🔧 API Endpoints](#-api-endpoints)
 - [📚 Tài Liệu ML Chi Tiết](#-tài-liệu-ml-chi-tiết)
 - [🛠️ Troubleshooting](#️-troubleshooting)
@@ -212,134 +213,122 @@ ml-service/
 ## 📁 Cấu Trúc Project
 
 ```
-Website-MyHealthMate/
+Website-MyHealthMate-/
 │
 ├── .github/                    # GitHub Actions CI/CD
 │   └── workflows/
-│       └── ci-cd.yml          # CI pipeline configuration
+│       └── ci-cd.yml
 │
+├── .gitignore
+├── .env                        # Local environment (not stored in repo)
+├── docker-compose.yml          # Docker Compose orchestration
+├── package-lock.json
+├── SYSTEM_ARCHITECTURE.md      # Additional architecture documentation
 ├── Backend/                    # Backend Node.js (Express)
-│   ├── src/
-│   │   ├── configs/           # Cấu hình (DB, CORS, Session, Environment)
-│   │   ├── controllers/       # Controllers - Xử lý logic nghiệp vụ
-│   │   │   ├── adminController.js
-│   │   │   ├── articleController.js
-│   │   │   ├── mlController.js
-│   │   │   ├── patientController.js
-│   │   │   ├── predictionController.js
-│   │   │   ├── questionController.js
-│   │   │   ├── userController.js
-│   │   │   └── index.js
-│   │   ├── middlewares/       # Middlewares
-│   │   │   ├── authMiddleware.js          # JWT authentication
-│   │   │   ├── cacheMiddleware.js         # Caching logic
-│   │   │   ├── errorHandlingMiddleware.js # Error handler
-│   │   │   ├── rateLimitMiddleware.js     # Rate limiting
-│   │   │   ├── uploadMiddleware.js        # File upload (Multer)
-│   │   │   └── index.js
-│   │   ├── models/            # Database Models (MongoDB)
-│   │   │   ├── adminModel.js
-│   │   │   ├── articleModel.js
-│   │   │   ├── patientModel.js
-│   │   │   ├── predictionModel.js
-│   │   │   ├── questionModel.js
-│   │   │   ├── userModel.js
-│   │   │   └── index.js
-│   │   ├── routes/            # API Routes
-│   │   │   └── v1/            # API version 1
-│   │   ├── services/          # Business Logic Services
-│   │   │   ├── adminService.js
-│   │   │   ├── articleService.js
-│   │   │   ├── emailService.js
-│   │   │   ├── mlService.js
-│   │   │   ├── patientService.js
-│   │   │   ├── predictionService.js
-│   │   │   ├── questionService.js
-│   │   │   ├── userService.js
-│   │   │   └── index.js
-│   │   ├── validations/       # Input validation schemas
-│   │   │   ├── adminValidation.js
-│   │   │   ├── patientValidation.js
-│   │   │   └── index.js
-│   │   ├── providers/         # External Service Providers
-│   │   │   ├── brevoProvider.js        # Email service (Brevo)
-│   │   │   ├── cloudinaryProvider.js   # Image storage (Cloudinary)
-│   │   │   ├── mongodbProvider.js      # MongoDB connection
-│   │   │   └── index.js
-│   │   ├── utils/             # Utility functions
-│   │   │   ├── ApiError.js
-│   │   │   ├── constants.js
-│   │   │   ├── formatter.js
-│   │   │   └── logger.js
-│   │   └── server.js          # Entry point
-│   ├── dist/                  # Compiled code (Babel output)
-│   ├── postman/               # Postman collections & environments
-│   ├── .babelrc               # Babel configuration
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .babelrc
+│   ├── .eslintrc.cjs
 │   ├── .dockerignore
-│   ├── .eslintrc.cjs          # ESLint configuration
-│   ├── .gitignore
-│   ├── .prettierrc.json       # Prettier configuration
-│   ├── Dockerfile             # Backend Docker image
-│   ├── package.json           # npm dependencies
-│   └── package-lock.json
+│   ├── postman/                # Postman collections & environments
+│   └── src/
+│       ├── configs/           # Configuration (DB, CORS, Session, Env)
+│       ├── controllers/       # Controllers (admin, user, chat, etc.)
+│       ├── middlewares/       # Middlewares (auth, rate-limit, upload)
+│       ├── models/            # Mongoose models
+│       ├── providers/         # External providers (MongoDB, Cloudinary)
+│       ├── routes/            # API routes (v1)
+│       ├── services/          # Business logic services
+│       ├── utils/             # Utility helpers
+│       ├── validations/       # Input validation schemas
+│       ├── seedAssignDoctor.js
+│       ├── seedDoctorAccount.js
+│       └── server.js          # Entry point (Socket.IO init lives under src/configs)
 │
 ├── Frontend/                   # Frontend React + Vite
-│   ├── src/
-│   │   ├── components/        # React Components
-│   │   │   ├── ui/           # Shadcn UI components
-│   │   │   ├── admin/        # Admin dashboard components
-│   │   │   └── ...           # Other components
-│   │   ├── pages/            # Page components
-│   │   ├── lib/              # Libraries & utilities
-│   │   │   ├── AuthContext.jsx    # Authentication context
-│   │   │   ├── api.js             # API client
-│   │   │   └── utils.js
-│   │   └── styles/           # CSS files
-│   │       └── index.css
-│   ├── public/               # Static assets
-│   ├── .dockerignore
-│   ├── .gitignore
-│   ├── Dockerfile            # Frontend Docker image (Multi-stage)
-│   ├── index.html            # HTML template
-│   ├── nginx.conf            # Nginx configuration for production
-│   ├── package.json          # npm dependencies
+│   ├── Dockerfile
+│   ├── package.json
 │   ├── package-lock.json
-│   └── vite.config.js        # Vite configuration
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── vite.config.js
+│   └── src/
+│       ├── components/        # React components (ui, chat, pages...)
+│       ├── pages/
+│       ├── lib/               # api.js, auth context, socket hooks
+│       └── styles/
 │
-├── ml-service/                # ML Service Python (Flask)
-│   ├── models/               # Machine Learning Models
-│   │   ├── diabetes_ml_pipeline.py         # Training pipeline
-│   │   ├── model_config.py                 # Model configurations
-│   │   ├── diabetes_model_*.joblib         # Trained models
-│   │   ├── scaler_*.joblib                 # Feature scalers
-│   │   ├── diabetes_predictor_*.py         # Predictor class
-│   │   └── model_metadata_*.json           # Model metadata
+├── ml-service/                # ML Service (Flask)
+│   ├── app.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── models/
 │   ├── data/
-│   │   └── pima_clean.csv                  # Training dataset
-│   ├── notebooks/
-│   │   ├── diabetes_model_training.ipynb   # Training notebook
-│   │   └── catboost_info/                  # CatBoost logs
-│   ├── readme_images/                      # Documentation images
-│   ├── venv/                 # Python virtual environment
-│   ├── __pycache__/          # Python cache
-│   ├── .dockerignore
-│   ├── .gitignore
-│   ├── app.py                # Flask API application
-│   ├── config.py             # ML Service configuration
-│   ├── utils.py              # Utility functions
-│   ├── create_placeholder_images.py
-│   ├── generate_readme_images.py
-│   ├── Dockerfile            # ML Service Docker image
-│   └── requirements.txt      # Python dependencies
+│   └── notebooks/
 │
-├── .venv/                    # Python virtual environment (root)
-├── .env                      # Environment variables (root)
-├── .gitignore                # Git ignore rules (root)
-├── docker-compose.yml        # Docker Compose orchestration
-└── README.md                 # Project documentation
-│
-└── README.md                 # File này
+└── README.md                  # Project documentation
 ```
+---
+## 🏗️ System & Socket Architecture (Realtime Chat)
+
+### 1. Tổng quan Kiến trúc Hệ thống
+
+**MyHealthMate** sử dụng kiến trúc microservices với 3 thành phần chính:
+
+- **Frontend**: React + Vite, giao tiếp qua REST API và Socket.IO.
+- **Backend**: Node.js (Express), cung cấp API RESTful, xác thực JWT, quản lý dữ liệu và Socket.IO cho realtime.
+- **ML Service**: Python Flask, phục vụ dự đoán AI qua REST API.
+
+Các thành phần được container hóa (Docker), giao tiếp qua mạng nội bộ Docker Compose.
+
+### 2. Kiến trúc Realtime Chat & Socket.IO
+
+#### a. Mô hình Socket.IO
+
+- **Socket Server**: Khởi tạo tại `Backend/src/configs/socket.js`.
+- **Rooms**: Mỗi user và mỗi cuộc trò chuyện (conversation/group) là một room riêng biệt.
+- **Sự kiện chính**:
+  - `message:new`: Gửi/nhận tin nhắn realtime.
+  - `conversation:update`: Cập nhật thông tin nhóm, thành viên.
+  - `user:online` / `user:offline`: Theo dõi trạng thái online của user.
+  - `group:join` / `group:leave`: Quản lý thành viên nhóm.
+
+#### b. Quy trình hoạt động
+
+1. **Kết nối**: User đăng nhập, socket kết nối và join vào room cá nhân + các room nhóm.
+2. **Gửi tin nhắn**: Emit `message:new` tới room conversation, tất cả thành viên nhận realtime.
+3. **Cập nhật nhóm**: Khi có thay đổi (thêm/xóa thành viên, đổi tên), emit `conversation:update` tới room nhóm.
+4. **Theo dõi online**: Khi user online/offline, emit tới tất cả room liên quan để cập nhật trạng thái.
+5. **Quản lý nhóm**: Khi user rời nhóm, emit `group:leave` và cập nhật lại danh sách thành viên.
+
+#### c. Đảm bảo ổn định & không mất dữ liệu
+
+- Mỗi sự kiện chỉ emit tới đúng room (conversation hoặc user), tránh spam socket.
+- Dữ liệu conversation và participant luôn được enrich (trả về đầy đủ thông tin user, avatar, role).
+- Trạng thái online được cập nhật realtime qua Set onlineUsers trên frontend.
+- UI cập nhật tức thì khi có sự kiện socket, không cần reload.
+
+### 3. Mô hình dữ liệu & quản lý nhóm
+
+- **Conversation**: Có thể là 1-1 hoặc group, lưu danh sách participant (userId, role, ...).
+- **User**: Lưu thông tin cá nhân, trạng thái online/offline, avatar.
+- **Message**: Lưu nội dung, sender, conversationId, timestamp.
+
+### 4. Luồng realtime tiêu biểu
+
+1. User đăng nhập → socket join các room liên quan.
+2. Gửi tin nhắn → backend lưu DB, emit tới room → frontend nhận và update UI.
+3. Thay đổi nhóm (thêm/xóa thành viên, đổi tên) → backend emit tới room → frontend update GroupInfoPanel.
+4. User online/offline → backend emit tới các room → frontend update trạng thái online.
+
+### 5. Ưu điểm kiến trúc
+
+- **Realtime ổn định**: Không mất tin nhắn, không trùng lặp, không spam socket.
+- **Mở rộng dễ dàng**: Thêm loại nhóm, phân quyền, hoặc các loại sự kiện mới.
+- **Tách biệt rõ ràng**: Backend chỉ emit tới đúng room, frontend chỉ lắng nghe sự kiện cần thiết.
+- **Dễ bảo trì**: Mỗi thành phần (socket, API, UI) tách biệt, dễ debug và mở rộng.
 
 ---
 
@@ -766,7 +755,6 @@ Mọi đóng góp đều được chào đón! Vui lòng tạo pull request ho�
 ---
 
 ## 📞 Liên hệ
-
 - GitHub: [@nghuy0701](https://github.com/nghuy0701)
 - Email: nguyentnhuy2k5@gmail.com
 

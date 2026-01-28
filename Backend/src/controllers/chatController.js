@@ -15,10 +15,10 @@ const sendMessage = async (req, res, next) => {
   try {
     const userId = req.session.user.userId
     const userRole = req.session.user.role
-    const { content, conversationId } = req.body
+    const { content, conversationId, attachments } = req.body
 
-    if (!content || content.trim() === '') {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Message content is required')
+    if (!content && (!attachments || attachments.length === 0)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Message content or attachments required')
     }
 
     let result
@@ -27,41 +27,64 @@ const sendMessage = async (req, res, next) => {
     const isPatient = userRole === 'patient' || userRole === 'member'
     const isDoctor = userRole === 'doctor'
 
-    if (isPatient) {
-      // Patient sends message (may create conversation)
-      result = await chatService.sendMessageAsPatient(userId, content)
+    if (conversationId) {
+      // Send to existing conversation (direct or group)
+      result = await chatService.sendMessage(userId, userRole, conversationId, content || '', attachments || [])
+    } else if (isPatient) {
+      // Patient sends message without conversationId (creates direct conversation)
+      result = await chatService.sendMessageAsPatient(userId, content || '', attachments || [])
     } else if (isDoctor) {
-      // Doctor replies to patient
-      if (!conversationId) {
-        throw new ApiError(
-          StatusCodes.BAD_REQUEST,
-          'Conversation ID is required for doctor replies'
-        )
-      }
-      result = await chatService.sendMessageAsDoctor(userId, conversationId, content)
+      // Doctor must specify conversationId
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Conversation ID is required for doctor messages'
+      )
     } else {
       throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid user role for chat')
     }
 
-    // Emit socket events (if socket is available)
+    // Emit socket event
     if (req.app.get('io')) {
       const io = req.app.get('io')
-      const receiverId = result.receiverId
-
-      // Emit message event
-      io.to(receiverId).emit('message:new', {
+      const conversationId = result.conversationId.toString()
+      
+      // ALWAYS emit to conversation room (for both direct and group)
+      // Both users join this room when they open the conversation
+      io.to(conversationId).emit('message:new', {
         messageId: result.messageId,
         conversationId: result.conversationId,
         senderId: result.senderId,
+        senderName: result.senderName || 'Unknown',
         senderRole: result.senderRole,
         content: result.content,
+        attachments: result.attachments || [],
         createdAt: result.createdAt
       })
-
-      // Create and emit notification (background task - don't wait)
-      createChatNotification(receiverId, result, isDoctor, io).catch(err => {
-        logger.error('Error creating chat notification:', err)
-      })
+      
+      // ALSO emit to user rooms for conversation list updates
+      // This ensures inbox/conversation list updates even when not viewing the chat
+      if (result.participants) {
+        // Group: emit to all participants
+        result.participants.forEach(p => {
+          io.to(p.userId.toString()).emit('conversation:updated', {
+            conversationId: result.conversationId,
+            lastMessage: result.content || '[Attachment]',
+            lastMessageAt: result.createdAt
+          })
+        })
+      } else if (result.receiverId) {
+        // Direct: emit to both sender and receiver
+        io.to(result.receiverId).emit('conversation:updated', {
+          conversationId: result.conversationId,
+          lastMessage: result.content || '[Attachment]',
+          lastMessageAt: result.createdAt
+        })
+        io.to(userId).emit('conversation:updated', {
+          conversationId: result.conversationId,
+          lastMessage: result.content || '[Attachment]',
+          lastMessageAt: result.createdAt
+        })
+      }
     }
 
     res.status(StatusCodes.CREATED).json({
@@ -149,11 +172,11 @@ const getDoctorInbox = async (req, res, next) => {
 const getPatientConversation = async (req, res, next) => {
   try {
     const patientId = req.session.user.userId
-    const conversation = await chatService.getPatientConversation(patientId)
+    const conversations = await chatService.getPatientConversation(patientId)
 
     res.status(StatusCodes.OK).json({
-      message: 'Conversation retrieved successfully',
-      data: conversation
+      message: 'Conversations retrieved successfully',
+      data: conversations // Return array of conversations
     })
   } catch (error) {
     next(error)
@@ -215,10 +238,102 @@ const markAsRead = async (req, res, next) => {
   }
 }
 
+// Create group conversation (doctor only)
+const createGroupConversation = async (req, res, next) => {
+  try {
+    const doctorId = req.session.user.userId
+    const { groupName, patientIds } = req.body
+
+    if (!groupName || !patientIds || !Array.isArray(patientIds) || patientIds.length === 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Group name and patient IDs are required'
+      )
+    }
+
+    if (patientIds.length < 2) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Group must have at least 2 patients'
+      )
+    }
+
+    const result = await chatService.createGroupConversation(doctorId, groupName, patientIds)
+
+    // Emit socket event to all participants for real-time update
+    if (req.app.get('io')) {
+      const io = req.app.get('io')
+      const conversationId = result.conversationId.toString()
+      
+      // Emit to each participant's user room with full participant details
+      result.participants.forEach(participant => {
+        const userId = participant.userId.toString()
+        io.to(userId).emit('conversation:created', {
+          conversationId: conversationId,
+          type: 'group',
+          groupName: result.groupName,
+          participants: result.participants, // Already enriched with name and avatar
+          participantCount: result.participants.length,
+          createdAt: Date.now()
+        })
+        console.log('[chatController] Emitted conversation:created to user room:', userId)
+      })
+    }
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: 'Group conversation created successfully',
+      conversation: result
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+// Leave group conversation
+const leaveGroup = async (req, res, next) => {
+  try {
+    const userId = req.session.user.userId
+    const { conversationId } = req.params
+
+    if (!conversationId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Conversation ID is required')
+    }
+
+    // Remove user from group
+    const result = await chatService.leaveGroup(userId, conversationId)
+
+    // Emit socket event to notify remaining members
+    if (req.app.get('io')) {
+      const io = req.app.get('io')
+      
+      // Notify conversation room with updated participants list
+      io.to(conversationId).emit('group:member_left', {
+        conversationId,
+        userId,
+        participants: result.participants, // Updated list without the user who left
+        groupName: result.groupName
+      })
+      
+      console.log('[chatController] User left group:', userId, conversationId)
+      console.log('[chatController] Remaining participants:', result.participants.length)
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Successfully left group'
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const chatController = {
   sendMessage,
+  createGroupConversation,
   getDoctorInbox,
   getPatientConversation,
   getMessages,
-  markAsRead
+  markAsRead,
+  leaveGroup
 }

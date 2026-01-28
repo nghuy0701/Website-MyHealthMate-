@@ -13,7 +13,7 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-y-auto">
+    <div className="h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Doctor/Patient Profile */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex flex-col items-center text-center">
@@ -51,7 +51,7 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
       </div>
 
       {/* Patient/User History */}
-      <div className="p-4 flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: 0 }}>
         <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <FileText className="w-4 h-4" />
           {isDoctor ? 'Lịch sử dự đoán' : 'Lịch sử khám'}
