@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../lib/auth-context';
+import { useNotificationStore } from '../lib/useNotificationStore';
 import { chatAPI, predictionAPI } from '../lib/api';
 import { useSocket } from '../lib/useSocket';
 import { useTypingIndicator } from '../lib/useTypingIndicator';
@@ -302,6 +303,7 @@ const mockPatientHistory = [
 
 export function ChatPage() {
   const { user } = useAuth();
+  const setCurrentConversationId = useNotificationStore(state => state.setCurrentConversationId);
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutsRef = useRef({}); // Track auto-clear timeouts per conversation
@@ -504,11 +506,19 @@ export function ChatPage() {
         content: data.content,
         attachments: data.attachments || [],
         createdAt: data.createdAt,
+        status: data.status || 'sent', // Include status from socket
         isOwn: data.senderId === currentUserId
       }]);
 
       setTypingUserId(null);
       setTimeout(() => scrollFn(), 100);
+
+      // Auto-mark as seen if message is from someone else
+      if (data.senderId !== currentUserId) {
+        chatAPI.markMessagesAsSeen(convId).catch(err => {
+          console.error('[ChatPage] Error auto-marking message as seen:', err);
+        });
+      }
     }
   }, []); // NO dependencies!
 
@@ -585,18 +595,25 @@ export function ChatPage() {
   // Handle message status update
   const handleMessageStatusUpdate = useCallback((data) => {
     console.log('[ChatPage] Received message:status_update:', data);
-    const { conversationId, messageIds, status } = data;
+    const { conversationId, updates, seenBy } = data;
     const currentSelectedId = selectedConversationIdRef.current;
+    const currentUserId = userIdRef.current;
 
     // Only update if viewing this conversation
-    if (conversationId === currentSelectedId) {
+    if (conversationId === currentSelectedId && updates) {
       setMessages(prev => prev.map(msg => {
-        if (messageIds.includes(msg.id?.toString() || msg.id)) {
-          return { ...msg, status };
+        // Find if this message should be updated
+        const update = updates.find(u =>
+          u.messageIds.includes(msg.id?.toString() || msg.id) &&
+          msg.senderId?.toString() === currentUserId?.toString() // Only update own messages
+        );
+
+        if (update) {
+          console.log('[ChatPage] Updating message status:', msg.id, 'to', update.status);
+          return { ...msg, status: update.status };
         }
         return msg;
       }));
-      console.log('[ChatPage] Updated message status to:', status);
     }
   }, []);
 
@@ -956,13 +973,21 @@ export function ChatPage() {
       const loadedMessages = response.data || [];
       setMessages(loadedMessages);
 
-      // Mark messages as seen (this will trigger socket event to notify sender)
-      try {
-        await chatAPI.markMessagesAsSeen(conversationId);
-        console.log('[ChatPage] Marked messages as seen for conversation:', conversationId);
-      } catch (err) {
-        console.error('[ChatPage] Error marking messages as seen:', err);
-        // Don't fail the whole operation if marking as seen fails
+      // Mark messages as seen only if there are unread messages from others
+      const hasUnreadFromOthers = loadedMessages.some(msg =>
+        msg.senderId?.toString() !== userId?.toString() && msg.status === 'sent'
+      );
+
+      if (hasUnreadFromOthers) {
+        try {
+          await chatAPI.markMessagesAsSeen(conversationId);
+          console.log('[ChatPage] Marked messages as seen for conversation:', conversationId);
+        } catch (err) {
+          console.error('[ChatPage] Error marking messages as seen:', err);
+          // Don't fail the whole operation if marking as seen fails
+        }
+      } else {
+        console.log('[ChatPage] No unread messages to mark as seen');
       }
 
       // Auto-scroll to bottom when opening conversation

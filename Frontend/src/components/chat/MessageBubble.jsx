@@ -1,7 +1,8 @@
+import React from 'react';
 import { FileText, FileSpreadsheet, File as FileIcon, Download, ExternalLink, Check, CheckCheck } from 'lucide-react';
 import { formatFileSize } from '../../utils/fileUtils';
 
-export function MessageBubble({ message, isOwn, showSenderName = false }) {
+const MessageBubbleComponent = ({ message, isOwn, showSenderName = false }) => {
   const { content, createdAt, attachments, senderName, status } = message;
 
   // Normalize attachment object to handle different field names from backend
@@ -59,11 +60,11 @@ export function MessageBubble({ message, isOwn, showSenderName = false }) {
     if (!isOwn || !status) return null;
 
     return (
-      <span className="inline-flex items-center ml-1">
+      <span className="inline-flex items-center ml-1 transition-all duration-300 ease-in-out">
         {status === 'sent' ? (
-          <Check className="w-3 h-3 text-gray-400" />
+          <Check className="w-3 h-3 text-gray-400 transition-colors duration-300" />
         ) : status === 'seen' ? (
-          <CheckCheck className="w-3 h-3 text-green-500" />
+          <CheckCheck className="w-3 h-3 text-green-500 transition-colors duration-300" />
         ) : null}
       </span>
     );
@@ -82,8 +83,8 @@ export function MessageBubble({ message, isOwn, showSenderName = false }) {
         {/* Message Bubble */}
         <div
           className={`rounded-2xl px-4 py-3 shadow-sm ${isOwn
-              ? 'bg-green-600 text-white rounded-br-sm'
-              : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'
+            ? 'bg-green-600 text-white rounded-br-sm'
+            : 'bg-white text-gray-800 rounded-bl-sm border border-gray-200'
             }`}
         >
           {/* Message Content */}
@@ -149,8 +150,8 @@ export function MessageBubble({ message, isOwn, showSenderName = false }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`flex items-center gap-3 p-3 rounded-lg ${isOwn
-                            ? 'bg-green-700 hover:bg-green-800'
-                            : 'bg-gray-50 hover:bg-gray-100'
+                          ? 'bg-green-700 hover:bg-green-800'
+                          : 'bg-gray-50 hover:bg-gray-100'
                           } transition-colors`}
                       >
                         {(() => {
@@ -192,3 +193,15 @@ export function MessageBubble({ message, isOwn, showSenderName = false }) {
     </div>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+// Only re-render if message content, status, or isOwn changes
+export const MessageBubble = React.memo(MessageBubbleComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.status === nextProps.message.status &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.isOwn === nextProps.isOwn &&
+    prevProps.showSenderName === nextProps.showSenderName
+  );
+});

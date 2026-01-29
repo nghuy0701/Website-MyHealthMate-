@@ -3,6 +3,8 @@ import { AuthProvider } from './lib/auth-context';
 import { AdminProvider } from './lib/admin-context';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { NotificationDrawer } from './components/notification/NotificationDrawer';
+import { NotificationInitializer } from './components/notification/NotificationInitializer';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { KnowledgePage } from './pages/KnowledgePage.jsx';
 import { ArticleDetailPage } from './pages/ArticleDetailPage.jsx';
@@ -15,7 +17,6 @@ import { PredictionDetailPage } from './pages/PredictionDetailPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { ChatPage } from './pages/ChatPage.jsx';
 import { AdminLoginPage } from './pages/admin/AdminLoginPage.jsx';
-import AdminApp from './pages/admin/AdminApp.jsx';
 import { AdminRegisterPage } from './pages/admin/AdminRegisterPage.jsx';
 import { AdminVerifyEmailPage } from './pages/admin/AdminVerifyEmailPage.jsx';
 import { Toaster } from './components/ui/sonner';
@@ -25,12 +26,12 @@ export default function App() {
     <BrowserRouter>
       <AdminProvider>
         <AuthProvider>
+          <NotificationInitializer />
           <Routes>
-            {/* Admin Routes - No Header/Footer */}
+            {/* Admin Login/Register Routes - No Header/Footer */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin/register" element={<AdminRegisterPage />} />
             <Route path="/admin/verify-email/:token" element={<AdminVerifyEmailPage />} />
-            <Route path="/admin/*" element={<AdminApp />} />
 
             {/* Regular User Routes - With Header/Footer */}
             <Route
@@ -102,6 +103,7 @@ export default function App() {
                     </Routes>
                   </main>
                   <Footer />
+                  <NotificationDrawer />
                 </div>
               }
             />

@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { chatService } from '~/services'
+import { notificationService } from '~/services/notificationService'
 import ApiError from '~/utils/ApiError'
-import { messageModel } from '~/models'
 
 /**
  * Chat Controller - Handles HTTP requests for chat functionality
@@ -111,6 +111,63 @@ const sendMessage = async (req, res, next) => {
     })
   } catch (error) {
     next(error)
+  }
+}
+
+// Helper function to create chat notification
+const createChatNotification = async (receiverId, messageResult, senderIsDoctor, io) => {
+  try {
+    // Fetch sender's name from database
+    const { userModel } = await import('~/models')
+    const sender = await userModel.findOneById(messageResult.senderId)
+    const senderName = sender?.displayName || sender?.userName || (senderIsDoctor ? 'Bác sĩ' : 'Bệnh nhân')
+    const truncatedContent = messageResult.content.length > 100
+      ? messageResult.content.substring(0, 100) + '…'
+      : messageResult.content
+
+    const notificationData = {
+      userId: receiverId,
+      type: 'chat',
+      title: `Tin nhắn mới từ ${senderName}`,
+      description: truncatedContent,
+      role: senderIsDoctor ? 'patient' : 'doctor', // Only show to the recipient's role
+      deepLink: {
+        pathname: '/chat',
+        query: {
+          conversationId: messageResult.conversationId.toString()
+        }
+      },
+      meta: {
+        conversationId: messageResult.conversationId.toString(),
+        senderId: messageResult.senderId,
+        senderName: senderName
+      }
+    }
+
+    const notification = await notificationService.createNotification(notificationData)
+
+    // Emit notification event to receiver
+    io.to(receiverId).emit('notification:new', {
+      notification: {
+        id: notification._id.toString(),
+        type: notification.type,
+        title: notification.title,
+        description: notification.description,
+        isRead: notification.isRead,
+        role: notification.role,
+        deepLink: notification.deepLink,
+        createdAt: notification.createdAt,
+        meta: {
+          conversationId: notification.meta?.conversationId?.toString(),
+          senderId: notification.meta?.senderId?.toString(),
+          senderName: notification.meta?.senderName
+        }
+      }
+    })
+
+    logger.info(`[Notification] Created chat notification for user ${receiverId} from ${senderName}`)
+  } catch (error) {
+    logger.error('[Notification] Error creating chat notification:', error)
   }
 }
 
@@ -321,17 +378,20 @@ const markMessagesAsSeen = async (req, res, next) => {
 
       console.log('[chatController] Emitting status updates to senders:', Object.keys(bySender))
 
-      // Emit to each sender
-      Object.keys(bySender).forEach(senderId => {
-        const payload = {
-          conversationId,
+      // Emit to conversation room (all participants will receive it)
+      // Frontend will filter to only update messages from the correct sender
+      const payload = {
+        conversationId,
+        updates: Object.keys(bySender).map(senderId => ({
+          senderId,
           messageIds: bySender[senderId],
-          status: 'seen',
-          seenBy: userId
-        }
-        console.log('[chatController] Emitting to sender:', senderId, payload)
-        io.to(senderId).emit('message:status_update', payload)
-      })
+          status: 'seen'
+        })),
+        seenBy: userId
+      }
+
+      console.log('[chatController] Emitting to conversation room:', conversationId, payload)
+      io.to(conversationId).emit('message:status_update', payload)
     } else {
       console.log('[chatController] No messages to update or no socket IO')
     }

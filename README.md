@@ -39,7 +39,7 @@ MyHealthMate là một **full-stack healthcare platform** tích hợp Machine Le
 - [🤖 Machine Learning Models](#-machine-learning-models)
 - [🔑 Tính Năng](#-tính-năng)
 - [📁 Cấu Trúc Project](#-cấu-trúc-project)
-- [🏗️ System & Socket Architecture (Realtime Chat)](#-system--socket-architecture-realtime-chat)
+- [🏗️ Kiến Trúc Socket & Realtime Chat](#-kiến-trúc-socket--realtime-chat)
 - [🔧 API Endpoints](#-api-endpoints)
 - [📚 Tài Liệu ML Chi Tiết](#-tài-liệu-ml-chi-tiết)
 - [🛠️ Troubleshooting](#️-troubleshooting)
@@ -271,64 +271,76 @@ Website-MyHealthMate-/
 └── README.md                  # Project documentation
 ```
 ---
-## 🏗️ System & Socket Architecture (Realtime Chat)
+## 🏗️ Kiến Trúc Socket & Realtime Chat
 
-### 1. Tổng quan Kiến trúc Hệ thống
+### 1) Tổng quan hệ thống
 
-**MyHealthMate** sử dụng kiến trúc microservices với 3 thành phần chính:
+**MyHealthMate** có 3 thành phần chính:
 
 - **Frontend**: React + Vite, giao tiếp qua REST API và Socket.IO.
-- **Backend**: Node.js (Express), cung cấp API RESTful, xác thực JWT, quản lý dữ liệu và Socket.IO cho realtime.
+- **Backend**: Node.js (Express) + Socket.IO, cung cấp API, quản lý dữ liệu và realtime.
 - **ML Service**: Python Flask, phục vụ dự đoán AI qua REST API.
 
-Các thành phần được container hóa (Docker), giao tiếp qua mạng nội bộ Docker Compose.
+Các thành phần được container hóa bằng Docker và giao tiếp qua mạng nội bộ Docker Compose.
 
-### 2. Kiến trúc Realtime Chat & Socket.IO
+### 2) Mô hình socket mà dự án đang dùng
 
-#### a. Mô hình Socket.IO
+- **Mô hình**: **Client–Server** (Socket.IO client ở Frontend kết nối Socket.IO server ở Backend).
+- **Tầng vận chuyển**: **TCP** (WebSocket chạy trên TCP).
+- **Giao thức thực tế**: **Socket.IO** (lớp ứng dụng) dùng **WebSocket** khi khả dụng và **HTTP long‑polling** làm fallback.
+- **Handshake**: kết nối bắt đầu bằng HTTP handshake rồi nâng cấp lên WebSocket.
 
-- **Socket Server**: Khởi tạo tại `Backend/src/configs/socket.js`.
-- **Rooms**: Mỗi user và mỗi cuộc trò chuyện (conversation/group) là một room riêng biệt.
-- **Sự kiện chính**:
-  - `message:new`: Gửi/nhận tin nhắn realtime.
-  - `conversation:update`: Cập nhật thông tin nhóm, thành viên.
-  - `user:online` / `user:offline`: Theo dõi trạng thái online của user.
-  - `group:join` / `group:leave`: Quản lý thành viên nhóm.
+### 3) Kiến trúc realtime chat chi tiết
 
-#### b. Quy trình hoạt động
+**a) Kết nối & xác thực**
+- Socket.IO server được khởi tạo tại `Backend/src/configs/socket.js`.
+- Client kết nối bằng `socket.io-client`, truyền `userId` trong `socket.handshake.auth`.
+- Server gắn `socket.userId` để dùng trong room và log.
 
-1. **Kết nối**: User đăng nhập, socket kết nối và join vào room cá nhân + các room nhóm.
-2. **Gửi tin nhắn**: Emit `message:new` tới room conversation, tất cả thành viên nhận realtime.
-3. **Cập nhật nhóm**: Khi có thay đổi (thêm/xóa thành viên, đổi tên), emit `conversation:update` tới room nhóm.
-4. **Theo dõi online**: Khi user online/offline, emit tới tất cả room liên quan để cập nhật trạng thái.
-5. **Quản lý nhóm**: Khi user rời nhóm, emit `group:leave` và cập nhật lại danh sách thành viên.
+**b) Thiết kế room**
+- **User room**: `room = userId` để cập nhật danh sách hội thoại (inbox).
+- **Conversation room**: `room = conversationId` để phát tin nhắn & typing đúng phòng.
 
-#### c. Đảm bảo ổn định & không mất dữ liệu
+**c) Sự kiện socket chính**
+- **Từ client emit**: `join:conversation`, `leave:conversation`, `typing:start`, `typing:stop`.
+- **Từ server emit**:
+  - `message:new`: tin nhắn mới vào room conversation.
+  - `conversation:updated`: cập nhật lastMessage cho danh sách hội thoại (emit vào user room).
+  - `conversation:created`: tạo nhóm mới (emit vào user room).
+  - `group:member_left`: thành viên rời nhóm (emit vào room conversation).
+  - `user:online`, `user:offline`: trạng thái online/offline (broadcast).
 
-- Mỗi sự kiện chỉ emit tới đúng room (conversation hoặc user), tránh spam socket.
-- Dữ liệu conversation và participant luôn được enrich (trả về đầy đủ thông tin user, avatar, role).
-- Trạng thái online được cập nhật realtime qua Set onlineUsers trên frontend.
-- UI cập nhật tức thì khi có sự kiện socket, không cần reload.
+### 4) Luồng realtime tiêu biểu
 
-### 3. Mô hình dữ liệu & quản lý nhóm
+**A. Gửi tin nhắn**
+1. Frontend gọi `POST /api/v1/chat/messages`.
+2. Backend lưu message + cập nhật `lastMessage`.
+3. Emit `message:new` vào `conversationId` room.
+4. Emit `conversation:updated` vào `userId` room của các thành viên.
 
-- **Conversation**: Có thể là 1-1 hoặc group, lưu danh sách participant (userId, role, ...).
-- **User**: Lưu thông tin cá nhân, trạng thái online/offline, avatar.
-- **Message**: Lưu nội dung, sender, conversationId, timestamp.
+**B. Tạo group (doctor)**
+1. Frontend gọi `POST /api/v1/chat/conversations/group`.
+2. Backend tạo group và enrich participants.
+3. Emit `conversation:created` vào `userId` room của từng thành viên.
 
-### 4. Luồng realtime tiêu biểu
+**C. Typing indicator**
+- Client emit `typing:start`/`typing:stop`.
+- Server relay vào `conversationId` room (frontend debounce bằng `useTypingIndicator`).
 
-1. User đăng nhập → socket join các room liên quan.
-2. Gửi tin nhắn → backend lưu DB, emit tới room → frontend nhận và update UI.
-3. Thay đổi nhóm (thêm/xóa thành viên, đổi tên) → backend emit tới room → frontend update GroupInfoPanel.
-4. User online/offline → backend emit tới các room → frontend update trạng thái online.
+**D. Online/Offline**
+- Khi socket connect/disconnect, server emit `user:online`/`user:offline` (broadcast).
 
-### 5. Ưu điểm kiến trúc
+### 5) Dữ liệu liên quan đến chat
 
-- **Realtime ổn định**: Không mất tin nhắn, không trùng lặp, không spam socket.
-- **Mở rộng dễ dàng**: Thêm loại nhóm, phân quyền, hoặc các loại sự kiện mới.
-- **Tách biệt rõ ràng**: Backend chỉ emit tới đúng room, frontend chỉ lắng nghe sự kiện cần thiết.
-- **Dễ bảo trì**: Mỗi thành phần (socket, API, UI) tách biệt, dễ debug và mở rộng.
+- **Conversation**: direct hoặc group; lưu `participants` hoặc `patientId/doctorId`.
+- **Message**: `conversationId`, `senderId`, `content`, `attachments`, `read`, `createdAt`.
+- **Attachment**: upload qua `/api/v1/uploads`, lưu metadata (url, filename, mimeType, size, type).
+
+### 6) Ưu điểm thiết kế hiện tại
+
+- Realtime ổn định, cập nhật UI không cần reload.
+- Room tách biệt theo user và conversation, giảm nhiễu sự kiện.
+- Dễ mở rộng thêm sự kiện hoặc phân quyền.
 
 ---
 

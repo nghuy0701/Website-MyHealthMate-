@@ -206,3 +206,21 @@ export const chatAPI = {
   // Upload file attachment
   uploadFile: (formData) => apiClient.uploadFile('/uploads', formData),
 }
+
+// ============================================================================
+// Notification APIs
+// ============================================================================
+export const notificationAPI = {
+  // Get my notifications
+  getMyNotifications: () => apiClient.get('/notifications'),
+  
+  // Get unread count
+  getUnreadCount: () => apiClient.get('/notifications/unread-count'),
+  
+  // Mark notification as read
+  markAsRead: (id) => apiClient.put(`/notifications/${id}/read`),
+  
+  // Mark all notifications as read
+  markAllAsRead: () => apiClient.put('/notifications/read-all'),
+  
+}

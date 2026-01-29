@@ -1,9 +1,10 @@
+import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Phone, Video, Calendar, FileText, Loader2 } from 'lucide-react';
 import { Card } from '../ui/card';
 
-export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false, isDoctor = false, onPredictionClick }) {
+const ChatInfoPanelComponent = ({ doctor, patientHistory, isLoadingHistory = false, isDoctor = false, onPredictionClick }) => {
   if (!doctor) return null;
 
   const handlePredictionClick = (predictionId) => {
@@ -23,15 +24,15 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
               {doctor.name.charAt(0)}
             </AvatarFallback>
           </Avatar>
-          
+
           <h3 className="font-semibold text-gray-800 text-lg mb-1">
             {doctor.name}
           </h3>
-          
+
           {doctor.specialty && (
             <p className="text-sm text-gray-600 mb-2">{doctor.specialty}</p>
           )}
-          
+
           <div className={`text-sm ${doctor.status === 'online' ? 'text-green-600' : 'text-gray-500'}`}>
             {doctor.status === 'online' ? '● Đang online' : '○ Offline'}
           </div>
@@ -56,7 +57,7 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
           <FileText className="w-4 h-4" />
           {isDoctor ? 'Lịch sử dự đoán' : 'Lịch sử khám'}
         </h4>
-        
+
         {/* Loading State */}
         {isLoadingHistory ? (
           <div className="flex items-center justify-center py-8">
@@ -66,8 +67,8 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
           /* History Items */
           <div className="space-y-2">
             {patientHistory.map((item, index) => (
-              <Card 
-                key={item.predictionId || index} 
+              <Card
+                key={item.predictionId || index}
                 className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => handlePredictionClick(item.predictionId)}
               >
@@ -92,7 +93,7 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
                 {isDoctor ? 'Chưa có lịch sử dự đoán' : 'Chưa có lịch sử khám'}
               </p>
               <p className="text-xs">
-                {isDoctor 
+                {isDoctor
                   ? 'Bệnh nhân chưa thực hiện dự đoán nào'
                   : 'Hãy thực hiện dự đoán để xem lịch sử'}
               </p>
@@ -103,3 +104,6 @@ export function ChatInfoPanel({ doctor, patientHistory, isLoadingHistory = false
     </div>
   );
 }
+
+// Memoize to prevent re-renders when parent updates
+export const ChatInfoPanel = React.memo(ChatInfoPanelComponent);

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth-context';
 import { Button } from './ui/button';
 import { Leaf } from 'lucide-react';
+import { NotificationBell } from './notification/NotificationBell';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -27,9 +28,8 @@ export function Header() {
           <nav className="flex items-center gap-6">
             <Link
               to="/"
-              className={`transition-colors ${
-                isActive('/') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-              }`}
+              className={`transition-colors ${isActive('/') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                }`}
             >
               Kiến thức
             </Link>
@@ -38,36 +38,37 @@ export function Header() {
               <>
                 <Link
                   to="/prediction"
-                  className={`transition-colors ${
-                    isActive('/prediction') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`transition-colors ${isActive('/prediction') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   Dự đoán
                 </Link>
                 <Link
                   to="/history"
-                  className={`transition-colors ${
-                    isActive('/history') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`transition-colors ${isActive('/history') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   Lịch sử
                 </Link>
                 <Link
                   to="/chat"
-                  className={`transition-colors ${
-                    isActive('/chat') || location.pathname.startsWith('/chat/') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`transition-colors ${isActive('/chat') || location.pathname.startsWith('/chat/') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   Tư vấn
                 </Link>
+
                 <Link
                   to="/profile"
-                  className={`transition-colors ${
-                    isActive('/profile') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
-                  }`}
+                  className={`transition-colors ${isActive('/profile') ? 'text-green-600' : 'text-gray-600 hover:text-green-600'
+                    }`}
                 >
                   Hồ sơ
                 </Link>
+
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 <Button
                   variant="outline"
                   onClick={logout}
