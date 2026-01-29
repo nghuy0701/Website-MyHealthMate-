@@ -17,6 +17,7 @@ const createNew = async (data) => {
       content: data.content,
       attachments: data.attachments || [], // Array of { type, url, filename, mimeType, size }
       read: data.read || false,
+      status: data.status || 'sent', // 'sent' or 'seen'
       createdAt: Date.now(),
       _destroy: false
     }
@@ -103,10 +104,64 @@ const getLastMessage = async (conversationId) => {
   }
 }
 
+// Update message status
+const updateMessageStatus = async (messageId, status) => {
+  try {
+    const result = await GET_DB()
+      .collection(COLLECTION_NAME)
+      .updateOne(
+        { _id: new ObjectId(messageId) },
+        { $set: { status } }
+      )
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+// Mark all messages in conversation as seen (except sender's own messages)
+const markConversationMessagesAsSeen = async (conversationId, userId) => {
+  try {
+    const result = await GET_DB()
+      .collection(COLLECTION_NAME)
+      .updateMany(
+        {
+          conversationId: new ObjectId(conversationId),
+          senderId: { $ne: new ObjectId(userId) },
+          status: 'sent',
+          _destroy: false
+        },
+        {
+          $set: {
+            status: 'seen',
+            read: true
+          }
+        }
+      )
+
+    // Return the IDs of updated messages
+    const updatedMessages = await GET_DB()
+      .collection(COLLECTION_NAME)
+      .find({
+        conversationId: new ObjectId(conversationId),
+        senderId: { $ne: new ObjectId(userId) },
+        status: 'seen',
+        _destroy: false
+      })
+      .toArray()
+
+    return updatedMessages
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
 export const messageModel = {
   createNew,
   findByConversationId,
   countUnreadMessages,
   markAsRead,
-  getLastMessage
+  getLastMessage,
+  updateMessageStatus,
+  markConversationMessagesAsSeen
 }
