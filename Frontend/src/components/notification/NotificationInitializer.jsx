@@ -9,6 +9,7 @@ import { useNotificationStore } from '../../lib/useNotificationStore';
  * - Ngắt kết nối và xóa state khi user logout
  * 
  * Component này không render gì cả, chỉ chạy side effects
+ * UPDATED: Added debug logs for troubleshooting
  */
 export function NotificationInitializer() {
   const { user } = useAuth();
@@ -18,24 +19,13 @@ export function NotificationInitializer() {
   const loadUnreadCount = useNotificationStore(state => state.loadUnreadCount);
   const clearAll = useNotificationStore(state => state.clearAll);
 
+
   // Lấy userId và role từ user object - Match logic from ChatPage.jsx
   const userId = user?._id?.toString() || user?.id?.toString() || user?.userId;
   const userRole = user?.role === 'member' ? 'patient' : user?.role;
 
-  // Debug log
-  console.log('[NotificationInitializer] User state:', {
-    hasUser: !!user,
-    userId,
-    userRole,
-    userKeys: user ? Object.keys(user) : []
-  });
-
   useEffect(() => {
     if (user && userId && userRole) {
-      // User đã login - Khởi tạo hệ thống thông báo
-      console.log('[Notification] ✅ User logged in - Initializing notification system');
-      console.log('[Notification] UserId:', userId, 'Role:', userRole);
-
       // Bước 1: Kết nối Socket.IO
       initSocket(userId);
 
@@ -44,7 +34,6 @@ export function NotificationInitializer() {
         try {
           await loadNotifications(userRole);
           await loadUnreadCount();
-          console.log('[Notification] ✅ Notification system initialized');
         } catch (err) {
           console.error('[Notification] ❌ Error initializing:', err);
         }
@@ -52,12 +41,8 @@ export function NotificationInitializer() {
 
       fetchData();
     } else if (user === null) {
-      // User đã logout - Dọn dẹp
-      console.log('[Notification] 🔌 User logged out - Cleaning up');
       disconnectSocket();
       clearAll();
-    } else {
-      console.log('[Notification] ⏳ Waiting for user data...', { hasUser: !!user, userId, userRole });
     }
   }, [userId, userRole, user, initSocket, disconnectSocket, loadNotifications, loadUnreadCount, clearAll]);
 

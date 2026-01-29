@@ -2,7 +2,6 @@ import { createPortal } from 'react-dom';
 import { Button } from '../ui/button';
 
 export function LeaveGroupModal({ isOpen, groupName, onConfirm, onCancel }) {
-  console.log('[LeaveGroupModal] Render - isOpen:', isOpen, 'groupName:', groupName);
   
   if (!isOpen) return null;
 

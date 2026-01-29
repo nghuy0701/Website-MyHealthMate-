@@ -41,12 +41,10 @@ export function useTypingIndicator(
     if (!isTypingRef.current) {
       isTypingRef.current = true;
       emitTypingStart(conversationId, senderId);
-      console.log('[TypingIndicator] Started typing');
 
       // Setup periodic re-emit every 3 seconds
       typingIntervalRef.current = setInterval(() => {
         emitTypingStart(conversationId, senderId);
-        console.log('[TypingIndicator] Re-emitted typing:start (periodic)');
       }, debounceMs);
     }
   }, [conversationId, senderId, emitTypingStart, debounceMs]);
@@ -69,7 +67,6 @@ export function useTypingIndicator(
     if (isTypingRef.current) {
       isTypingRef.current = false;
       emitTypingStop(conversationId, senderId);
-      console.log('[TypingIndicator] Stopped typing (explicit)');
     }
   }, [conversationId, senderId, emitTypingStop]);
 

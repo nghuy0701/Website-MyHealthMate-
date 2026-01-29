@@ -88,7 +88,6 @@ const MessageBubbleComponent = ({ message, isOwn, showSenderName = false }) => {
 
                 // Guard against null/undefined or missing URL
                 if (!normalized || !normalized.url) {
-                  console.warn('[MessageBubble] Skipping invalid attachment at index', index);
                   return null;
                 }
 

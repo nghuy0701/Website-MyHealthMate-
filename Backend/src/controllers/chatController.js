@@ -1,11 +1,14 @@
 import { StatusCodes } from 'http-status-codes'
 import { chatService } from '~/services'
 import { notificationService } from '~/services/notificationService'
+import { createLogger } from '~/utils/logger'
 import ApiError from '~/utils/ApiError'
 
 /**
  * Chat Controller - Handles HTTP requests for chat functionality
  */
+
+const logger = createLogger('ChatController')
 
 // TEMPORARY: Migrate existing messages to add status field
 const migrateMessageStatus = async (req, res, next) => {
@@ -82,17 +85,25 @@ const sendMessage = async (req, res, next) => {
       // ALSO emit to user rooms for conversation list updates
       // This ensures inbox/conversation list updates even when not viewing the chat
       if (result.participants) {
-        // Group: emit to all participants
-        result.participants.forEach(p => {
-          io.to(p.userId.toString()).emit('conversation:updated', {
+        // Conversation with participants (direct or group)
+        const senderId = result.senderId?.toString() || userId?.toString()
+        for (const participant of result.participants) {
+          const participantId = participant.userId.toString()
+
+          io.to(participantId).emit('conversation:updated', {
             conversationId: result.conversationId,
             lastMessage: result.content || '[Attachment]',
             lastMessageAt: result.createdAt
           })
-        })
+
+          if (participantId === senderId) continue
+
+          const receiverRole = participant.role || (result.senderRole === 'doctor' ? 'patient' : 'doctor')
+          await createChatNotification(participantId, receiverRole, result, io)
+        }
       } else if (result.receiverId) {
         // Direct: emit to both sender and receiver
-        io.to(result.receiverId).emit('conversation:updated', {
+          io.to(result.receiverId).emit('conversation:updated', {
           conversationId: result.conversationId,
           lastMessage: result.content || '[Attachment]',
           lastMessageAt: result.createdAt
@@ -102,8 +113,14 @@ const sendMessage = async (req, res, next) => {
           lastMessage: result.content || '[Attachment]',
           lastMessageAt: result.createdAt
         })
+
+        // Create notification for receiver
+        const receiverRole = result.senderRole === 'doctor' ? 'patient' : 'doctor'
+        await createChatNotification(result.receiverId, receiverRole, result, io)
+      } else {
       }
     }
+
 
     res.status(StatusCodes.CREATED).json({
       message: 'Message sent successfully',
@@ -115,12 +132,12 @@ const sendMessage = async (req, res, next) => {
 }
 
 // Helper function to create chat notification
-const createChatNotification = async (receiverId, messageResult, senderIsDoctor, io) => {
+const createChatNotification = async (receiverId, receiverRole, messageResult, io) => {
   try {
     // Fetch sender's name from database
     const { userModel } = await import('~/models')
     const sender = await userModel.findOneById(messageResult.senderId)
-    const senderName = sender?.displayName || sender?.userName || (senderIsDoctor ? 'Bác sĩ' : 'Bệnh nhân')
+    const senderName = sender?.displayName || sender?.userName || (messageResult.senderRole === 'doctor' ? 'B??c s??' : 'B???nh nh??n')
     const truncatedContent = messageResult.content.length > 100
       ? messageResult.content.substring(0, 100) + '…'
       : messageResult.content
@@ -130,7 +147,7 @@ const createChatNotification = async (receiverId, messageResult, senderIsDoctor,
       type: 'chat',
       title: `Tin nhắn mới từ ${senderName}`,
       description: truncatedContent,
-      role: senderIsDoctor ? 'patient' : 'doctor', // Only show to the recipient's role
+      role: receiverRole, // Only show to the recipient's role
       deepLink: {
         pathname: '/chat',
         query: {

@@ -16,8 +16,6 @@ export function useSocket(userId) {
   useEffect(() => {
     if (!userId || socketRef.current) return;
 
-    console.log('[Socket] Connecting for user:', userId);
-
     const socket = io(SOCKET_URL, {
       auth: { userId },
       transports: ['websocket', 'polling'],
@@ -29,12 +27,12 @@ export function useSocket(userId) {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('[Socket] Connected:', socket.id);
+      console.log('[Socket][Chat] Connected:', socket.id);
       setIsConnected(true);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('[Socket] Disconnected:', reason);
+      console.log('[Socket][Chat] Disconnected:', reason);
       setIsConnected(false);
     });
 
@@ -44,7 +42,6 @@ export function useSocket(userId) {
     });
 
     return () => {
-      console.log('[Socket] Cleanup');
       socket.disconnect();
       socketRef.current = null;
       currentConversationRoomRef.current = null;
@@ -58,13 +55,13 @@ export function useSocket(userId) {
     // Leave previous room if exists
     if (currentConversationRoomRef.current) {
       socketRef.current.emit('leave:conversation', currentConversationRoomRef.current);
-      console.log('[Socket] Left conversation:', currentConversationRoomRef.current);
+      console.log('[Socket][Chat] Left conversation:', currentConversationRoomRef.current);
     }
 
     // Join new room
     socketRef.current.emit('join:conversation', conversationId);
     currentConversationRoomRef.current = conversationId;
-    console.log('[Socket] Joined conversation:', conversationId);
+    console.log('[Socket][Chat] Joined conversation:', conversationId);
   };
 
   // Leave conversation room
@@ -72,7 +69,7 @@ export function useSocket(userId) {
     if (!socketRef.current?.connected || !currentConversationRoomRef.current) return;
 
     socketRef.current.emit('leave:conversation', currentConversationRoomRef.current);
-    console.log('[Socket] Left conversation:', currentConversationRoomRef.current);
+    console.log('[Socket][Chat] Left conversation:', currentConversationRoomRef.current);
     currentConversationRoomRef.current = null;
   };
 

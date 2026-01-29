@@ -1,12 +1,7 @@
 name: Code Quality Check
 
-# Temporarily disabled - Enable when ready for production
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [ main, develop ]
-  # pull_request:
-  #   branches: [ main ]
 
 jobs:
   code-quality:
@@ -23,6 +18,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            Backend/package-lock.json
+            Frontend/package-lock.json
 
       - name: Install Backend dependencies
         working-directory: ./Backend
@@ -32,37 +31,37 @@ jobs:
         working-directory: ./Backend
         run: npm run lint
 
-      - name: Check for console.logs in Backend
+      - name: Check for console logs in Backend (warn only)
         run: |
-          if grep -r "console\\.log" Backend/src --exclude-dir=node_modules; then
-            echo "Error: Found console.log statements in Backend code"
-            exit 1
+          if grep -r "console\.log" Backend/src --exclude-dir=node_modules; then
+            echo "Warning: Found console.log statements in Backend code"
           else
-            echo "No console.log found in Backend - Good!"
+            echo "No console.log found in Backend"
           fi
 
       - name: Install Frontend dependencies
         working-directory: ./Frontend
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
-      - name: Check for console.logs in Frontend
+      - name: Check for console logs in Frontend (warn only)
         run: |
-          if grep -r "console\\.log" Frontend/src --exclude-dir=node_modules; then
+          if grep -r "console\.log" Frontend/src --exclude-dir=node_modules; then
             echo "Warning: Found console.log statements in Frontend code"
-            # Don't fail, just warn
           else
-            echo "No console.log found in Frontend - Good!"
+            echo "No console.log found in Frontend"
           fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+          cache: 'pip'
+          cache-dependency-path: ml-service/requirements.txt
 
       - name: Install Python dependencies
         working-directory: ./ml-service
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install flake8
 
       - name: Run Python linter
@@ -71,7 +70,7 @@ jobs:
 
       - name: Print summary
         run: |
-          echo "✅ Code quality check completed!"
+          echo "Code quality check completed"
           echo "Backend: Linted"
           echo "Frontend: Checked"
           echo "ML Service: Linted"

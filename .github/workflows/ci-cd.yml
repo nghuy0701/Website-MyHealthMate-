@@ -17,15 +17,22 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ==========================================================================
   # TEST & BUILD STAGE
   # ==========================================================================
-  
+
   backend-test:
     name: Backend - Lint & Build
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./Backend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,21 +45,21 @@ jobs:
           cache-dependency-path: Backend/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./Backend
         run: npm ci
 
       - name: Run ESLint
-        working-directory: ./Backend
         run: npm run lint
 
       - name: Build with Babel
-        working-directory: ./Backend
         run: npm run build
 
   frontend-test:
-    name: Frontend - Build & Test
+    name: Frontend - Build
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./Frontend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,11 +72,9 @@ jobs:
           cache-dependency-path: Frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./Frontend
         run: npm ci --legacy-peer-deps
 
       - name: Build with Vite
-        working-directory: ./Frontend
         run: npm run build
         env:
           VITE_API_URL: http://localhost:8017/api/v1
@@ -77,7 +82,10 @@ jobs:
   ml-service-test:
     name: ML Service - Python Syntax Check
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./ml-service
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -90,48 +98,46 @@ jobs:
           cache-dependency-path: ml-service/requirements.txt
 
       - name: Install dependencies
-        working-directory: ./ml-service
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Check Python syntax
-        working-directory: ./ml-service
         run: python -m py_compile app.py config.py utils.py
 
   # ==========================================================================
   # SUMMARY
   # ==========================================================================
-  
+
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-test, ml-service-test]
     if: always()
-    
+
     steps:
       - name: Test Results Summary
         run: |
           echo "=========================================="
-          echo "✅ CI PIPELINE COMPLETED"
+          echo "CI PIPELINE COMPLETED"
           echo "=========================================="
           echo "Backend Test: ${{ needs.backend-test.result }}"
           echo "Frontend Test: ${{ needs.frontend-test.result }}"
           echo "ML Service Test: ${{ needs.ml-service-test.result }}"
           echo "=========================================="
-          
+
           if [ "${{ needs.backend-test.result }}" == "failure" ] || [ "${{ needs.frontend-test.result }}" == "failure" ] || [ "${{ needs.ml-service-test.result }}" == "failure" ]; then
-            echo "❌ Some tests failed!"
+            echo "Some tests failed"
             exit 1
           else
-            echo "✅ All tests passed!"
+            echo "All tests passed"
           fi
 
 # ==============================================================================
 # DEPLOYMENT STAGE (DISABLED - Local Development Only)
-# ==============================================================================
+# ============================================================================== 
 # Uncomment sections below when ready to deploy to production
-# ==============================================================================
+# ============================================================================== 
 
 #  build-and-push:
 #    name: Build & Push Docker Images
@@ -139,4 +145,3 @@ jobs:
 #    needs: [backend-test, frontend-test, ml-service-test]
 #    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 #    ... (deployment code here)
-

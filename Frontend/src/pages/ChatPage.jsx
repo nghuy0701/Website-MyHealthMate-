@@ -589,7 +589,6 @@ export function ChatPage() {
         );
 
         if (update) {
-          console.log('[ChatPage] Updating message status:', msg.id, 'to', update.status);
           return { ...msg, status: update.status };
         }
         return msg;
@@ -802,7 +801,6 @@ export function ChatPage() {
       } else {
         // Load patient's conversations (direct + groups)
         const response = await chatAPI.getPatientConversation();
-        console.log('[ChatPage] Patient conversation response:', response);
         const conversations = response.data || [];
 
         if (Array.isArray(conversations) && conversations.length > 0) {
@@ -852,7 +850,6 @@ export function ChatPage() {
           setConversations(transformedConversations);
         } else {
           // No conversations at all
-          console.warn('[ChatPage] No conversations found for patient');
           setConversations([]);
           // Don't set error immediately - patient might not have been assigned yet
           setError(null);
@@ -893,12 +890,24 @@ export function ChatPage() {
 
       // Send to server in background (fire and forget)
       await chatAPI.markAsRead(conversationId);
-      console.log('[ChatPage] Marked conversation as read:', conversationId);
     } catch (err) {
       console.error('[ChatPage] Error marking as read:', err);
       // Don't revert UI - user experience is more important
     }
   };
+
+  // Keep notification store in sync with current conversation
+  useEffect(() => {
+    if (selectedConversationId && selectedConversationId !== 'new') {
+      setCurrentConversationId(selectedConversationId);
+    } else {
+      setCurrentConversationId(null);
+    }
+
+    return () => {
+      setCurrentConversationId(null);
+    };
+  }, [selectedConversationId, setCurrentConversationId]);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -923,13 +932,11 @@ export function ChatPage() {
       if (hasUnreadFromOthers) {
         try {
           await chatAPI.markMessagesAsSeen(conversationId);
-          console.log('[ChatPage] Marked messages as seen for conversation:', conversationId);
         } catch (err) {
           console.error('[ChatPage] Error marking messages as seen:', err);
           // Don't fail the whole operation if marking as seen fails
         }
       } else {
-        console.log('[ChatPage] No unread messages to mark as seen');
       }
 
       // Auto-scroll to bottom when opening conversation
@@ -960,20 +967,8 @@ export function ChatPage() {
   // Get display name for typing user
   const getTypingUserName = () => {
     if (!typingUserId) {
-      console.log('[ChatPage] No typingUserId');
       return null;
     }
-
-    console.log('[ChatPage] Computing typing user name:', {
-      typingUserId,
-      typingUserIdType: typeof typingUserId,
-      selectedConversationDoctorId: selectedConversation?.doctor?.id,
-      doctorIdType: typeof selectedConversation?.doctor?.id,
-      selectedConversationDoctorName: selectedConversation?.doctor?.name,
-      isDoctor,
-      idsMatch: selectedConversation?.doctor?.id === typingUserId,
-      idsMatchStrict: selectedConversation?.doctor?.id?.toString() === typingUserId?.toString()
-    });
 
     // In doctor-patient chat, the typing user is the conversation partner
     // Convert both IDs to strings for comparison
@@ -986,21 +981,17 @@ export function ChatPage() {
 
       if (isDoctor) {
         // Doctor viewing patient - return patient name
-        console.log('[ChatPage] Returning patient name:', name);
         return name;
       } else {
         // Patient viewing doctor - return "Bác sĩ <doctor name>"
-        console.log('[ChatPage] Returning doctor name:', name);
         return `Bác sĩ ${name}`;
       }
     }
 
-    console.log('[ChatPage] IDs do not match, returning null');
     return null;
   };
 
   const typingUserName = getTypingUserName();
-  console.log('[ChatPage] Final typing user name:', typingUserName);
 
   const handleSendMessage = async (content, attachments = []) => {
     if (!content.trim() && attachments.length === 0) return;
@@ -1077,13 +1068,11 @@ export function ChatPage() {
     if (!predictionId) return;
 
     try {
-      console.log('[ChatPage] Fetching prediction detail:', predictionId);
       const response = await predictionAPI.getById(predictionId);
       const prediction = response.data;
 
       setSelectedPrediction(prediction);
       setIsPredictionModalOpen(true);
-      console.log('[ChatPage] Prediction detail loaded:', prediction);
     } catch (err) {
       console.error('[ChatPage] Error loading prediction detail:', err);
     }
@@ -1102,14 +1091,12 @@ export function ChatPage() {
     }
 
     try {
-      console.log('[ChatPage] Creating group:', { groupName, patientIds: selectedPatients });
 
       const response = await chatAPI.createGroupConversation({
         groupName: groupName.trim(),
         patientIds: selectedPatients
       });
 
-      console.log('[ChatPage] Group created, response:', response);
 
       // Close modal and reset
       setIsGroupModalOpen(false);
@@ -1121,7 +1108,6 @@ export function ChatPage() {
       const conversationId = response.conversation?.conversationId;
       if (conversationId) {
         const convIdString = conversationId.toString();
-        console.log('[ChatPage] Auto-selecting new group:', convIdString);
         setSelectedConversationId(convIdString);
       }
     } catch (error) {
@@ -1132,40 +1118,29 @@ export function ChatPage() {
 
   // Leave group conversation
   const handleLeaveGroup = () => {
-    console.log('[ChatPage] handleLeaveGroup called, selectedConversationId:', selectedConversationId);
-    console.log('[ChatPage] Before setState - isLeaveGroupModalOpen:', isLeaveGroupModalOpen);
     setIsLeaveGroupModalOpen(true);
-    console.log('[ChatPage] After setState - setting to true');
   };
 
   const confirmLeaveGroup = async () => {
     if (!selectedConversationId) return;
 
-    console.log('[ChatPage] confirmLeaveGroup - Start leaving group:', selectedConversationId);
 
     try {
       // Bước 1: Call API to leave group (remove from database)
-      console.log('[ChatPage] Step 1: Calling API to leave group...');
       await chatAPI.leaveGroup(selectedConversationId);
-      console.log('[ChatPage] Step 1: Successfully left group on server');
 
       // Bước 2: Leave socket room
-      console.log('[ChatPage] Step 2: Leaving socket room:', selectedConversationId);
       leaveConversation();
 
       // BƯớc 3: Remove conversation from local state
-      console.log('[ChatPage] Step 3: Removing conversation from state');
       setConversations(prev => prev.filter(c => c.id !== selectedConversationId));
 
       // BƯớc 4: Clear selected conversation
-      console.log('[ChatPage] Step 4: Clearing selected conversation');
       setSelectedConversationId(null);
 
       // BƯớc 5: Close modal
-      console.log('[ChatPage] Step 5: Closing modal');
       setIsLeaveGroupModalOpen(false);
 
-      console.log('[ChatPage] Successfully left group');
     } catch (error) {
       console.error('[ChatPage] Error leaving group:', error);
       alert('Không thể rời nhóm. Vui lòng thử lại.');
@@ -1529,4 +1504,4 @@ export function ChatPage() {
       />
     </>
   );
-}
+};

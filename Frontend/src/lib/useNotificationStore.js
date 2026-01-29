@@ -2,7 +2,52 @@ import { create } from 'zustand';
 import { io } from 'socket.io-client';
 import { notificationAPI } from './api';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:8017';
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8017';
+
+const normalizeId = (value) => {
+  if (value === null || value === undefined) return undefined;
+  return value?.toString ? value.toString() : value;
+};
+
+const normalizeNotification = (notification) => {
+  if (!notification || typeof notification !== 'object') return null;
+
+  return {
+    ...notification,
+    id: normalizeId(
+      notification.id ??
+      notification._id ??
+      notification.notificationId ??
+      notification.messageId
+    ),
+    createdAt: notification.createdAt ?? notification.created_at ?? notification.timestamp,
+    isRead: notification.isRead ?? notification.read ?? notification.is_read ?? false
+  };
+};
+
+const buildChatNotificationFromMessage = (data) => {
+  if (!data || typeof data !== 'object') return null;
+
+  const conversationId = normalizeId(data.conversationId);
+  const messageId = normalizeId(data.messageId ?? data.id);
+  const hasAttachments = Array.isArray(data.attachments) && data.attachments.length > 0;
+  const description = data.content || (hasAttachments ? '[Attachment]' : 'You have a new message');
+
+  return normalizeNotification({
+    id: messageId ? `msg:${messageId}` : undefined,
+    type: 'chat',
+    title: data.senderName ? `New message from ${data.senderName}` : 'New message',
+    description,
+    isRead: false,
+    createdAt: data.createdAt,
+    meta: {
+      ...(data.meta || {}),
+      conversationId,
+      messageId
+    },
+    link: '/chat'
+  });
+};
 
 /**
  * Zustand Store quản lý hệ thống thông báo
@@ -27,7 +72,6 @@ export const useNotificationStore = create((set, get) => ({
    */
   initSocket: (userId) => {
     if (!userId) {
-      console.warn('[Notification] ⚠️ Không thể kết nối socket - thiếu userId');
       return;
     }
 
@@ -36,35 +80,63 @@ export const useNotificationStore = create((set, get) => ({
       return; // Socket đã kết nối rồi
     }
 
-    console.log('[Notification] 🔌 Đang kết nối socket...');
-
+    const currentUserId = normalizeId(userId);
     const socket = io(SOCKET_URL, {
+      auth: {
+        userId: userId  // Backend requires this for authentication
+      },
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
 
     // Khi kết nối thành công
     socket.on('connect', () => {
-      console.log('[Notification] ✅ Socket đã kết nối');
-      socket.emit('join', userId); // Join room của user
+      console.log('[Socket][Notification] Connected:', socket.id);
     });
 
-    // Khi nhận thông báo mới từ server
-    socket.on('notification:new', ({ notification }) => {
-      console.log('[Notification] 🔔 Nhận thông báo mới:', notification.type);
 
-      // Không hiển thị thông báo chat nếu user đang ở trong cuộc trò chuyện đó
-      const currentConversationId = get().currentConversationId;
+
+    // Khi nhận thông báo mới từ server
+    socket.on('notification:new', (payload) => {
+      const notification = normalizeNotification(payload?.notification ?? payload);
+      if (!notification) {
+        return;
+      }
+
+      // Kh??ng hi????n th??? th??ng b??o chat n???u user ??ang ??? trong cu???c tr?? chuy???n ????
+      const currentConversationId = normalizeId(get().currentConversationId);
+      const notificationConversationId = normalizeId(notification.meta?.conversationId);
+
       if (notification.type === 'chat' &&
-        notification.meta?.conversationId === currentConversationId) {
-        return; // Bỏ qua thông báo này
+        notificationConversationId && notificationConversationId === currentConversationId) {
+        return; // B??? qua th??ng b??o n??y
       }
 
       get().addNotification(notification);
     });
 
+    socket.on('message:new', (data) => {
+      if (!data) return;
+
+      const senderId = normalizeId(data.senderId);
+      if (senderId && currentUserId && senderId === currentUserId) {
+        return;
+      }
+
+      const currentConversationId = normalizeId(get().currentConversationId);
+      const conversationId = normalizeId(data.conversationId);
+      if (conversationId && currentConversationId && conversationId === currentConversationId) {
+        return;
+      }
+
+      const notification = buildChatNotificationFromMessage(data);
+      if (notification) {
+        get().addNotification(notification);
+      }
+    });
+
     socket.on('disconnect', () => {
-      console.log('[Notification] ⚠️ Socket đã ngắt kết nối');
+      console.log('[Socket][Notification] Disconnected');
     });
 
     set({ socket });
@@ -88,7 +160,6 @@ export const useNotificationStore = create((set, get) => ({
    */
   loadNotifications: async (userRole) => {
     if (!userRole) {
-      console.warn('[Notification] ⚠️ Thiếu user role');
       return;
     }
 
@@ -96,7 +167,9 @@ export const useNotificationStore = create((set, get) => ({
       set({ isLoading: true });
 
       const response = await notificationAPI.getMyNotifications();
-      const notifications = response.data || [];
+      const notifications = (response.data || [])
+        .map(normalizeNotification)
+        .filter(Boolean);
 
       // Backend đã filter theo role rồi, dùng trực tiếp
       set({
@@ -131,15 +204,25 @@ export const useNotificationStore = create((set, get) => ({
    * @param {Object} notification - Thông báo mới
    */
   addNotification: (notification) => {
-    set((state) => ({
-      notifications: [notification, ...state.notifications],
-      unreadCount: state.unreadCount + 1
-    }));
+    const normalized = normalizeNotification(notification);
+    if (!normalized) return;
 
-    // Hiển thị browser notification nếu được phép
+    set((state) => {
+      if (normalized.id && state.notifications.some(n => n.id === normalized.id)) {
+        return state;
+      }
+
+      const isUnread = normalized.isRead === false;
+      return {
+        notifications: [normalized, ...state.notifications],
+        unreadCount: state.unreadCount + (isUnread ? 1 : 0)
+      };
+    });
+
+    // Hi???n th??? browser notification n???u ???????c ph??p
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(notification.title, {
-        body: notification.description,
+      new Notification(normalized.title, {
+        body: normalized.description,
         icon: '/logo.png'
       });
     }
@@ -225,6 +308,11 @@ export const useNotificationStore = create((set, get) => ({
    */
   openDrawer: () => {
     set({ isDrawerOpen: true });
+
+    const { unreadCount } = get();
+    if (unreadCount > 0) {
+      get().markAllAsRead();
+    }
   },
 
   /**

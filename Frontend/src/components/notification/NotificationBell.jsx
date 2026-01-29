@@ -20,7 +20,6 @@ export function NotificationBell() {
     return (
         <button
             onClick={() => {
-                console.log('[NotificationBell] Opening drawer');
                 openDrawer();
             }}
             className="relative text-gray-600 hover:text-green-600 transition-colors"

@@ -38,22 +38,13 @@ export function MessageComposer({ onSendMessage, onTypingChange, disabled }) {
           const formData = new FormData();
           formData.append('file', item.file);
           
-          // Debug: Log FormData contents
-          console.log('[MessageComposer] Uploading file:', {
-            name: item.file.name,
-            type: item.file.type,
-            size: item.file.size
-          });
-          
           const response = await chatAPI.uploadFile(formData);
-          console.log('[MessageComposer] Upload response:', response);
           
           // Backend returns data directly (not wrapped in .data)
           return response;
         });
         
         attachments = await Promise.all(uploadPromises);
-        console.log('[MessageComposer] All uploads complete:', attachments);
       }
       
       // Send message with attachments

@@ -22,6 +22,7 @@ import { AdminVerifyEmailPage } from './pages/admin/AdminVerifyEmailPage.jsx';
 import { Toaster } from './components/ui/sonner';
 
 export default function App() {
+
   return (
     <BrowserRouter>
       <AdminProvider>
