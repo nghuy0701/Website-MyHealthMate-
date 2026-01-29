@@ -294,7 +294,7 @@ const createGroupConversation = async (req, res, next) => {
           participantCount: result.participants.length,
           createdAt: Date.now()
         })
-        console.log('[chatController] Emitted conversation:created to user room:', userId)
+
       })
     }
 
@@ -333,8 +333,7 @@ const leaveGroup = async (req, res, next) => {
         groupName: result.groupName
       })
 
-      console.log('[chatController] User left group:', userId, conversationId)
-      console.log('[chatController] Remaining participants:', result.participants.length)
+
     }
 
     res.status(StatusCodes.OK).json({
@@ -356,12 +355,8 @@ const markMessagesAsSeen = async (req, res, next) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Conversation ID is required')
     }
 
-    console.log('[chatController] markMessagesAsSeen called:', { userId, conversationId })
-
     // Mark messages as seen and get updated messages
     const updatedMessages = await chatService.markMessagesAsSeen(conversationId, userId)
-
-    console.log('[chatController] Updated messages count:', updatedMessages.length)
 
     // Emit socket event to notify senders
     if (req.app.get('io') && updatedMessages.length > 0) {
@@ -376,8 +371,6 @@ const markMessagesAsSeen = async (req, res, next) => {
         bySender[msg.senderId].push(msg.messageId)
       })
 
-      console.log('[chatController] Emitting status updates to senders:', Object.keys(bySender))
-
       // Emit to conversation room (all participants will receive it)
       // Frontend will filter to only update messages from the correct sender
       const payload = {
@@ -390,11 +383,9 @@ const markMessagesAsSeen = async (req, res, next) => {
         seenBy: userId
       }
 
-      console.log('[chatController] Emitting to conversation room:', conversationId, payload)
       io.to(conversationId).emit('message:status_update', payload)
-    } else {
-      console.log('[chatController] No messages to update or no socket IO')
     }
+
 
     res.status(StatusCodes.OK).json({
       message: 'Messages marked as seen',

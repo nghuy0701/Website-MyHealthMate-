@@ -312,7 +312,7 @@ export function ChatPage() {
   // Branch logic by user role
   const isDoctor = user?.role === 'doctor';
 
-  console.log('[ChatPage] Component render - user role:', user?.role, 'isDoctor:', isDoctor);
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -338,7 +338,7 @@ export function ChatPage() {
   // Get userId early
   const userId = user?._id?.toString() || user?.id?.toString();
 
-  console.log('[ChatPage] Render - userId:', userId, 'conversations:', conversations.length);
+
 
   // Scroll to bottom of messages container (NOT window)
   const scrollToBottom = useCallback(() => {
@@ -351,9 +351,7 @@ export function ChatPage() {
     }
   }, []);
 
-  // Socket event handlers - stable with useCallback
   const handleConversationCreated = useCallback((data) => {
-    console.log('[ChatPage] Received conversation:created:', data);
 
     const newConversation = {
       id: data.conversationId.toString(),
@@ -375,11 +373,9 @@ export function ChatPage() {
     };
 
     setConversations(prev => [newConversation, ...prev]);
-    console.log('[ChatPage] Added new group to conversations');
   }, []);
 
   const handleConversationUpdated = useCallback((data) => {
-    console.log('[ChatPage] Received conversation:updated:', data);
 
     setConversations(prev => {
       const exists = prev.find(c => c.id === data.conversationId.toString());
@@ -397,7 +393,6 @@ export function ChatPage() {
         );
       } else {
         // New conversation - reload to get full details
-        console.log('[ChatPage] New conversation detected, reloading list');
         if (loadConversationsRef.current) {
           loadConversationsRef.current();
         }
@@ -407,7 +402,6 @@ export function ChatPage() {
   }, []);
 
   const handleUserOnline = useCallback((data) => {
-    console.log('[ChatPage] User online:', data.userId);
     setOnlineUsers(prev => {
       if (prev.has(data.userId)) return prev; // Already online, no update needed
       const updated = new Set(prev);
@@ -417,7 +411,6 @@ export function ChatPage() {
   }, []);
 
   const handleUserOffline = useCallback((data) => {
-    console.log('[ChatPage] User offline:', data.userId);
     setOnlineUsers(prev => {
       if (!prev.has(data.userId)) return prev; // Already offline, no update needed
       const updated = new Set(prev);
@@ -426,9 +419,7 @@ export function ChatPage() {
     });
   }, []);
 
-  // Handle group member leaving
   const handleGroupMemberLeft = useCallback((data) => {
-    console.log('[ChatPage] Member left group:', data);
 
     // Update conversations list to reflect new participant count
     setConversations(prev => prev.map(conv => {
@@ -473,7 +464,6 @@ export function ChatPage() {
   });
 
   const handleNewMessage = useCallback((data) => {
-    console.log('[ChatPage] Received new message:', data);
     const convId = data.conversationId.toString();
     const currentSelectedId = selectedConversationIdRef.current;
     const currentUserId = userIdRef.current;
@@ -523,7 +513,6 @@ export function ChatPage() {
   }, []); // NO dependencies!
 
   const handleTypingStart = useCallback((data) => {
-    console.log('[ChatPage] Received typing:start', data);
     const currentUserId = userIdRef.current;
     const currentSelectedId = selectedConversationIdRef.current;
 
@@ -531,24 +520,19 @@ export function ChatPage() {
       // Update typing for selected conversation (for message area)
       if (data.conversationId === currentSelectedId) {
         setTypingUserId(data.senderId);
-        console.log('[ChatPage] Set typing user in chat:', data.senderId);
       }
 
-      // Update typing for conversation list (for all conversations)
       setTypingConversations(prev => ({
         ...prev,
         [data.conversationId]: data.senderId
       }));
-      console.log('[ChatPage] Set typing in conversation list:', data.conversationId, data.senderId);
 
       // Clear any existing timeout for this conversation
       if (typingTimeoutsRef.current[data.conversationId]) {
         clearTimeout(typingTimeoutsRef.current[data.conversationId]);
       }
 
-      // Set new timeout to auto-clear after 10 seconds of inactivity
       typingTimeoutsRef.current[data.conversationId] = setTimeout(() => {
-        console.log('[ChatPage] Auto-clearing typing indicator for:', data.conversationId);
 
         // Clear typing for selected conversation
         if (data.conversationId === currentSelectedId) {
@@ -569,7 +553,6 @@ export function ChatPage() {
   }, []); // NO dependencies!
 
   const handleTypingStop = useCallback((data) => {
-    console.log('[ChatPage] Received typing:stop', data);
     const currentSelectedId = selectedConversationIdRef.current;
 
     if (typingTimeoutsRef.current[data.conversationId]) {
@@ -586,15 +569,12 @@ export function ChatPage() {
       const updated = { ...prev };
       if (updated[data.conversationId] === data.senderId) {
         delete updated[data.conversationId];
-        console.log('[ChatPage] Cleared typing in conversation list:', data.conversationId);
       }
       return updated;
     });
   }, []);
 
-  // Handle message status update
   const handleMessageStatusUpdate = useCallback((data) => {
-    console.log('[ChatPage] Received message:status_update:', data);
     const { conversationId, updates, seenBy } = data;
     const currentSelectedId = selectedConversationIdRef.current;
     const currentUserId = userIdRef.current;
@@ -624,7 +604,6 @@ export function ChatPage() {
   useEffect(() => {
     if (!isConnected) return;
 
-    console.log('[ChatPage] Registering socket event handlers');
     on('message:new', handleNewMessage);
     on('typing:start', handleTypingStart);
     on('typing:stop', handleTypingStop);
@@ -636,7 +615,6 @@ export function ChatPage() {
     on('message:status_update', handleMessageStatusUpdate);
 
     return () => {
-      console.log('[ChatPage] Unregistering socket event handlers');
       off('message:new', handleNewMessage);
       off('typing:start', handleTypingStart);
       off('typing:stop', handleTypingStop);
@@ -671,7 +649,6 @@ export function ChatPage() {
         clearTimeout(timeout);
       });
       typingTimeoutsRef.current = {};
-      console.log('[ChatPage] Cleared all typing timeouts on unmount');
     };
   }, []);
 
@@ -679,18 +656,12 @@ export function ChatPage() {
   useEffect(() => {
     if (!selectedConversationId || selectedConversationId === 'new' || !isConnected) return;
 
-    console.log('[ChatPage] Joining conversation room:', selectedConversationId);
     joinConversation(selectedConversationId);
     // No cleanup needed - useSocket handles leaving when joining another room
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversationId, isConnected]);
 
-  // Debug log
-  useEffect(() => {
-    console.log('[ChatPage] User:', user);
-    console.log('[ChatPage] User ID for Socket:', userId);
-    console.log('[ChatPage] Socket connected:', isConnected);
-  }, [user, userId, isConnected]);
+
 
   // Load conversations based on role
   useEffect(() => {
@@ -715,40 +686,20 @@ export function ChatPage() {
       return;
     }
 
-    console.log('[ChatPage] Prediction history useEffect called with deps:', {
-      isDoctor,
-      selectedConversationId,
-      conversationsLength: conversations.length,
-      userId
-    });
-
     const fetchPredictionHistory = async () => {
-      // Skip if no conversation selected or conversations not loaded yet
       if (!selectedConversationId) {
-        console.log('[ChatPage] Skipping - no conversation selected');
         setPatientHistory([]);
         return;
       }
 
       if (conversations.length === 0) {
-        console.log('[ChatPage] Skipping - conversations not loaded yet');
         return;
       }
 
       // Get current selected conversation
       const currentConversation = conversations.find(c => c.id === selectedConversationId);
 
-      console.log('[ChatPage] Prediction history effect triggered:', {
-        isDoctor,
-        userId,
-        selectedConversationId,
-        hasConversation: !!currentConversation,
-        conversationsLength: conversations.length,
-        currentConversation
-      });
-
       if (!currentConversation) {
-        console.log('[ChatPage] No conversation found for ID:', selectedConversationId);
         setPatientHistory([]);
         return;
       }
@@ -757,24 +708,15 @@ export function ChatPage() {
 
       // Patient viewing own history: use current user's ID
       targetPatientId = userId;
-      console.log('[ChatPage] Patient view - own ID:', targetPatientId);
 
       if (!targetPatientId) {
-        console.log('[ChatPage] No valid patientId found');
         setPatientHistory([]);
         return;
       }
 
       try {
         setIsLoadingHistory(true);
-        console.log('[ChatPage] Fetching prediction history for patient:', targetPatientId);
-
-        // Use getMyPredictions for patient view
         const response = await predictionAPI.getMyPredictions();
-
-        console.log('[ChatPage] API response:', response);
-        console.log('[ChatPage] API response.data:', response.data);
-        console.log('[ChatPage] API response.data type:', Array.isArray(response.data), 'length:', response.data?.length);
         const predictions = response.data || [];
 
         // Transform predictions to history format
@@ -789,7 +731,6 @@ export function ChatPage() {
         }));
 
         setPatientHistory(formattedHistory);
-        console.log('[ChatPage] Loaded prediction history:', formattedHistory.length, 'items');
       } catch (err) {
         console.error('[ChatPage] Error loading prediction history:', err);
         setPatientHistory([]); // Clear on error
@@ -799,7 +740,8 @@ export function ChatPage() {
     };
 
     fetchPredictionHistory();
-  }, [isDoctor, selectedConversationId, conversations, userId]); // Add back conversations as dependency
+  }, [isDoctor, selectedConversationId, conversations, userId]);
+
 
   const loadConversations = async () => {
     try {

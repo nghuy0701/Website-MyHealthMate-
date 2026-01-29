@@ -110,7 +110,6 @@ const GroupInfoPanelComponent = ({
           variant="outline"
           className="w-full flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           onClick={() => {
-            console.log('[GroupInfoPanel] Leave group clicked');
             if (onLeaveGroup) {
               onLeaveGroup();
             } else {

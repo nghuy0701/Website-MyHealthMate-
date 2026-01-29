@@ -18,22 +18,6 @@ const MessageBubbleComponent = ({ message, isOwn, showSenderName = false }) => {
     };
   };
 
-  // Debug logging
-  if (attachments && attachments.length > 0) {
-    console.log('[MessageBubble] Rendering message with attachments:', {
-      messageId: message.id,
-      content,
-      attachmentsCount: attachments.length,
-      attachments
-    });
-
-    // Log each attachment details
-    attachments.forEach((att, idx) => {
-      const normalized = normalizeAttachment(att);
-      console.log(`[MessageBubble] Attachment ${idx} (original):`, att);
-      console.log(`[MessageBubble] Attachment ${idx} (normalized):`, normalized);
-    });
-  }
 
   // Format timestamp to HH:mm
   const formatTime = (timestamp) => {
@@ -102,25 +86,15 @@ const MessageBubbleComponent = ({ message, isOwn, showSenderName = false }) => {
                 // Normalize attachment fields
                 const normalized = normalizeAttachment(attachment);
 
-                console.log('[MessageBubble] Rendering attachment:', { original: attachment, normalized });
-
                 // Guard against null/undefined or missing URL
                 if (!normalized || !normalized.url) {
-                  console.warn('[MessageBubble] Skipping invalid attachment at index', index, normalized);
+                  console.warn('[MessageBubble] Skipping invalid attachment at index', index);
                   return null;
                 }
 
                 // Determine if it's an image
                 const isImage = normalized.type === 'image' ||
                   (normalized.mimeType && normalized.mimeType.startsWith('image/'));
-
-                console.log('[MessageBubble] Attachment decision:', {
-                  index,
-                  isImage,
-                  url: normalized.url,
-                  filename: normalized.filename,
-                  mimeType: normalized.mimeType
-                });
 
                 return (
                   <div key={index} className="attachment-wrapper">
