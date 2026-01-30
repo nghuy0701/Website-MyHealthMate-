@@ -14,7 +14,7 @@ const WIDGET_WIDTH = 480;
 const WIDGET_HEIGHT = 560;
 const PREDICT_PATH = "/du-doan";
 
-// ✅ Trang tư vấn
+// Trang tư vấn
 const CONSULT_PATH = "/chat";
 
 const DOCTORS = [
@@ -30,7 +30,7 @@ const OUT_OF_HOURS_MESSAGE =
   "🙏 Rất mong Quý khách thông cảm vì sự bất tiện này.\n" +
   "Xin trân trọng cảm ơn!";
 
-// ✅ Giờ làm việc: 08:00 - 22:00 (mỗi ngày)
+// Giờ làm việc: 08:00 - 22:00 (mỗi ngày)
 function isWorkingHour() {
   const now = new Date();
   const hour = now.getHours();
@@ -57,11 +57,11 @@ function chipStyle() {
 
 export function AiMedicalAssistantMiniChat() {
   const [isClient, setIsClient] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
 
-  // ✅ AI typing
+  //  AI typing
   const [isAITyping, setIsAITyping] = useState(false);
 
   const [messages, setMessages] = useState(() => [
@@ -81,7 +81,7 @@ export function AiMedicalAssistantMiniChat() {
     window.location.href = PREDICT_PATH;
   };
 
-  // ✅ Chuyển sang trang tư vấn + truyền doctorId
+  // Chuyển sang trang tư vấn + truyền doctorId
   const goToConsult = (doctorId) => {
     const url = `${CONSULT_PATH}?doctorId=${encodeURIComponent(doctorId)}`;
     window.location.href = url;
@@ -130,7 +130,7 @@ export function AiMedicalAssistantMiniChat() {
   const pushUserText = (text) =>
     setMessages((prev) => [...prev, { id: makeId(), from: "user", type: "text", text }]);
 
-  // ✅ helper: AI typing rồi mới trả lời
+  // helper: AI typing rồi mới trả lời
   const pushAssistantWithTyping = (payload, delay = 800) => {
     setIsAITyping(true);
     setTimeout(() => {
@@ -236,7 +236,7 @@ export function AiMedicalAssistantMiniChat() {
       return;
     }
 
-    // ✅ user muốn tư vấn bác sĩ -> mở modal chọn bác sĩ
+    // user muốn tư vấn bác sĩ -> mở modal chọn bác sĩ
     if (
       lower.includes("tư vấn") ||
       lower.includes("tu van") ||
@@ -255,7 +255,7 @@ export function AiMedicalAssistantMiniChat() {
     );
   };
 
-  // ✅ chọn bác sĩ online -> nếu ngoài giờ thì KHÔNG chuyển trang, báo ngay
+  // chọn bác sĩ online -> nếu ngoài giờ thì KHÔNG chuyển trang, báo ngay
   const selectDoctor = (d) => {
     if (!d?.online) {
       pushAssistantWithTyping(
@@ -268,14 +268,14 @@ export function AiMedicalAssistantMiniChat() {
       return;
     }
 
-    // ❌ ngoài giờ
+    // ngoài giờ
     if (!isWorkingHour()) {
       setIsDoctorModalOpen(false);
       pushAssistantWithTyping({ type: "text", text: OUT_OF_HOURS_MESSAGE }, 850);
       return;
     }
 
-    // ✅ trong giờ
+    // trong giờ
     setIsDoctorModalOpen(false);
 
     pushAssistantWithTyping(
