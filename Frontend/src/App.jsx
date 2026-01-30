@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthProvider } from "./lib/auth-context";
 import { AdminProvider } from "./lib/admin-context";
 import { Header } from "./components/Header";
@@ -23,6 +23,9 @@ import { Toaster } from "./components/ui/sonner";
 import { AiMedicalAssistantMiniChat } from "./components/chat/AiMedicalAssistantMiniChat.jsx";
 
 function UserLayout() {
+  const location = useLocation();
+  const isChatPage = location.pathname.startsWith('/chat');
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -31,7 +34,7 @@ function UserLayout() {
       </main>
       <Footer />
       <NotificationDrawer />
-      <AiMedicalAssistantMiniChat />
+      {!isChatPage && <AiMedicalAssistantMiniChat />}
     </div>
   );
 }
